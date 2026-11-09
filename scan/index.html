@@ -178,6 +178,7 @@ body.focus .toast{bottom:calc(86px + env(safe-area-inset-bottom, 0px))}
         <button class="btn" id="btn-share" type="button" hidden>Поділитися</button>
       </div>
       <button class="btn" id="btn-send" type="button" hidden>Надіслати PDF у чат</button>
+      <button class="btn" id="btn-browser" type="button" hidden>Передати в браузер</button>
     </div>
     <p class="savehint" id="savehint" hidden></p>
 
@@ -257,8 +258,10 @@ body.focus .toast{bottom:calc(86px + env(safe-area-inset-bottom, 0px))}
 <script>
 (function(){
   'use strict';
-  /* Where "Надіслати PDF у чат" posts the file. Empty = button hidden. Set to the Cloudflare Worker URL once it is deployed. */
-  var SEND_URL = '';
+  /* Address of the Cloudflare Worker from worker/ (e.g. https://send-scan.<name>.workers.dev). Empty: no
+     "Надіслати PDF у чат" and no hand-off of pages from Telegram to the browser. */
+  var WORKER_URL = '';
+  var API = WORKER_URL.replace(/\/*$/, '/');
 
   var $ = function(s, r){ return (r || document).querySelector(s); };
   var $$ = function(s, r){ return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
@@ -343,8 +346,10 @@ body.focus .toast{bottom:calc(86px + env(safe-area-inset-bottom, 0px))}
     $('#empty').hidden = n > 0;
     $('#actions').hidden = n === 0;
     $('#btn-clear').hidden = n === 0;
-    var canSend = !!(SEND_URL && tg && tg.initData);
+    var canSend = !!(WORKER_URL && tg && tg.initData);
     $('#btn-send').hidden = !canSend;
+    $('#btn-browser').hidden = !(tgAndroid && canSend);
+    handed = null; $('#btn-browser').textContent = 'Передати в браузер';   // pages changed, an earlier hand-off is out of date
     $('#btn-send').classList.toggle('primary', tgAndroid);
     $('#btn-pdf').hidden = $('#btn-jpg').hidden = tgAndroid;
     $('#btn-share').hidden = tgAndroid || !canShare;
@@ -1069,7 +1074,7 @@ body.focus .toast{bottom:calc(86px + env(safe-area-inset-bottom, 0px))}
   function afterDownload(){   // Telegram on iPhone or desktop: a download may still be blocked, say what to do
     var hint = $('#savehint');
     if (!tg){ hint.hidden = true; return; }
-    if (SEND_URL && tg.initData){ hint.textContent = 'Якщо файл не з’явився в завантаженнях, натисни «Надіслати PDF у чат»: бот надішле його тобі в Telegram.'; hint.hidden = false; }
+    if (WORKER_URL && tg.initData){ hint.textContent = 'Якщо файл не з’явився в завантаженнях, натисни «Надіслати PDF у чат»: бот надішле його тобі в Telegram.'; hint.hidden = false; }
     else browserHint('Якщо файл не з’явився в завантаженнях, Telegram не дав його зберегти. Відкрий сканер у браузері й відскануй там.');
   }
   $('#btn-pdf').addEventListener('click', function(){
@@ -1107,20 +1112,70 @@ body.focus .toast{bottom:calc(86px + env(safe-area-inset-bottom, 0px))}
     }).then(function(){ haptic('ok'); }, function(e){ busy(false); if (!isAbort(e)) toast('Не вдалося поділитися.'); });
   });
   $('#btn-send').addEventListener('click', function(){
-    if (!(SEND_URL && tg && tg.initData) || !state.pages.length) return;
+    if (!(WORKER_URL && tg && tg.initData) || !state.pages.length) return;
     busy(true, 'Надсилаю в чат…');
     buildPdf(state.pages).then(function(blob){
       var fd = new FormData();
       fd.append('initData', tg.initData);
       fd.append('file', new File([blob], 'Скан_' + stamp() + '.pdf', {type:'application/pdf'}));
       fd.append('caption', 'Скан, ' + state.pages.length + ' стор.');
-      return fetch(SEND_URL, {method:'POST', body:fd}).then(function(r){ return r.json().catch(function(){ return {ok:false}; }); });
+      return fetch(API, {method:'POST', body:fd}).then(function(r){ return r.json().catch(function(){ return {ok:false}; }); });
     }).then(function(res){
       busy(false);
       if (res && res.ok){ toast('Надіслано в чат з ботом'); haptic('ok'); $('#savehint').hidden = true; }
       else toast('Не вдалося надіслати. Спробуй ще раз.', 3200);
     }).catch(function(){ busy(false); toast('Немає зв’язку. Спробуй ще раз.', 3200); });
   });
+
+  /* ---------------- hand-off: Telegram on Android → browser ----------------
+     Telegram keeps its data apart from the browser, so the pages wait on the Worker for
+     10 minutes under a random id; the browser opens …/scan/#import=<id>, takes them, deletes them. */
+  var handed = null;
+  $('#btn-browser').addEventListener('click', function(){
+    // opening is its own tap: the upload can take a while, and Telegram may ignore links not opened by a tap
+    if (handed){ try { tg.openLink(handed); } catch(e){} return; }
+    if (!state.pages.length) return;
+    busy(true, 'Передаю сторінки…');
+    var fd = new FormData(); fd.append('initData', tg.initData);
+    state.pages.forEach(function(p, i){ fd.append('page', p.blob, 'page' + (i + 1) + '.jpg'); });
+    fetch(API + 'handoff', {method:'POST', body:fd}).then(function(r){ return r.json(); }).then(function(res){
+      busy(false);
+      if (!res || !res.ok || !res.id) throw new Error('refused');
+      var link = handed = location.href.split('#')[0] + '#import=' + res.id;
+      $('#btn-browser').textContent = 'Відкрити в браузері';
+      toast('Сторінки передано. Тепер натисни «Відкрити в браузері».', 4000); haptic('ok');
+      setTimeout(function(){ if (handed === link) renderPages(); }, 9 * 60 * 1000);   // the Worker drops them after 10 minutes
+    }).catch(function(){ busy(false); toast('Не вдалося передати сторінки. Спробуй ще раз.', 3500); });
+  });
+  function wait(ms){ return new Promise(function(res){ setTimeout(res, ms); }); }
+  function importHandoff(){
+    var m = /import=([0-9a-f-]{36})/.exec(location.hash);
+    if (!m || !WORKER_URL) return;
+    history.replaceState(null, '', location.pathname + location.search);
+    var base = API + 'handoff/' + m[1];
+    function meta(tries){   // a fresh upload can take a few seconds to reach every Cloudflare server
+      return fetch(base).then(function(r){
+        if (r.status === 404 && tries > 0) return wait(1500).then(function(){ return meta(tries - 1); });
+        if (!r.ok) throw new Error('gone');
+        return r.json();
+      });
+    }
+    busy(true, 'Отримую сторінки з Telegram…');
+    meta(6).then(function(d){
+      return Promise.all(Array.from({length: Math.min(Number(d.n) || 0, 40)}, function(_, i){
+        return fetch(base + '/' + i).then(function(r){ if (!r.ok) throw new Error('page'); return r.blob(); }).then(function(b){
+          return createImageBitmap(b).then(function(bm){
+            var p = {id: Date.now() + '-' + i + '-' + Math.random().toString(36).slice(2, 6), blob: b, w: bm.width, h: bm.height, url: URL.createObjectURL(b)};
+            bm.close(); return p;
+          });
+        });
+      }));
+    }).then(function(pages){
+      Array.prototype.push.apply(state.pages, pages); savePages(); renderPages();
+      busy(false); toast('Додано сторінок із Telegram: ' + pages.length, 4000);
+      fetch(base, {method:'DELETE'}).catch(function(){});
+    }).catch(function(){ busy(false); toast('Не вдалося отримати сторінки. Посилання діє 10 хвилин: передай їх із Telegram ще раз.', 6000); });
+  }
 
   /* ---------------- Telegram ---------------- */
   if (tg){
@@ -1134,7 +1189,8 @@ body.focus .toast{bottom:calc(86px + env(safe-area-inset-bottom, 0px))}
     } catch(e){}
   }
 
-  loadPages().then(renderPages);
+  loadPages().then(function(){ renderPages(); importHandoff(); });   // import only after stored pages are in, or saving would drop them
+  window.addEventListener('hashchange', importHandoff);
   renderPages();
 })();
 </script>

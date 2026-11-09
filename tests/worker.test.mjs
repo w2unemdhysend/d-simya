@@ -1,4 +1,5 @@
-// Checks the send-scan Worker: Telegram signature check, refusals and the call to sendDocument.
+// Checks the send-scan Worker: Telegram signature check, refusals, the call to sendDocument,
+// and the page hand-off to the browser (with an in-memory stand-in for Cloudflare KV).
 // Run: node tests/worker.test.mjs   (Node 22+, no packages needed)
 import { createHmac } from 'node:crypto';
 import worker from '../worker/send-scan.js';
@@ -39,7 +40,45 @@ for (const [name, init, want, file] of cases) {
   if (!ok) fails++;
   console.log(ok ? 'PASS' : 'FAIL', name, r.status, JSON.stringify(r.body), r.sent ? `→ chat ${r.sent.chat}, ${r.sent.doc.name}` : '');
 }
+function t(name, ok, info = '') { if (!ok) fails++; console.log(ok ? 'PASS' : 'FAIL', name, info); }
 const opt = await worker.fetch(new Request('https://w.example/', { method: 'OPTIONS' }), { BOT_TOKEN: TOKEN });
-console.log(opt.status === 204 ? 'PASS' : 'FAIL', 'preflight', opt.status, opt.headers.get('Access-Control-Allow-Origin'));
+t('preflight', opt.status === 204 && opt.headers.get('Access-Control-Allow-Origin') === 'https://w2unemdhysend.github.io');
+
+// hand-off of pages to the browser
+const kv = new Map();
+const SCANS = {
+  async put(k, v, o) { if (!(o && o.expirationTtl >= 60)) throw new Error('KV needs a TTL of 60 s or more'); kv.set(k, v); },
+  async get(k) { return kv.has(k) ? kv.get(k) : null; },
+  async delete(k) { kv.delete(k); },
+};
+const env = { BOT_TOKEN: TOKEN, SCANS };
+const jpg = (n) => new File([new Uint8Array([0xFF, 0xD8, 0xFF, 0xE0, n, n, n])], `p${n}.jpg`, { type: 'image/jpeg' });
+async function post(initData, files, e = env) {
+  const fd = new FormData(); fd.append('initData', initData); files.forEach((f) => fd.append('page', f));
+  const res = await worker.fetch(new Request('https://w.example/handoff', { method: 'POST', body: fd }), e);
+  return { status: res.status, body: await res.json().catch(() => null) };
+}
+const get = (path, method = 'GET') => worker.fetch(new Request('https://w.example' + path, { method }), env);
+
+let r = await post(sign(base), [jpg(1), jpg(2)]);
+const id = r.body && r.body.id;
+t('handoff: signed upload of 2 pages', r.status === 200 && /^[0-9a-f-]{36}$/.test(id || '') && kv.size === 3, JSON.stringify(r.body));
+let res = await get(`/handoff/${id}`);
+t('handoff: browser sees the page count', res.status === 200 && (await res.json()).n === 2 && res.headers.get('Access-Control-Allow-Origin') === 'https://w2unemdhysend.github.io');
+res = await get(`/handoff/${id}/1`);
+const bytes = new Uint8Array(await res.arrayBuffer());
+t('handoff: page comes back unchanged as JPEG', res.status === 200 && res.headers.get('Content-Type') === 'image/jpeg' && bytes.length === 7 && bytes[4] === 2);
+res = await get(`/handoff/${id}`, 'DELETE');
+t('handoff: delete removes everything', res.status === 200 && kv.size === 0);
+res = await get(`/handoff/${id}`);
+t('handoff: gone after delete', res.status === 404);
+r = await post(sign(base), [jpg(1), new File(['%PDF-1.4'], 'x.jpg')]);
+t('handoff: non-JPEG refused, nothing stored', r.status === 415 && kv.size === 0);
+r = await post(sign(base, '999:other'), [jpg(1)]);
+t('handoff: forged signature refused', r.status === 401 && kv.size === 0);
+r = await post(sign(base), [jpg(1)], { BOT_TOKEN: TOKEN });
+t('handoff: missing KV binding reported', r.status === 500);
+res = await get('/handoff/../../etc');
+t('handoff: malformed id is not found', res.status === 404);
 console.log(fails ? `${fails} FAILED` : 'ALL PASS');
 process.exitCode = fails ? 1 : 0;

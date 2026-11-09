@@ -6,10 +6,12 @@ Needs: playwright, Pillow, numpy. Exits 1 if any check fails.
 Covers: sheet detection and true proportions on four synthetic photos, the four looks,
 pages kept after reload, the PDF, saving (Save As picker, folder picker, cancel, plain
 download where there is no picker) and sharing, the camera (in-page camera on Telegram Android with a
-fake camera, camera access denied, native file input elsewhere) and saving on Telegram
-Android (browser fallback, and sending to the chat through a simulated Worker).
+fake camera, camera access denied, native file input elsewhere) and Telegram on Android
+with a simulated Worker: sending the PDF to the chat and handing the pages to the browser.
 """
 import asyncio, functools, http.server, json, math, os, sys, tempfile, threading
+from email.parser import BytesParser
+from email.policy import default
 from PIL import Image
 from playwright.async_api import async_playwright
 
@@ -165,25 +167,68 @@ async def main(tmp):
         check('camera refused: explains what to do', 'Немає доступу до камери' in (toast or '') and await pg.is_hidden('#cam'))
         await ctx.close()
 
-        # 5. Telegram on Android with the Worker set up: the PDF goes to the chat
-        ctx, pg = await new_page(browser, TG_ANDROID.replace("initData: ''", "initData: 'query_id=AAH&hash=00'"))
-        async def with_send_url(route):
+        # 5. Telegram on Android with the Worker set up: PDF to the chat, pages handed to the browser
+        hid = '0b5e6a3c-1111-4222-8333-944455556666'
+        worker = {'sent': b'', 'pages': [], 'meta_calls': 0, 'deleted': False}
+        async def with_worker_url(route):
             resp = await route.fetch(); body = await resp.text()
-            await route.fulfill(response=resp, body=body.replace("var SEND_URL = '';", "var SEND_URL = 'https://send.test/';"))
-        sent = {}
+            await route.fulfill(response=resp, body=body.replace("var WORKER_URL = '';", "var WORKER_URL = 'https://send.test';"))
         async def fake_worker(route):
-            sent['body'] = route.request.post_data_buffer or b''
-            await route.fulfill(status=200, headers={'Access-Control-Allow-Origin': '*'}, content_type='application/json', body='{"ok":true}')
-        await ctx.route('**/scan/', with_send_url)
-        await ctx.route('https://send.test/**', fake_worker)
+            req = route.request; path = req.url.split('send.test', 1)[1]
+            cors = {'Access-Control-Allow-Origin': '*'}
+            if req.method == 'POST' and path == '/':
+                worker['sent'] = req.post_data_buffer or b''
+                return await route.fulfill(status=200, headers=cors, content_type='application/json', body='{"ok":true}')
+            if req.method == 'POST' and path == '/handoff':
+                msg = BytesParser(policy=default).parsebytes(b'Content-Type: ' + req.headers['content-type'].encode() + b'\r\n\r\n' + req.post_data_buffer)
+                fields = [(part.get_param('name', header='content-disposition'), part.get_content()) for part in msg.iter_parts()]
+                worker['init'] = dict(fields).get('initData', '')
+                worker['pages'] = [v for k, v in fields if k == 'page']
+                return await route.fulfill(status=200, headers=cors, content_type='application/json', body=json.dumps({'ok': True, 'id': hid}))
+            if req.method == 'GET' and path == f'/handoff/{hid}':
+                worker['meta_calls'] += 1   # the first answer is "not there yet", like a slow Cloudflare copy
+                if worker['meta_calls'] == 1: return await route.fulfill(status=404, headers=cors, body='{}')
+                return await route.fulfill(status=200, headers=cors, content_type='application/json', body=json.dumps({'n': len(worker['pages'])}))
+            if req.method == 'GET' and path.startswith(f'/handoff/{hid}/'):
+                return await route.fulfill(status=200, headers=cors, content_type='image/jpeg', body=worker['pages'][int(path.rsplit('/', 1)[1])])
+            if req.method == 'DELETE' and path == f'/handoff/{hid}':
+                worker['deleted'] = True
+                return await route.fulfill(status=200, headers=cors, content_type='application/json', body='{"ok":true}')
+            await route.fulfill(status=404, headers=cors, body='{}')
+
+        ctx, pg = await new_page(browser, TG_ANDROID.replace("initData: ''", "initData: 'query_id=AAH&hash=00'"))
+        await ctx.route('**/scan/', with_worker_url); await ctx.route('https://send.test/**', fake_worker)
         await pg.goto(url); await pg.wait_for_timeout(500)
         await pg.set_input_files('#in-gallery', f'{tmp}/p4.jpg'); await to_crop_and_quad(pg); await add_page(pg)
-        visible = await pg.evaluate("['btn-pdf', 'btn-jpg', 'btn-send'].filter(id => !document.getElementById(id).hidden)")
-        check('telegram android + Worker: only "send to chat", as the main button', visible == ['btn-send'] and await pg.evaluate("document.getElementById('btn-send').classList.contains('primary')"), f'visible: {visible}')
+        visible = await pg.evaluate("['btn-pdf', 'btn-jpg', 'btn-share', 'btn-send', 'btn-browser'].filter(id => !document.getElementById(id).hidden)")
+        check('telegram android + Worker: "send to chat" (main) and "to the browser"', visible == ['btn-send', 'btn-browser'] and await pg.evaluate("document.getElementById('btn-send').classList.contains('primary')"), f'visible: {visible}')
         await pg.click('#btn-send')
         await pg.wait_for_function("(document.getElementById('toast').textContent || '').includes('Надіслано')", timeout=15000)
-        body = sent.get('body', b'')
+        body = worker['sent']
         check('telegram android + Worker: posts signed data and a PDF', b'name="initData"' in body and b'query_id=AAH' in body and b'%PDF-' in body)
+        await pg.click('#btn-browser')
+        await pg.wait_for_function("document.getElementById('btn-browser').textContent === 'Відкрити в браузері'", timeout=15000)
+        check('hand-off: Telegram uploads the signed pages', worker.get('init', '').startswith('query_id=AAH') and len(worker['pages']) == 1 and worker['pages'][0][:3] == b'\xff\xd8\xff')
+        await pg.click('#btn-browser')
+        opened = await pg.evaluate('window.__opened || ""')
+        check('hand-off: second tap opens the browser with the code', opened.endswith('/scan/#import=' + hid), opened)
+        await ctx.close()
+
+        ctx = await browser.new_context(viewport={'width': 390, 'height': 844})
+        await ctx.route('**/telegram.org/**', lambda r: r.fulfill(body='', content_type='text/javascript'))
+        await ctx.route('**/scan/', with_worker_url); await ctx.route('https://send.test/**', fake_worker)
+        pg = await ctx.new_page(); pg.on('pageerror', lambda e: fails.append(f'page error: {e}'))
+        await pg.goto(url); await pg.wait_for_timeout(400)
+        await pg.set_input_files('#in-gallery', f'{tmp}/p2.jpg'); await to_crop_and_quad(pg); await add_page(pg)   # a page the browser already had
+        pg2 = await ctx.new_page(); pg2.on('pageerror', lambda e: fails.append(f'page error: {e}'))
+        await pg2.goto(url + '#import=' + hid)
+        await pg2.wait_for_function("document.getElementById('pcount').textContent === '2'", timeout=20000)
+        state = await pg2.evaluate("({toast: document.getElementById('toast').textContent, hash: location.hash, w: __scanState.pages[1].w, h: __scanState.pages[1].h})")
+        check('hand-off: browser adds the pages and keeps its own', 'Додано сторінок із Telegram: 1' in state['toast'] and state['hash'] == '' and state['w'] > 1000, json.dumps(state, ensure_ascii=False))
+        await pg2.wait_for_timeout(300)
+        check('hand-off: browser deletes the copy on the Worker', worker['deleted'] and worker['meta_calls'] == 2)
+        await pg2.reload(); await pg2.wait_for_timeout(800)
+        check('hand-off: both pages still there after reload', await pg2.text_content('#pcount') == '2')
         await ctx.close()
         await browser.close()
 

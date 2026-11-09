@@ -1,0 +1,11 @@
+// Cloudflare Worker for the scanner (worker/send-scan.js). Cloudflare deploys it from this repo
+// on every push to main. "name" must match the project name in the Cloudflare dashboard.
+// The KV namespace for SCANS is created on the first deploy (wrangler 4.45+ provisions bindings without an id).
+// The bot token is not here: it is the secret BOT_TOKEN, set in the dashboard.
+{
+  "name": "d-simya",
+  "main": "worker/send-scan.js",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": true,
+  "kv_namespaces": [{ "binding": "SCANS" }]
+}

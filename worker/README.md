@@ -1,34 +1,47 @@
-# Кнопка «Надіслати PDF у чат» (необов'язково)
+# Сервер сканера на Cloudflare (Worker)
 
-Сканер працює й без цього. Ця частина потрібна тільки тоді, коли всередині Telegram на Android
-файл не зберігається в завантаження. Тоді маленький сервер на Cloudflare бере готовий PDF і
-бот надсилає його тобі в чат, звідки його можна зберегти або переслати.
+Потрібен для двох речей у Telegram на Android, де сторінка сама не може зберегти файл:
 
-Токен бота зберігається тільки в налаштуваннях Cloudflare, ні на сторінці, ні в цьому репозиторії його немає.
+- **«Надіслати PDF у чат»**: бот надсилає готовий PDF тобі в чат.
+- **«Передати в браузер»**: сторінки на 10 хвилин кладуться на сервер, і сканер, відкритий у браузері, забирає їх собі. Там їх можна зберегти, куди хочеш.
 
-## Налаштування (один раз, ~10 хвилин)
+Код: [`send-scan.js`](send-scan.js), налаштування: [`../wrangler.jsonc`](../wrangler.jsonc).
+Токен бота зберігається тільки в налаштуваннях Cloudflare, ні на сторінці, ні в репозиторії його немає.
 
-1. Зайди на https://dash.cloudflare.com і створи безкоштовний акаунт, якщо його ще немає.
-2. **Workers & Pages** → **Create** → **Create Worker**. Назва, наприклад, `send-scan`. **Deploy**.
-3. **Edit code**. Видали все, встав увесь вміст файлу [`send-scan.js`](send-scan.js), натисни **Deploy**.
-4. **Settings** → **Variables and Secrets** → **Add**:
+## Налаштування (один раз)
+
+1. https://dash.cloudflare.com → **Workers & Pages** → **Create** → **Import a repository** → вибери `w2unemdhysend/d-simya`.
+2. На екрані **Set up your application**:
+   - **Project name**: `d-simya` (має збігатися з `"name"` у `wrangler.jsonc`)
+   - **Build command**: порожньо
+   - **Deploy command**: `npx wrangler deploy` (як і стоїть)
+   - **Enable Preview builds** можна вимкнути, вони не потрібні.
+
+   Натисни **Deploy** і дочекайся, поки збірка стане зеленою. Сховище `SCANS` (KV) створиться саме.
+3. Відкрий створений Worker → **Settings** → **Variables and Secrets** → **Add**:
    - Type: **Secret**
    - Variable name: `BOT_TOKEN`
    - Value: токен бота з @BotFather (**API Token**)
-   
-   Збережи (**Deploy**).
-5. Скопіюй адресу Worker, вона виглядає так: `https://send-scan.<твоє-ім'я>.workers.dev`.
-6. Відкрий `scan/index.html` і впиши цю адресу в рядок
-   ```js
-   var SEND_URL = '';
-   ```
-   щоб вийшло `var SEND_URL = 'https://send-scan.….workers.dev';`. Або просто надішли адресу Claude.
 
-Після цього в сканері в Telegram з'явиться кнопка **«Надіслати PDF у чат»**.
+   Збережи (**Deploy**).
+4. Скопіюй адресу Worker з **Settings** → **Domains & Routes** (рядок `workers.dev`), вона виглядає так:
+   `https://d-simya.<твоє-ім'я>.workers.dev`. Надішли її Claude або впиши в `scan/index.html`:
+   ```js
+   var WORKER_URL = 'https://d-simya.<твоє-ім'я>.workers.dev';
+   ```
+
+Після цього Cloudflare сам оновлює Worker після кожної зміни в репозиторії.
+
+Якщо збірка впаде з помилкою про KV: **Storage & Databases** → **KV** → **Create** → назва `d-simya-scans`,
+скопіюй її **ID** і допиши в `wrangler.jsonc`: `{ "binding": "SCANS", "id": "<ID>" }`.
 
 ## Як це захищено
 
-- Сторінка надсилає разом з файлом підписані Telegram дані (`initData`). Worker перевіряє підпис
-  токеном бота (HMAC-SHA256), тому чужі запити не проходять.
-- Файл завжди йде тільки тому, хто його надіслав (ID з підписаних даних).
-- Приймаються тільки PDF до 45 МБ, тільки з адреси `https://w2unemdhysend.github.io`.
+- Сторінка надсилає разом із файлами підписані Telegram дані (`initData`). Worker перевіряє підпис
+  токеном бота (HMAC-SHA256), тому запити не з твого Mini App не проходять.
+- PDF іде тільки тому, хто його надіслав (ID з підписаних даних).
+- Передані сторінки: лише JPEG, під випадковим ідентифікатором, живуть щонайбільше 10 хвилин,
+  а браузер видаляє їх одразу, щойно забрав.
+- Відповіді йдуть тільки сторінкам з адреси `https://w2unemdhysend.github.io`.
+
+Перевірка: `node tests/worker.test.mjs`.

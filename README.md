@@ -8,7 +8,7 @@
 
 Сторінки працюють як звичайний сайт і як Telegram Mini App (тема, кнопка «Назад» і вібрація підхоплюються автоматично).
 Сканер обробляє фото тільки на телефоні; нічого нікуди не надсилається.
-Необов'язкова кнопка «Надіслати PDF у чат» описана в [`worker/README.md`](worker/README.md).
+Для Telegram на Android є сервер на Cloudflare: «Надіслати PDF у чат» і «Передати в браузер». Налаштування в [`worker/README.md`](worker/README.md).
 
 Перевірки: `python3 tests/scan_e2e.py` (сканер у Chrome, потрібні playwright, Pillow, numpy) і `node tests/worker.test.mjs` (Worker).
 
