@@ -9,7 +9,7 @@ download where there is no picker) and sharing, the camera (in-page camera on Te
 fake camera, camera access denied, native file input elsewhere) and Telegram on Android
 with a simulated Worker: sending the PDF to the chat and handing the pages to the browser.
 """
-import asyncio, functools, http.server, json, math, os, sys, tempfile, threading
+import asyncio, functools, http.server, json, math, os, re, sys, tempfile, threading
 from email.parser import BytesParser
 from email.policy import default
 from PIL import Image
@@ -57,6 +57,9 @@ async def new_page(browser, tg_script, init=None):
     if init: await ctx.add_init_script(init)
     pg = await ctx.new_page()
     pg.on('pageerror', lambda e: fails.append(f'page error: {e}'))
+    async def no_real_worker(route):   # tests must never touch the live Worker
+        fails.append('test reached the real Worker: ' + route.request.url); await route.abort()
+    await ctx.route('**/*.workers.dev/**', no_real_worker)
     return ctx, pg
 
 async def add_page(pg):
@@ -172,7 +175,7 @@ async def main(tmp):
         worker = {'sent': b'', 'pages': [], 'meta_calls': 0, 'deleted': False}
         async def with_worker_url(route):
             resp = await route.fetch(); body = await resp.text()
-            await route.fulfill(response=resp, body=body.replace("var WORKER_URL = '';", "var WORKER_URL = 'https://send.test';"))
+            await route.fulfill(response=resp, body=re.sub(r"var WORKER_URL = '[^']*';", "var WORKER_URL = 'https://send.test';", body))
         async def fake_worker(route):
             req = route.request; path = req.url.split('send.test', 1)[1]
             cors = {'Access-Control-Allow-Origin': '*'}

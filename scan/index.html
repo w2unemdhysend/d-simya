@@ -260,7 +260,7 @@ body.focus .toast{bottom:calc(86px + env(safe-area-inset-bottom, 0px))}
   'use strict';
   /* Address of the Cloudflare Worker from worker/ (e.g. https://send-scan.<name>.workers.dev). Empty: no
      "Надіслати PDF у чат" and no hand-off of pages from Telegram to the browser. */
-  var WORKER_URL = '';
+  var WORKER_URL = 'https://d-simya.whysends.workers.dev';
   var API = WORKER_URL.replace(/\/*$/, '/');
 
   var $ = function(s, r){ return (r || document).querySelector(s); };
