@@ -8,9 +8,10 @@
 - `/smittia/` — вивіз сміття в Ксантені (район 2 календаря Schönmackers): найближчі дати, що куди викидати, нагадування в Telegram о 18:00 напередодні.
 
 Сторінки працюють як звичайний сайт і як Telegram Mini App (тема, кнопка «Назад» і вібрація підхоплюються автоматично).
+Між розділами перемикає меню «Розділи» вгорі зліва. Новий розділ додається одним рядком у списку `SECTIONS` у [`assets/ui.js`](assets/ui.js).
 Сканер обробляє фото тільки на телефоні; нічого нікуди не надсилається.
 Для Telegram на Android є сервер на Cloudflare: «Надіслати PDF у чат» і «Передати в браузер». Налаштування в [`worker/README.md`](worker/README.md).
 
-Перевірки: `python3 tests/scan_e2e.py` (сканер у Chrome, потрібні playwright, Pillow, numpy) і `python3 tests/smittia_e2e.py` (сторінка сміття) і `node tests/worker.test.mjs` (Worker).
+Перевірки: `python3 tests/scan_e2e.py` (сканер у Chrome, потрібні playwright, Pillow, numpy) і `python3 tests/smittia_e2e.py` (сторінка сміття), `python3 tests/menu_e2e.py` (меню) і `node tests/worker.test.mjs` (Worker).
 
 Дані для пральки й сушарки взяті з інструкцій Beko WMB 71243/71443/71643 PTE і Gorenje SP10.

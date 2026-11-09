@@ -1,24 +1,37 @@
-/* Shared UI layer for both guides: theme toggle, sliding indicators, soft transitions */
+/* Shared UI layer for all sections: theme toggle, section menu, sliding tab indicators, soft transitions */
 
 .toprow{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
-.toprow .devices{margin-bottom:0}
 
-/* device switch with a sliding thumb */
-.devices{position:relative}
-.devices a{position:relative;z-index:1;padding:11px 13px;line-height:22px;transition:color .25s ease, transform .12s ease}
-/* phones: four tabs do not fit beside the theme button, so the tabs take the full row and the button floats beside the title */
-@media (max-width:429px){
-  .toprow{display:block;margin-bottom:10px}
-  .toprow .devices{display:grid;grid-template-columns:repeat(4,1fr);width:100%;margin-bottom:10px}
-  .toprow .devices a{padding:11px 4px;text-align:center}
-  .toprow .themebtn{float:right;margin-left:12px}
-}
-@media (max-width:370px){.devices a{font-size:13.5px}}
-.devices a[aria-current="page"]{background:transparent;color:var(--bg)}
-.devices.going a[aria-current="page"]{color:var(--ink)}
-.devices a.to{color:var(--bg)}
-.dthumb{position:absolute;top:3px;bottom:3px;left:0;width:0;border-radius:999px;background:var(--ink);
-  transition:transform .32s cubic-bezier(.3,.9,.3,1), width .32s cubic-bezier(.3,.9,.3,1)}
+/* section menu: button top-left, panel slides in from the left */
+.menubtn{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 18px 0 12px;border-radius:999px;border:1px solid var(--line);
+  background:var(--surface);color:var(--ink);font:600 15px/1 var(--f-body);cursor:pointer;transition:transform .12s ease}
+.menubtn svg{width:22px;height:22px}
+.drawer{position:fixed;inset:0;z-index:50;visibility:hidden;transition:visibility 0s linear .3s}
+.drawer.open{visibility:visible;transition:none}
+.drawer-scrim{position:absolute;inset:0;background:rgba(8,10,12,.5);opacity:0;transition:opacity .3s ease}
+.drawer.open .drawer-scrim{opacity:1}
+.drawer-panel{position:absolute;top:0;bottom:0;left:0;width:min(320px, 86vw);overflow-y:auto;overscroll-behavior:contain;
+  background:var(--bg);border-right:1px solid var(--line);box-shadow:8px 0 32px rgba(0,0,0,.25);
+  padding:calc(14px + env(safe-area-inset-top, 0px)) 12px calc(24px + env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px));
+  transform:translateX(-102%);transition:transform .3s cubic-bezier(.3,.9,.3,1)}
+.drawer.open .drawer-panel{transform:none}
+.drawer-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 0 6px 8px}
+.drawer-brand{font-family:var(--f-display);font-weight:700;font-size:20px;line-height:1.2}
+.drawer-sub{font-size:14px;color:var(--muted)}
+.drawer-close{flex:none;width:44px;height:44px;border-radius:50%;border:0;background:transparent;color:var(--ink);display:grid;place-items:center;cursor:pointer}
+.drawer-close svg{width:22px;height:22px}
+.drawer-group{margin:14px 8px 6px;font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.drawer ul{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.drawer a{display:flex;align-items:center;gap:14px;min-height:60px;padding:8px 10px;border-radius:14px;color:var(--ink);text-decoration:none;transition:background-color .2s ease}
+.drawer a:hover{background:var(--surface)}
+.drawer a[aria-current="page"]{background:var(--ink);color:var(--bg)}
+.drawer .ic{flex:none;width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:var(--surface);border:1px solid var(--line);color:var(--ink)}
+.drawer a[aria-current="page"] .ic{background:var(--bg);border-color:var(--bg)}
+.drawer .ic svg{width:22px;height:22px}
+.drawer b{display:block;font-weight:600;font-size:17px;line-height:1.25}
+.drawer small{display:block;font-size:14px;line-height:1.3;color:var(--muted)}
+.drawer a[aria-current="page"] small{color:inherit;opacity:.8}
+.menu-open,.menu-open body{overflow:hidden}
 
 /* section tabs with a sliding thumb */
 .tabs{position:relative}
@@ -37,7 +50,7 @@
 :root[data-theme="dark"] .themebtn .i-moon{opacity:1;transform:none}
 
 /* pressed feel */
-.tabs button:active,.devices a:active,.go:active,.show:active,.themebtn:active,.ch-q:active{transform:scale(.97)}
+.tabs button:active,.menubtn:active,.go:active,.show:active,.themebtn:active,.ch-q:active{transform:scale(.97)}
 .go,.show{transition:transform .12s ease, background-color .2s ease, color .2s ease}
 
 /* view switching: old view fades out, new one rises in */
@@ -57,7 +70,7 @@
 .help details[open] .body{animation:ui-drop .3s cubic-bezier(.2,.7,.2,1) backwards}
 @keyframes ui-drop{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 
-/* page in / page out between the two devices */
+/* page in / page out between sections */
 .wrap{animation:ui-page .42s ease backwards}
 @keyframes ui-page{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 body.page-out .wrap{opacity:0;transform:translateY(6px);transition:opacity .2s ease, transform .2s ease}

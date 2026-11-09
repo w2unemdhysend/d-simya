@@ -53,9 +53,6 @@ button{font:inherit;color:inherit}
 
 /* header + device switch */
 .top{padding-block:16px 6px}
-.devices{display:inline-grid;grid-auto-flow:column;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px;margin-bottom:14px}
-.devices a{display:block;padding:7px 16px;border-radius:999px;font-weight:600;font-size:14px;color:var(--ink);text-decoration:none}
-.devices a[aria-current="page"]{background:var(--ink);color:var(--bg)}
 .eyebrow{font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 h1{font-family:var(--f-display);font-weight:700;font-size:32px;line-height:1.05;margin:6px 0 8px;letter-spacing:-.01em;text-wrap:balance}
 .lede{margin:0;color:var(--muted);font-size:16px;max-width:40ch}
@@ -217,12 +214,12 @@ h2{font-family:var(--f-display);font-weight:600;font-size:17px;line-height:1.2;m
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 @media (min-width:480px){h1{font-size:38px}.machine{padding:18px}}
 </style>
-<link rel="stylesheet" href="../assets/ui.css?v=7">
+<link rel="stylesheet" href="../assets/ui.css?v=8">
 </head>
 <body>
 <div class="wrap">
   <header class="top">
-    <div class="toprow"><nav class="devices" aria-label="Прилади"><span class="dthumb" aria-hidden="true"></span><a href="../">Пралка</a><a href="./" aria-current="page">Сушарка</a><a href="../scan/">Сканер</a><a href="../smittia/">Сміття</a></nav><button class="themebtn" id="themebtn" type="button" aria-label="Увімкнути темну тему"><svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M5.3 18.7L7 17M17 7l1.7-1.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.6A8.2 8.2 0 0 1 9.4 4a8.2 8.2 0 1 0 10.6 10.6z" fill="currentColor"/></svg></button></div>
+    <div class="toprow"><button class="menubtn" id="menubtn" type="button" aria-expanded="false" aria-controls="drawer" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Розділи</span></button><button class="themebtn" id="themebtn" type="button" aria-label="Увімкнути темну тему"><svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M5.3 18.7L7 17M17 7l1.7-1.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.6A8.2 8.2 0 0 1 9.4 4a8.2 8.2 0 1 0 10.6 10.6z" fill="currentColor"/></svg></button></div>
     <div class="eyebrow">Gorenje SensoCare · 6 кг</div>
     <h1>Сушарка</h1>
     <p class="lede">Натисни на кнопку, лампочку чи програму, і нижче з’явиться пояснення.</p>
@@ -339,7 +336,7 @@ h2{font-family:var(--f-display);font-weight:600;font-size:17px;line-height:1.2;m
   <p class="foot">За інструкцією Gorenje до сушарок цієї серії (SP10). <a href="https://img.moebelplus.de/pdf/gorenje_d622cm_bedien.pdf" target="_blank" rel="noopener">Відкрити інструкцію</a>.</p>
 </div>
 
-<script src="../assets/ui.js?v=7"></script>
+<script src="../assets/ui.js?v=8"></script>
 <script>
 (function(){
   var $ = function(s, r){ return (r || document).querySelector(s); };

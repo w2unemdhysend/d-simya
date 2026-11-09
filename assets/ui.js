@@ -1,5 +1,19 @@
-/* Shared UI layer for both guides: light/dark theme, sliding indicators, view and page transitions */
+/* Shared UI layer for all sections: light/dark theme, the section menu, sliding tab indicators, view and page transitions */
 (function(){
+  // The section menu. A new Mini App = one line here (path relative to the site root, name, one-line note, icon).
+  var SECTIONS = [
+    ['Побутова техніка', [['', 'Пралка', 'Beko: кнопки, програми, проблеми', 'wash'], ['sushka/', 'Сушарка', 'Gorenje SensoCare', 'dry']]],
+    ['Документи', [['scan/', 'Сканер', 'Фото аркуша в PDF', 'scan']]],
+    ['Дім', [['smittia/', 'Сміття', 'Вивіз баків і нагадування', 'trash']]],
+  ];
+  var ICONS = {
+    wash: '<rect x="4" y="3" width="16" height="18" rx="2.5"/><circle cx="12" cy="13" r="4.5"/><path d="M7.5 6.5h2"/>',
+    dry: '<rect x="4" y="3" width="16" height="18" rx="2.5"/><circle cx="12" cy="13" r="4.5"/><path d="M10.2 11.8c.6.6 1.2.6 1.8 0s1.2-.6 1.8 0M10.2 14.6c.6.6 1.2.6 1.8 0s1.2-.6 1.8 0"/>',
+    scan: '<path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16M7.5 12h9"/>',
+    trash: '<path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10.5 11v5.5M13.5 11v5.5"/>',
+    close: '<path d="M6 6l12 12M18 6L6 18"/>',
+  };
+  var SITE = (function(){ try { return new URL('..', document.currentScript.src).href; } catch(e){ return location.href; } })();
   var root = document.documentElement;
   var KEY = 'dsimya-theme';
   var reduce = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -50,10 +64,6 @@
     var tabs = document.querySelector('.tabs');
     if (tabs) place(tabs, tabs.querySelector('.tthumb'), tabs.querySelector('[aria-selected="true"]'), instant);
   }
-  function devThumb(instant, target){
-    var nav = document.querySelector('.devices');
-    if (nav) place(nav, nav.querySelector('.dthumb'), target || nav.querySelector('[aria-current="page"]'), instant);
-  }
 
   /* view switching: fade the old view out, then let the new one rise in */
   var timer = null;
@@ -73,27 +83,68 @@
     else finish();
   }
 
-  /* device links: slide the thumb, fade the page out, then go */
-  function initDevices(){
-    var nav = document.querySelector('.devices'); if (!nav) return;
-    nav.addEventListener('click', function(e){
-      var a = e.target.closest('a'); if (!a) return;
-      if (a.getAttribute('aria-current') === 'page'){ e.preventDefault(); return; }
-      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  /* section menu: a button top-left opens a panel from the side with every section */
+  function svg(name){ return '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + ICONS[name] + '</svg>'; }
+  function samePage(href){ var a = new URL(href, location.href), b = new URL(location.href); return a.origin === b.origin && a.pathname.replace(/index\.html$/, '') === b.pathname.replace(/index\.html$/, ''); }
+  function initMenu(){
+    var btn = document.getElementById('menubtn'); if (!btn) return;
+    var d = document.createElement('div');
+    d.className = 'drawer'; d.id = 'drawer';
+    d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-label', 'Розділи');
+    d.innerHTML = '<div class="drawer-scrim" data-close></div><div class="drawer-panel">' +
+      '<div class="drawer-head"><div><div class="drawer-brand">D-SIM’YA</div><div class="drawer-sub">Домашні помічники</div></div>' +
+      '<button class="drawer-close" type="button" data-close aria-label="Закрити меню">' + svg('close') + '</button></div><nav aria-label="Розділи">' +
+      SECTIONS.map(function(g){
+        return '<div class="drawer-group">' + g[0] + '</div><ul>' + g[1].map(function(it){
+          var href = new URL(it[0], SITE).href;
+          return '<li><a href="' + href + '"' + (samePage(href) ? ' aria-current="page"' : '') + '><span class="ic">' + svg(it[3]) + '</span><span><b>' + it[1] + '</b><small>' + it[2] + '</small></span></a></li>';
+        }).join('') + '</ul>';
+      }).join('') + '</nav></div>';
+    document.body.appendChild(d);
+    var wrap = document.querySelector('.wrap'), panel = d.querySelector('.drawer-panel');
+    var isOpen = function(){ return d.classList.contains('open'); };
+    function open(){
+      if (isOpen()) return;
+      d.classList.add('open'); root.classList.add('menu-open'); btn.setAttribute('aria-expanded', 'true');
+      if (wrap) wrap.inert = true;
+      try { history.pushState({menu: 1}, ''); } catch(e){}   // so the phone's Back button closes the menu
+      try { if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light'); } catch(e){}
+      var first = d.querySelector('[aria-current="page"]') || d.querySelector('a');
+      setTimeout(function(){ if (first) first.focus({preventScroll: true}); }, 60);
+    }
+    function close(fromHistory){
+      if (!isOpen()) return;
+      d.classList.remove('open'); root.classList.remove('menu-open'); btn.setAttribute('aria-expanded', 'false');
+      if (wrap) wrap.inert = false;
+      btn.focus({preventScroll: true});
+      if (!fromHistory && history.state && history.state.menu) history.back();
+    }
+    btn.addEventListener('click', open);
+    window.addEventListener('popstate', function(){ close(true); });
+    d.addEventListener('click', function(e){
+      if (e.target.closest('[data-close]')){ close(); return; }
+      var a = e.target.closest('a'); if (!a || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
       e.preventDefault();
-      nav.classList.add('going');
-      a.classList.add('to');
-      devThumb(false, a);
+      if (a.getAttribute('aria-current') === 'page'){ close(); return; }
       try { if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged(); } catch(err){}
-      if (reduce){ location.href = a.href; return; }
+      // replace the menu's history entry, so Back from the new section returns to this page, not to an open menu
+      var go = function(){ if (history.state && history.state.menu) location.replace(a.href); else location.href = a.href; };
+      d.classList.remove('open'); root.classList.remove('menu-open');
+      if (reduce){ go(); return; }
       document.body.classList.add('page-out');
-      setTimeout(function(){ location.href = a.href; }, 230);
+      setTimeout(go, 230);
+    });
+    document.addEventListener('keydown', function(e){
+      if (!isOpen()) return;
+      if (e.key === 'Escape'){ e.preventDefault(); close(); return; }
+      if (e.key !== 'Tab') return;
+      var f = panel.querySelectorAll('a[href], button'), first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
     });
     window.addEventListener('pageshow', function(){
       document.body.classList.remove('page-out');
-      nav.classList.remove('going');
-      Array.prototype.forEach.call(nav.querySelectorAll('a.to'), function(x){ x.classList.remove('to'); });
-      devThumb(true);
+      if (!(history.state && history.state.menu)) close(true);
     });
   }
 
@@ -122,10 +173,10 @@
     }
     if (tg){ try { tg.onEvent('themeChanged', function(){ if (!saved()) sync(true); else paintTg(); }); } catch(e){} }
     sync(false);
-    tabsThumb(true); devThumb(true);
-    window.addEventListener('resize', function(){ tabsThumb(true); devThumb(true); });
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ tabsThumb(true); devThumb(true); });
-    initDevices();
+    tabsThumb(true);
+    window.addEventListener('resize', function(){ tabsThumb(true); });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ tabsThumb(true); });
+    initMenu();
     initExplain();
   }
 
