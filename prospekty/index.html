@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>(function(){try{var s=null;try{s=localStorage.getItem('dsimya-theme')}catch(e){}var w=window.Telegram&&Telegram.WebApp;var tg=w&&w.platform&&w.platform!=='unknown';var t=s||(tg?(w.colorScheme==='dark'?'dark':'light'):(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));document.documentElement.setAttribute('data-theme',t)}catch(e){}})();</script>
+<title>Проспекти магазинів</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@600;700&display=swap">
+<style>
+/* Layout: one column; town switch on top, then one card per chain with its stores in that town and the button to its current flyer */
+:root{
+  padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom);
+  --bg:#E7ECEF; --surface:#F6F8F9; --ink:#12181C; --muted:#53616A; --line:#C7D0D5; --accent:#9A5800;
+  --f-display:"Unbounded","Arial Black",system-ui,sans-serif;
+  --f-body:"Onest","Segoe UI",Roboto,system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --bg:#0F1417; --surface:#182026; --ink:#E5EBEE; --muted:#98A6AE; --line:#2A343B; --accent:#FFB424; color-scheme:dark; }
+}
+:root[data-theme="dark"]{ --bg:#0F1417; --surface:#182026; --ink:#E5EBEE; --muted:#98A6AE; --line:#2A343B; --accent:#FFB424; color-scheme:dark; }
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.5 var(--f-body);
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:0 40px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+[hidden]{display:none!important}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2.5px solid var(--accent);outline-offset:2px}
+.wrap{max-width:560px;margin:0 auto}
+.top{padding-block:16px 10px}
+.eyebrow{font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--f-display);font-weight:700;font-size:32px;line-height:1.05;margin:6px 0 8px;letter-spacing:-.01em}
+.lede{margin:0;color:var(--muted);font-size:16px;max-width:44ch}
+h2{font-family:var(--f-display);font-weight:600;font-size:18px;line-height:1.2;margin:0}
+main{display:grid;gap:12px;padding-top:10px}
+
+.town{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:4px}
+.town button{border:0;background:transparent;border-radius:10px;min-height:44px;font-weight:600;font-size:16px;cursor:pointer;transition:background-color .25s ease, color .25s ease}
+.town button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+
+.chain{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 14px 12px;animation:in .3s ease backwards}
+@keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.chain .head{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.chain .kind{font-size:14px;color:var(--muted)}
+.stores{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:6px}
+.store{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:16px;line-height:1.3}
+.store span{min-width:0}
+.store small{display:block;color:var(--muted);font-size:14px}
+.go{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 16px;border-radius:12px;
+  background:var(--ink);color:var(--bg);font-weight:600;font-size:16px;text-decoration:none;white-space:nowrap;flex:none}
+.go svg{width:18px;height:18px}
+.go.small{min-height:40px;padding:0 12px;font-size:15px;border-radius:10px;background:transparent;color:var(--ink);border:1px solid var(--line)}
+.chain > .go{width:100%;margin-top:12px}
+.extra{display:block;margin-top:10px;font-size:15px;color:var(--ink);text-underline-offset:3px}
+.how{margin:4px 0 0;font-size:15px;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.how p{margin:0}
+.how p + p{margin-top:6px}
+.foot{margin-top:16px;font-size:13px;color:var(--muted)}
+.foot a{color:inherit}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+@media (min-width:480px){h1{font-size:38px}}
+</style>
+<link rel="stylesheet" href="../assets/ui.css?v=9">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="toprow"><button class="menubtn" id="menubtn" type="button" aria-expanded="false" aria-controls="drawer" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Розділи</span></button><button class="themebtn" id="themebtn" type="button" aria-label="Увімкнути темну тему"><svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M5.3 18.7L7 17M17 7l1.7-1.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.6A8.2 8.2 0 0 1 9.4 4a8.2 8.2 0 1 0 10.6 10.6z" fill="currentColor"/></svg></button></div>
+    <div class="eyebrow">Ксантен · Везель</div>
+    <h1>Проспекти</h1>
+    <p class="lede">Рекламні газети магазинів на цей тиждень. Кнопки відкривають офіційні сторінки мереж, і новий проспект з’являється там сам щотижня.</p>
+  </header>
+
+  <main>
+    <div class="town" role="group" aria-label="Місто">
+      <button type="button" data-town="xanten" aria-pressed="true">Ксантен</button>
+      <button type="button" data-town="wesel" aria-pressed="false">Везель</button>
+    </div>
+    <div id="list" aria-live="polite" style="display:grid;gap:12px"></div>
+    <div class="how">
+      <p>Більшість мереж починає новий тиждень акцій у понеділок. Деякі сайти один раз просять вибрати магазин («Markt wählen» або «Filiale wählen»): вибери найближчий, і браузер це запам’ятає.</p>
+      <p>У EDEKA й REWE кожен магазин має власний проспект, тому кнопки там окремі для кожної адреси.</p>
+    </div>
+  </main>
+
+  <p class="foot">Адреси REWE й EDEKA взято з пошуку магазинів на сайтах мереж, решту з OpenStreetMap, станом на листопад 2026. Якщо якийсь магазин закрився або відкрився новий, скажи, і я виправлю список.</p>
+</div>
+
+<script src="../assets/ui.js?v=9"></script>
+<script>
+(function(){
+  // Official pages that always show the current flyer. EDEKA and REWE: one page per store.
+  var CHAINS = [
+    {name:'ALDI SÜD', url:'https://www.aldi-sued.de/prospekte', stores:{xanten:['Sonsbecker Straße 21'], wesel:['Esplanade 18', 'Reeser Landstraße 87', 'Schermbecker Landstraße 11']}},
+    {name:'Lidl', url:'https://www.lidl.de/c/online-prospekte/s10005610', extra:['Отримувати проспект щотижня у WhatsApp', 'https://www.lidl.de/c/whatsapp-prospekte/s10015695'],
+      stores:{xanten:['Hagdornstraße 1'], wesel:['Reeser Landstraße 66', 'Rudolf-Diesel-Straße 18']}},
+    {name:'REWE', stores:{
+      xanten:[['Hagdornstraße 2', 'https://www.rewe.de/angebote/xanten/9067625/rewe-hagdornstr-2/']],
+      wesel:[['Friedrichstraße 8', 'https://www.rewe.de/angebote/wesel/1470066/rewe-friedrichstr-8/'],
+             ['Marktplatz Feldmark 23–31', 'https://www.rewe.de/angebote/wesel/240534/rewe-marktplatz-feldmark-23-31/'],
+             ['Kurt-Kräcker-Straße 61', 'https://www.rewe.de/angebote/wesel/320548/rewe-kurt-kraecker-str-61/'],
+             ['Bislicher Straße 22', 'https://www.rewe.de/angebote/wesel/25811/rewe-bislicher-str-22/', 'Flüren']]}},
+    {name:'EDEKA', stores:{
+      xanten:[['Lüttinger Straße 29', 'https://www.edeka.de/maerkte/070919/prospekte/', 'Pascal Lurvink'],
+              ['Sonsbecker Straße 19a', 'https://www.edeka.de/maerkte/070920/prospekte/', 'Benny Lurvink']],
+      wesel:[['Kreuzstraße 11–13', 'https://www.edeka.de/maerkte/072411/prospekte/', 'Lurvink'],
+             ['Julius-Leber-Straße 10', 'https://www.edeka.de/maerkte/070475/prospekte/', 'Frische-Center Komp, Lackhausen'],
+             ['Felixstowestraße 5', 'https://www.edeka.de/maerkte/070480/prospekte/', 'Komp, Obrighoven'],
+             ['Marienstraße 11', 'https://www.edeka.de/maerkte/070438/prospekte/', 'Janssen, Ginderich']]}},
+    {name:'Netto', kind:'Marken-Discount', url:'https://www.netto-online.de/ueber-netto/Online-Prospekte.chtm',
+      stores:{xanten:[['Kalkarer Straße 17', null, 'Marienbaum']], wesel:['Hohe Straße', 'Pastor-Schmitz-Straße 1a']}},
+    {name:'PENNY', url:'https://www.penny.de/angebote', stores:{xanten:['Viktorstraße 12'], wesel:['Werftstraße 1', ['Rheinallee', null, 'Büderich']]}},
+    {name:'Kaufland', url:'https://filiale.kaufland.de/prospekte.html', stores:{wesel:['Rudolf-Diesel-Straße 7']}},
+    {name:'trinkgut', kind:'напої', url:'https://www.trinkgut.de/angebote', stores:{xanten:['Boxtelstraße 2'], wesel:['Reeser Landstraße 60', 'Rudolf-Diesel-Straße 64', 'Werftstraße 6']}},
+  ];
+  var KEY = 'prospekty-town';
+  var tgApp = window.Telegram && window.Telegram.WebApp;
+  var tg = (tgApp && tgApp.platform && tgApp.platform !== 'unknown') ? tgApp : null;
+  if (tg){ try { tg.ready(); tg.expand(); } catch(e){} }
+  var ARROW = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 5h5v5M19 5l-8 8M18 14v4.5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 4 18.5v-11A1.5 1.5 0 0 1 5.5 6H10"/></svg>';
+  var esc = function(t){ return String(t).replace(/[&<>"]/g, function(c){ return {'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;'}[c]; }); };
+  var link = function(url, text, cls, label){ return '<a class="' + cls + '" href="' + esc(url) + '" target="_blank" rel="noopener"' + (label ? ' aria-label="' + esc(label) + '"' : '') + '>' + text + '</a>'; };
+
+  function render(town){
+    var html = CHAINS.filter(function(c){ return (c.stores[town] || []).length; }).map(function(c, i){
+      var stores = c.stores[town].map(function(s){ return typeof s === 'string' ? [s, null, ''] : s; });
+      var rows = stores.map(function(s){
+        return '<li class="store"><span>' + esc(s[0]) + (s[2] ? '<small>' + esc(s[2]) + '</small>' : '') + '</span>' +
+          (s[1] ? link(s[1], 'Проспект ' + ARROW, 'go small', 'Проспект ' + c.name + ', ' + s[0]) : '') + '</li>';
+      }).join('');
+      return '<section class="chain" style="animation-delay:' + (i * 30) + 'ms" aria-label="' + esc(c.name) + '">' +
+        '<div class="head"><h2>' + esc(c.name) + '</h2>' + (c.kind ? '<span class="kind">' + esc(c.kind) + '</span>' : '') + '</div>' +
+        '<ul class="stores">' + rows + '</ul>' +
+        (c.url ? link(c.url, 'Проспект цього тижня ' + ARROW, 'go', 'Проспект ' + c.name + ' цього тижня') : '') +
+        (c.extra ? link(c.extra[1], esc(c.extra[0]), 'extra') : '') + '</section>';
+    }).join('');
+    document.getElementById('list').innerHTML = html;
+    Array.prototype.forEach.call(document.querySelectorAll('.town button'), function(b){ b.setAttribute('aria-pressed', String(b.getAttribute('data-town') === town)); });
+  }
+  var town = 'xanten';
+  try { if (localStorage.getItem(KEY) === 'wesel') town = 'wesel'; } catch(e){}
+  render(town);
+  document.querySelector('.town').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-town]'); if (!b) return;
+    var t = b.getAttribute('data-town'); if (t === town) return;
+    town = t; try { localStorage.setItem(KEY, t); } catch(err){}
+    render(t);
+    try { if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged(); } catch(err){}
+  });
+  // Inside Telegram the flyer opens in the phone's browser: chain sites remember the chosen store there
+  document.getElementById('list').addEventListener('click', function(e){
+    var a = e.target.closest('a[href]'); if (!a || !tg || !tg.openLink) return;
+    e.preventDefault(); try { tg.openLink(a.href); } catch(err){ location.href = a.href; }
+  });
+})();
+</script>
+</body>
+</html>

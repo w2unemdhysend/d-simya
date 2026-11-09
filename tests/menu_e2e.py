@@ -11,7 +11,7 @@ import asyncio, functools, http.server, os, sys, threading
 from playwright.async_api import async_playwright
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PAGES = {'': 'Пралка', 'sushka/': 'Сушарка', 'scan/': 'Сканер', 'smittia/': 'Сміття'}
+PAGES = {'': 'Пралка', 'sushka/': 'Сушарка', 'scan/': 'Сканер', 'smittia/': 'Сміття', 'prospekty/': 'Проспекти'}
 fails = []
 
 def check(name, ok, detail=''):
@@ -83,8 +83,8 @@ async def main():
         state = await pg.evaluate("({h1: document.querySelector('h1').textContent, open: " + OPEN + ", menu: !!(history.state && history.state.menu)})")
         check('Back from the section returns to the page, menu closed', state['h1'] == 'Пралка' and not state['open'] and not state['menu'], str(state))
         await pg.go_back(); await pg.wait_for_timeout(300)
-        # the page visited before the washer page was /smittia/ (last one in the loop above): no duplicate washer entry
-        check('no extra history entries left behind', pg.url == base + 'smittia/', pg.url)
+        # the page visited before the washer page was /prospekty/ (last one in the loop above): no duplicate washer entry
+        check('no extra history entries left behind', pg.url == base + 'prospekty/', pg.url)
         await browser.close()
 
 asyncio.run(main())

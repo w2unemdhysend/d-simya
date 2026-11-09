@@ -5,12 +5,14 @@
     ['Побутова техніка', [['', 'Пралка', 'Beko: кнопки, програми, проблеми', 'wash'], ['sushka/', 'Сушарка', 'Gorenje SensoCare', 'dry']]],
     ['Документи', [['scan/', 'Сканер', 'Фото аркуша в PDF', 'scan']]],
     ['Дім', [['smittia/', 'Сміття', 'Вивіз баків і нагадування', 'trash']]],
+    ['Покупки', [['prospekty/', 'Проспекти', 'Акції магазинів Ксантена й Везеля', 'tag']]],
   ];
   var ICONS = {
     wash: '<rect x="4" y="3" width="16" height="18" rx="2.5"/><circle cx="12" cy="13" r="4.5"/><path d="M7.5 6.5h2"/>',
     dry: '<rect x="4" y="3" width="16" height="18" rx="2.5"/><circle cx="12" cy="13" r="4.5"/><path d="M10.2 11.8c.6.6 1.2.6 1.8 0s1.2-.6 1.8 0M10.2 14.6c.6.6 1.2.6 1.8 0s1.2-.6 1.8 0"/>',
     scan: '<path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16M7.5 12h9"/>',
     trash: '<path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10.5 11v5.5M13.5 11v5.5"/>',
+    tag: '<path d="M3.5 12.3V5A1.5 1.5 0 0 1 5 3.5h7.3l8.2 8.2a1.5 1.5 0 0 1 0 2.1l-6.7 6.7a1.5 1.5 0 0 1-2.1 0z"/><circle cx="8" cy="8" r="1.4"/>',
     close: '<path d="M6 6l12 12M18 6L6 18"/>',
   };
   var SITE = (function(){ try { return new URL('..', document.currentScript.src).href; } catch(e){ return location.href; } })();

@@ -5,6 +5,7 @@
 - `/` — пральна машина Beko WMB 71443 PTEB: кнопки, дисплей, перемикач програм, «Що прати», покрокова інструкція й типові проблеми.
 - `/sushka/` — сушарка Gorenje SensoCare 6 кг: кнопки й лампочки, перемикач програм, «Що сушити», догляд і типові проблеми.
 - `/scan/` — сканер документів камерою: сам знаходить аркуш, вирівнює перспективу, прибирає тіні й жовтизну, збирає сторінки в PDF.
+- `/prospekty/` — рекламні проспекти магазинів Ксантена й Везеля (ALDI SÜD, Lidl, REWE, EDEKA, Netto, Penny, Kaufland, trinkgut): посилання на офіційні сторінки, де проспект щотижня оновлюється сам.
 - `/smittia/` — вивіз сміття в Ксантені (район 2 календаря Schönmackers): найближчі дати, що куди викидати, нагадування в Telegram о 18:00 напередодні.
 
 Сторінки працюють як звичайний сайт і як Telegram Mini App (тема, кнопка «Назад» і вібрація підхоплюються автоматично).
@@ -12,6 +13,6 @@
 Сканер обробляє фото тільки на телефоні; нічого нікуди не надсилається.
 Для Telegram на Android є сервер на Cloudflare: «Надіслати PDF у чат» і «Передати в браузер». Налаштування в [`worker/README.md`](worker/README.md).
 
-Перевірки: `python3 tests/scan_e2e.py` (сканер у Chrome, потрібні playwright, Pillow, numpy) і `python3 tests/smittia_e2e.py` (сторінка сміття), `python3 tests/menu_e2e.py` (меню) і `node tests/worker.test.mjs` (Worker).
+Перевірки: `python3 tests/scan_e2e.py` (сканер у Chrome, потрібні playwright, Pillow, numpy) і `python3 tests/smittia_e2e.py` (сторінка сміття), `python3 tests/menu_e2e.py` (меню), `python3 tests/prospekty_e2e.py [--live]` (проспекти) і `node tests/worker.test.mjs` (Worker).
 
 Дані для пральки й сушарки взяті з інструкцій Beko WMB 71243/71443/71643 PTE і Gorenje SP10.
