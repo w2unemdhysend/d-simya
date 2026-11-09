@@ -75,6 +75,7 @@ body.focus .eyebrow,body.focus h1,body.focus .lede,body.focus .foot{display:none
 .empty{border:1.5px dashed var(--line);border-radius:14px;padding:18px;color:var(--muted);font-size:15px;text-align:center}
 .empty p{margin:0}
 .actions{display:grid;gap:8px}
+.actrow{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:8px}
 .btn{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 16px;font-weight:600;font-size:16px;min-height:50px;cursor:pointer;transition:transform .12s ease}
 .btn:active{transform:scale(.98)}
 .btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
@@ -172,8 +173,11 @@ body.focus .toast{bottom:calc(86px + env(safe-area-inset-bottom, 0px))}
 
     <div class="actions" id="actions" hidden>
       <button class="btn primary" id="btn-pdf" type="button">Зберегти PDF</button>
+      <div class="actrow">
+        <button class="btn" id="btn-jpg" type="button">Зберегти фото</button>
+        <button class="btn" id="btn-share" type="button" hidden>Поділитися</button>
+      </div>
       <button class="btn" id="btn-send" type="button" hidden>Надіслати PDF у чат</button>
-      <button class="btn" id="btn-jpg" type="button">Зберегти як фото</button>
     </div>
     <p class="savehint" id="savehint" hidden></p>
 
@@ -343,7 +347,7 @@ body.focus .toast{bottom:calc(86px + env(safe-area-inset-bottom, 0px))}
     $('#btn-send').hidden = !canSend;
     $('#btn-send').classList.toggle('primary', tgAndroid);
     $('#btn-pdf').hidden = $('#btn-jpg').hidden = tgAndroid;
-    $('#btn-jpg').textContent = n > 1 ? 'Зберегти як фото (' + n + ')' : 'Зберегти як фото';
+    $('#btn-share').hidden = tgAndroid || !canShare;
     if (tgAndroid && !canSend && n) browserHint('Telegram на Android не дає сторінкам зберігати файли. Відкрий сканер у браузері й відскануй там: PDF збережеться в «Завантаження».');
     else if (tgAndroid) $('#savehint').hidden = true;
   }
@@ -1045,24 +1049,23 @@ body.focus .toast{bottom:calc(86px + env(safe-area-inset-bottom, 0px))}
     });
   }
 
-  /* ---------------- saving and sending ---------------- */
-  function canShareFiles(files){ try { return !!(navigator.canShare && navigator.share && navigator.canShare({files:files})); } catch(e){ return false; } }
+  /* ---------------- saving, sharing, sending ---------------- */
+  // "Save" lets the person choose the folder and name where the browser can (Chrome/Edge on a PC,
+  // Chrome on Android 132+); elsewhere it is a normal download. "Share" is its own button.
+  var canShare = (function(){ try { return !!(navigator.share && navigator.canShare && navigator.canShare({files:[new File(['%PDF'], 'x.pdf', {type:'application/pdf'})]})); } catch(e){ return false; } })();
+  function isAbort(e){ return !!(e && e.name === 'AbortError'); }
   function download(file){
     var url = URL.createObjectURL(file), a = document.createElement('a');
     a.href = url; a.download = file.name; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove();
     setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
   }
-  function deliver(files, label){
-    var hint = $('#savehint');
-    if (canShareFiles(files)){
-      return navigator.share({files:files, title:label}).then(function(){ hint.hidden = true; return 'shared'; }).catch(function(e){
-        if (e && e.name === 'AbortError') return 'aborted';
-        files.forEach(download); return 'downloaded';
-      });
-    }
-    files.forEach(download);
-    return Promise.resolve('downloaded');
+  // Ask for the place before building the file: the picker only opens straight after a tap.
+  // Resolves null when there is no picker or it is blocked (e.g. inside Telegram), then we download.
+  function pickPlace(picker, opts){
+    if (typeof window[picker] !== 'function') return Promise.resolve(null);
+    return window[picker](opts).catch(function(e){ if (isAbort(e)) throw e; return null; });
   }
+  function writeTo(handle, blob){ return handle.createWritable().then(function(w){ return w.write(blob).then(function(){ return w.close(); }); }); }
   function afterDownload(){   // Telegram on iPhone or desktop: a download may still be blocked, say what to do
     var hint = $('#savehint');
     if (!tg){ hint.hidden = true; return; }
@@ -1071,24 +1074,37 @@ body.focus .toast{bottom:calc(86px + env(safe-area-inset-bottom, 0px))}
   }
   $('#btn-pdf').addEventListener('click', function(){
     if (!state.pages.length) return;
+    var name = 'Скан_' + stamp() + '.pdf';
+    pickPlace('showSaveFilePicker', {suggestedName:name, types:[{description:'PDF', accept:{'application/pdf':['.pdf']}}]}).then(function(handle){
+      busy(true, 'Збираю PDF…');
+      return buildPdf(state.pages).then(function(blob){
+        if (handle) return writeTo(handle, blob).then(function(){ busy(false); toast('PDF збережено'); haptic('ok'); });
+        busy(false); download(new File([blob], name, {type:'application/pdf'}));
+        toast('PDF збережено в «Завантаження»', 3500); afterDownload();
+      });
+    }).catch(function(e){ busy(false); if (!isAbort(e)) toast('Не вдалося зберегти PDF.'); });
+  });
+  $('#btn-jpg').addEventListener('click', function(){
+    var n = state.pages.length; if (!n) return;
+    var base = 'Скан_' + stamp();
+    var files = state.pages.map(function(p, i){ return new File([p.blob], base + (n > 1 ? '_' + (i + 1) : '') + '.jpg', {type:'image/jpeg'}); });
+    var place = n > 1 ? pickPlace('showDirectoryPicker', {mode:'readwrite'})   // several photos: choose a folder once
+      : pickPlace('showSaveFilePicker', {suggestedName:files[0].name, types:[{description:'JPEG', accept:{'image/jpeg':['.jpg']}}]});
+    place.then(function(h){
+      if (!h){ files.forEach(download); toast('Фото збережено в «Завантаження»', 3500); afterDownload(); return; }
+      return Promise.all(n > 1
+        ? files.map(function(f){ return h.getFileHandle(f.name, {create:true}).then(function(fh){ return writeTo(fh, f); }); })
+        : [writeTo(h, files[0])]
+      ).then(function(){ toast(n > 1 ? 'Фото збережено в обрану папку' : 'Фото збережено'); haptic('ok'); });
+    }).catch(function(e){ if (!isAbort(e)) toast('Не вдалося зберегти фото.'); });
+  });
+  $('#btn-share').addEventListener('click', function(){
+    if (!state.pages.length) return;
     busy(true, 'Збираю PDF…');
     buildPdf(state.pages).then(function(blob){
       busy(false);
-      var file = new File([blob], 'Скан_' + stamp() + '.pdf', {type:'application/pdf'});
-      return deliver([file], 'Скан').then(function(how){
-        if (how === 'shared'){ toast('PDF готовий'); haptic('ok'); }
-        else if (how === 'downloaded'){ toast('PDF збережено в «Завантаження»', 3500); afterDownload(); }
-      });
-    }).catch(function(){ busy(false); toast('Не вдалося зібрати PDF.'); });
-  });
-  $('#btn-jpg').addEventListener('click', function(){
-    if (!state.pages.length) return;
-    var base = 'Скан_' + stamp();
-    var files = state.pages.map(function(p, i){ return new File([p.blob], base + (state.pages.length > 1 ? '_' + (i + 1) : '') + '.jpg', {type:'image/jpeg'}); });
-    deliver(files, 'Скан').then(function(how){
-      if (how === 'shared'){ toast('Готово'); haptic('ok'); }
-      else if (how === 'downloaded'){ toast('Фото збережено в «Завантаження»', 3500); afterDownload(); }
-    });
+      return navigator.share({files:[new File([blob], 'Скан_' + stamp() + '.pdf', {type:'application/pdf'})], title:'Скан'});
+    }).then(function(){ haptic('ok'); }, function(e){ busy(false); if (!isAbort(e)) toast('Не вдалося поділитися.'); });
   });
   $('#btn-send').addEventListener('click', function(){
     if (!(SEND_URL && tg && tg.initData) || !state.pages.length) return;

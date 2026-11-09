@@ -4,7 +4,8 @@
 
 Needs: playwright, Pillow, numpy. Exits 1 if any check fails.
 Covers: sheet detection and true proportions on four synthetic photos, the four looks,
-pages kept after reload, the PDF, the camera (in-page camera on Telegram Android with a
+pages kept after reload, the PDF, saving (Save As picker, folder picker, cancel, plain
+download where there is no picker) and sharing, the camera (in-page camera on Telegram Android with a
 fake camera, camera access denied, native file input elsewhere) and saving on Telegram
 Android (browser fallback, and sending to the chat through a simulated Worker).
 """
@@ -23,6 +24,14 @@ TG_ANDROID = """window.Telegram = {WebApp: {platform: 'android', colorScheme: 'l
   HapticFeedback: {selectionChanged() {}, notificationOccurred() {}, impactOccurred() {}},
   BackButton: {show() { window.__back = true; }, hide() { window.__back = false; }, onClick(f) { window.__backCb = f; }}}};"""
 NO_TG = ''
+NO_PICKER = 'window.showSaveFilePicker = undefined; window.showDirectoryPicker = undefined;'
+# Stand-ins for the browser's Save As / folder dialogs and the share sheet; they record what the page writes
+PICKERS = '''window.__w = {};
+  const writable = name => ({ async write(b) { window.__w[name] = b; }, async close() {} });
+  window.showSaveFilePicker = async o => { window.__pick = o; return {createWritable: async () => writable(o.suggestedName)}; };
+  window.showDirectoryPicker = async () => ({ async getFileHandle(n) { return {createWritable: async () => writable(n)}; } });
+  Object.defineProperty(navigator, 'canShare', {value: () => true});
+  Object.defineProperty(navigator, 'share', {value: async d => { window.__shared = d.files.map(f => f.name + ' ' + f.type); }});'''
 fails = []
 
 def check(name, ok, detail=''):
@@ -70,7 +79,7 @@ async def main(tmp):
             f'--use-file-for-fake-video-capture={tmp}/cam.mjpeg'])
 
         # 1. gallery photos: detection, proportions, looks, pages, PDF
-        ctx, pg = await new_page(browser, NO_TG)
+        ctx, pg = await new_page(browser, NO_TG, NO_PICKER)
         await pg.goto(url); await pg.evaluate("indexedDB.deleteDatabase('dsimya-scan')"); await pg.reload()
         for n, t in truth.items():
             await pg.set_input_files('#in-gallery', f'{tmp}/{n}.jpg')
@@ -93,13 +102,36 @@ async def main(tmp):
         async with pg.expect_download() as dl:
             await pg.click('#btn-pdf')
         pdf = open(await (await dl.value).path(), 'rb').read()
-        check('PDF has 4 pages', pdf.startswith(b'%PDF-') and pdf.count(b'/Type /Page /Parent') == 4)
+        check('no picker: PDF downloads, 4 pages', pdf.startswith(b'%PDF-') and pdf.count(b'/Type /Page /Parent') == 4)
+        check('no share sheet: no share button', await pg.is_hidden('#btn-share'))
 
         # 2. outside Telegram the button opens the phone's own camera (file input)
         async with pg.expect_file_chooser() as fc:
             await pg.click('label[for="in-camera"]')
         chooser = await fc.value
         check('browser: native camera input', await chooser.element.get_attribute('capture') == 'environment' and await pg.is_hidden('#cam'))
+        await ctx.close()
+
+        # 2b. Save As / folder pickers and the share sheet
+        ctx, pg = await new_page(browser, NO_TG, PICKERS)
+        await pg.goto(url); await pg.wait_for_timeout(300)
+        for n in ['p4', 'p2']:
+            await pg.set_input_files('#in-gallery', f'{tmp}/{n}.jpg'); await to_crop_and_quad(pg); await add_page(pg)
+        await pg.click('#btn-pdf')
+        await pg.wait_for_function("Object.keys(window.__w).some(k => k.endsWith('.pdf'))", timeout=15000)
+        head = await pg.evaluate("(async () => { const k = Object.keys(__w).find(k => k.endsWith('.pdf')); return new TextDecoder().decode((await __w[k].arrayBuffer()).slice(0, 5)) + ' ' + __pick.suggestedName; })()")
+        check('Save As: PDF written where the person chose', head.startswith('%PDF-') and head.endswith('.pdf'), head)
+        await pg.click('#btn-jpg')
+        await pg.wait_for_function("Object.keys(window.__w).filter(k => k.endsWith('.jpg')).length === 2", timeout=15000)
+        check('several photos: one folder choice, both files written', True)
+        downloads = []; pg.on('download', lambda d: downloads.append(d))
+        await pg.evaluate("() => { window.showSaveFilePicker = async () => { throw new DOMException('cancel', 'AbortError'); }; }")
+        await pg.click('#btn-pdf'); await pg.wait_for_timeout(800)
+        check('cancelled Save As: nothing downloads, no error', downloads == [] and await pg.is_hidden('#busy'))
+        await pg.click('#btn-share')
+        await pg.wait_for_function('window.__shared', timeout=15000)
+        shared = await pg.evaluate('window.__shared')
+        check('share button sends the PDF to the share sheet', len(shared) == 1 and shared[0].endswith('.pdf application/pdf'), str(shared))
         await ctx.close()
 
         # 3. Telegram on Android: the page runs the camera itself
