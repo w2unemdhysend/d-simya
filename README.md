@@ -10,4 +10,6 @@
 Сканер обробляє фото тільки на телефоні; нічого нікуди не надсилається.
 Необов'язкова кнопка «Надіслати PDF у чат» описана в [`worker/README.md`](worker/README.md).
 
+Перевірки: `python3 tests/scan_e2e.py` (сканер у Chrome, потрібні playwright, Pillow, numpy) і `node tests/worker.test.mjs` (Worker).
+
 Дані для пральки й сушарки взяті з інструкцій Beko WMB 71243/71443/71643 PTE і Gorenje SP10.

@@ -5,8 +5,8 @@
 
 /* device switch with a sliding thumb */
 .devices{position:relative}
-.devices a{position:relative;z-index:1;padding:7px 13px;transition:color .25s ease, transform .12s ease}
-@media (max-width:370px){.devices a{padding:7px 10px;font-size:13.5px}}
+.devices a{position:relative;z-index:1;padding:11px 13px;line-height:22px;transition:color .25s ease, transform .12s ease}
+@media (max-width:370px){.devices a{padding:11px 10px;font-size:13.5px}}
 .devices a[aria-current="page"]{background:transparent;color:var(--bg)}
 .devices.going a[aria-current="page"]{color:var(--ink)}
 .devices a.to{color:var(--bg)}

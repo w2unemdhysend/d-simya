@@ -59,7 +59,7 @@ body.focus .eyebrow,body.focus h1,body.focus .lede,body.focus .foot{display:none
 .shoot input:focus-visible + .bigbtn, .bigbtn:focus-within{outline:2.5px solid var(--accent);outline-offset:2px}
 .pages-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .count{display:inline-grid;place-items:center;min-width:28px;height:28px;padding:0 8px;border-radius:999px;background:var(--accent-soft);color:var(--ink);font-family:var(--f-body);font-size:14px;font-weight:700;margin-left:6px;vertical-align:2px}
-.linkbtn{border:0;background:transparent;color:var(--danger);font-weight:600;font-size:15px;cursor:pointer;padding:8px 4px;min-height:40px}
+.linkbtn{border:0;background:transparent;color:var(--danger);font-weight:600;font-size:15px;cursor:pointer;padding:8px 4px;min-height:44px}
 .pages{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .pg{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:8px;display:grid;gap:6px;animation:pgIn .32s cubic-bezier(.2,.7,.2,1) backwards}
 @keyframes pgIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
@@ -68,7 +68,7 @@ body.focus .eyebrow,body.focus h1,body.focus .lede,body.focus .foot{display:none
 .pg .row{display:flex;align-items:center;justify-content:space-between;gap:4px}
 .pg .num{position:absolute;left:6px;top:6px;min-width:26px;height:26px;padding:0 8px;border-radius:999px;display:grid;place-items:center;background:var(--ink);color:var(--bg);font-weight:700;font-size:13px;box-shadow:0 1px 4px rgba(0,0,0,.25)}
 .pg .ctl{display:flex;gap:2px;width:100%;justify-content:space-between}
-.icon{border:0;background:transparent;width:36px;height:36px;border-radius:10px;display:grid;place-items:center;cursor:pointer;color:var(--muted)}
+.icon{border:0;background:transparent;width:44px;height:44px;border-radius:10px;display:grid;place-items:center;cursor:pointer;color:var(--muted)}
 .icon svg{width:18px;height:18px}
 .icon:disabled{opacity:.3;cursor:default}
 .icon.del.armed{background:var(--danger);color:var(--bg)}
@@ -80,6 +80,7 @@ body.focus .eyebrow,body.focus h1,body.focus .lede,body.focus .foot{display:none
 .btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .btn:disabled{opacity:.45;cursor:default}
 .savehint{margin:0;font-size:14px;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.hintbtn{display:block;margin-top:8px;min-height:44px;padding:0 14px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font-weight:600;font-size:15px;cursor:pointer}
 .tips{background:var(--surface);border:1px solid var(--line);border-radius:14px}
 .tips summary{cursor:pointer;list-style:none;padding:14px;font-weight:600;display:flex;justify-content:space-between;align-items:center;min-height:52px}
 .tips summary::-webkit-details-marker{display:none}
@@ -100,7 +101,7 @@ body.focus .eyebrow,body.focus h1,body.focus .lede,body.focus .foot{display:none
 .handle:focus-visible::after{box-shadow:0 0 0 4px rgba(224,144,12,.5)}
 #loupe{position:absolute;width:120px;height:120px;border-radius:50%;border:3px solid #FFFFFF;box-shadow:0 4px 16px rgba(0,0,0,.5);pointer-events:none;z-index:3;background:#000}
 .tools{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
-.tool{display:flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 13px;white-space:nowrap;font-weight:600;font-size:14px;cursor:pointer;min-height:42px;transition:transform .12s ease}
+.tool{display:flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 13px;white-space:nowrap;font-weight:600;font-size:14px;cursor:pointer;min-height:44px;transition:transform .12s ease}
 .tool svg{width:18px;height:18px}
 .tool:active{transform:scale(.97)}
 .navrow{display:grid;grid-template-columns:1fr 1.4fr;gap:10px;position:sticky;bottom:0;z-index:5;margin:0 -16px;padding:10px 16px calc(10px + env(safe-area-inset-bottom, 0px));background:var(--bg);box-shadow:0 -1px 0 var(--line)}
@@ -117,6 +118,14 @@ body.focus .eyebrow,body.focus h1,body.focus .lede,body.focus .foot{display:none
 /* overlays */
 .spinner{width:42px;height:42px;border-radius:50%;border:4px solid rgba(255,255,255,.25);border-top-color:var(--hl);animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
+.cam{position:fixed;inset:0;z-index:25;background:#000;color:#FFFFFF;display:grid;grid-template-rows:minmax(0,1fr) auto;padding:env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px)}
+.cam video{width:100%;height:100%;object-fit:contain;display:block}
+.cam-hint{position:absolute;top:calc(12px + env(safe-area-inset-top, 0px));left:16px;right:16px;margin:0;text-align:center;font-size:15px;text-shadow:0 1px 3px #000}
+.cam-bar{position:relative;display:grid;place-items:center;padding:16px 0 24px}
+.cam-shot{width:76px;height:76px;border-radius:50%;border:4px solid #FFFFFF;background:#FFFFFF;box-shadow:inset 0 0 0 4px #000;cursor:pointer;transition:transform .12s ease}
+.cam-shot:active{transform:scale(.92)}
+.cam-close{position:absolute;left:24px;top:50%;margin-top:-24px;width:48px;height:48px;border-radius:50%;border:0;background:rgba(255,255,255,.18);color:#FFFFFF;display:grid;place-items:center;cursor:pointer}
+.cam-close svg{width:20px;height:20px}
 .busy{position:fixed;inset:0;z-index:20;background:rgba(10,12,14,.55);display:grid;place-items:center;align-content:center;gap:14px;color:#FFFFFF;font-weight:600;animation:fadeIn .2s ease}
 .busy p{margin:0}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
@@ -128,7 +137,7 @@ body.focus .toast{bottom:calc(86px + env(safe-area-inset-bottom, 0px))}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 @media (min-width:480px){h1{font-size:38px}}
 </style>
-<link rel="stylesheet" href="../assets/ui.css?v=5">
+<link rel="stylesheet" href="../assets/ui.css?v=6">
 </head>
 <body>
 <div class="wrap">
@@ -226,13 +235,21 @@ body.focus .toast{bottom:calc(86px + env(safe-area-inset-bottom, 0px))}
   </section>
   </main>
 
-  <p class="foot">Фото обробляються тільки на цьому телефоні й нікуди не надсилаються, поки ти сам не натиснеш «Надіслати PDF у чат».</p>
+  <p class="foot">Фото обробляються тільки на цьому телефоні й нікуди не надсилаються.</p>
 </div>
 
+<div class="cam" id="cam" role="dialog" aria-modal="true" aria-label="Камера" hidden>
+  <video id="camvideo" playsinline muted autoplay></video>
+  <p class="cam-hint">Тримай телефон над аркушем, щоб він був увесь у кадрі.</p>
+  <div class="cam-bar">
+    <button class="cam-close" id="cam-close" type="button" aria-label="Закрити камеру"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+    <button class="cam-shot" id="cam-shot" type="button" aria-label="Зробити фото"></button>
+  </div>
+</div>
 <div class="busy" id="busy" hidden><div class="spinner"></div><p id="busytext">Обробляю…</p></div>
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
-<script src="../assets/ui.js?v=5"></script>
+<script src="../assets/ui.js?v=6"></script>
 <script>
 (function(){
   'use strict';
@@ -355,8 +372,8 @@ body.focus .toast{bottom:calc(86px + env(safe-area-inset-bottom, 0px))}
       img.src = url;
     });
   }
-  function toWorkCanvas(img){
-    var w = img.naturalWidth, h = img.naturalHeight, s = Math.min(1, MAX_WORK / Math.max(w, h));
+  function toWorkCanvas(img){   // img: a decoded <img> or a playing <video>
+    var w = img.naturalWidth || img.videoWidth, h = img.naturalHeight || img.videoHeight, s = Math.min(1, MAX_WORK / Math.max(w, h));
     var c = document.createElement('canvas'); c.width = Math.round(w * s); c.height = Math.round(h * s);
     var x = c.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(img, 0, 0, c.width, c.height);
     return c;
@@ -367,23 +384,60 @@ body.focus .toast{bottom:calc(86px + env(safe-area-inset-bottom, 0px))}
     state.queue = files;
     nextFromQueue();
   }
+  function startCrop(work){
+    state.work = work;
+    state.quad = detectQuad(work) || defaultQuad(work);
+    state.rot = 0;
+    show('v-crop', function(){ layoutCrop(); });
+  }
   function nextFromQueue(){
     var f = state.queue.shift(); if (!f) return false;
     busy(true, 'Відкриваю фото…');
     loadImage(f).then(function(r){
-      state.work = toWorkCanvas(r.img); URL.revokeObjectURL(r.url);
-      state.quad = detectQuad(state.work) || defaultQuad(state.work);
-      state.rot = 0;
+      var work = toWorkCanvas(r.img); URL.revokeObjectURL(r.url);
       busy(false);
-      show('v-crop', function(){ layoutCrop(); });
+      startCrop(work);
     }).catch(function(){
       busy(false);
-      toast('Не вдалося відкрити це фото. Спробуй інше.');
+      toast('Не вдалося відкрити одне з фото. Спробуй інше.');
+      nextFromQueue();   // keep going with the rest of a multi-photo pick
     });
     return true;
   }
   $('#in-camera').addEventListener('change', function(){ onFiles(this.files); this.value = ''; });
   $('#in-gallery').addEventListener('change', function(){ onFiles(this.files); this.value = ''; });
+
+  /* Camera inside the page. Telegram on Android ignores capture="environment" and opens the
+     gallery (bugs.telegram.org/c/44936), so there the page runs the camera itself. Browsers and
+     iOS keep the native camera, which gives full-resolution photos. */
+  var liveCam = !!(tg && tg.platform === 'android' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+  var stream = null;
+  function openCam(){
+    navigator.mediaDevices.getUserMedia({audio:false, video:{facingMode:{ideal:'environment'}, width:{ideal:3840}, height:{ideal:2160}}}).then(function(s){
+      stream = s;
+      var v = $('#camvideo'); v.srcObject = s;
+      $('#cam').hidden = false; swipes(false);
+      try { tg.BackButton.show(); } catch(e){}
+      return v.play();
+    }).catch(function(){
+      closeCam();
+      toast('Немає доступу до камери. Дозволь Telegram користуватися камерою в налаштуваннях телефона або вибери фото з галереї.', 6000);
+    });
+  }
+  function closeCam(){
+    if (stream) stream.getTracks().forEach(function(t){ t.stop(); });
+    stream = null; $('#camvideo').srcObject = null; $('#cam').hidden = true;
+    if (!$('#v-home').hidden){ swipes(true); try { tg.BackButton.hide(); } catch(e){} }
+  }
+  $('label[for="in-camera"]').addEventListener('click', function(e){ if (liveCam){ e.preventDefault(); openCam(); } });
+  $('#cam-close').addEventListener('click', closeCam);
+  $('#cam-shot').addEventListener('click', function(){
+    var v = $('#camvideo'); if (!v.videoWidth) return;
+    // shortcut: a frame of the video stream (1080p to 4K, depends on the phone); ImageCapture.takePhoto gives full sensor resolution but its rotation differs per phone, switch after testing on real devices
+    var work = toWorkCanvas(v);
+    haptic('ok'); closeCam(); startCrop(work);
+  });
+  document.addEventListener('visibilitychange', function(){ if (document.hidden && stream) closeCam(); });   // never leave the camera on in the background
 
   /* ---------------- finding the sheet ---------------- */
   function defaultQuad(c){ var w = c.width, h = c.height, m = 0.06; return [{x:w*m, y:h*m}, {x:w*(1-m), y:h*m}, {x:w*(1-m), y:h*(1-m)}, {x:w*m, y:h*(1-m)}]; }
@@ -715,30 +769,17 @@ body.focus .toast{bottom:calc(86px + env(safe-area-inset-bottom, 0px))}
       return out;
     }
     // paper brightness map: max over blocks (ignores dark text), then smoothed
-    function bgGrid(chan, f){
+    // chan[(y*W + x)*step + off]: step 1 for a grey plane, step 4 + offset for one RGBA channel
+    function bgGrid(chan, f, step, off){
+      step = step || 1; off = off || 0;
       var gw = Math.ceil(W / f), gh = Math.ceil(H / f), g = new Float32Array(gw * gh), gx, gy, x, y;
       for (gy = 0; gy < gh; gy++) for (gx = 0; gx < gw; gx++){
         var mx = 0, x1 = Math.min(W, (gx + 1) * f), y1 = Math.min(H, (gy + 1) * f);
-        for (y = gy * f; y < y1; y += 2) for (x = gx * f; x < x1; x += 2){ var v = chan[y * W + x]; if (v > mx) mx = v; }
+        for (y = gy * f; y < y1; y += 2) for (x = gx * f; x < x1; x += 2){ var v = chan[(y * W + x) * step + off]; if (v > mx) mx = v; }
         g[gy * gw + gx] = mx;
       }
       g = filt(g, gw, gh, true); g = filt(g, gw, gh, false); g = filt(g, gw, gh, false); g = filt(g, gw, gh, false);
       return {g:g, gw:gw, gh:gh, f:f};
-    }
-    function bgGridRGB(f){   // same as bgGrid, for the three colour channels in one pass
-      var gw = Math.ceil(W / f), gh = Math.ceil(H / f), R = new Float32Array(gw * gh), Gc = new Float32Array(gw * gh), B = new Float32Array(gw * gh), gx, gy, x, y;
-      for (gy = 0; gy < gh; gy++) for (gx = 0; gx < gw; gx++){
-        var mr = 0, mg = 0, mb = 0, x1 = Math.min(W, (gx + 1) * f), y1 = Math.min(H, (gy + 1) * f);
-        for (y = gy * f; y < y1; y += 2) for (x = gx * f; x < x1; x += 2){
-          var k = (y * W + x) * 4, a = warped[k], b = warped[k+1], c = warped[k+2];
-          if (a > mr) mr = a; if (b > mg) mg = b; if (c > mb) mb = c;
-        }
-        var o = gy * gw + gx; R[o] = mr; Gc[o] = mg; B[o] = mb;
-      }
-      return [R, Gc, B].map(function(g){
-        g = filt(g, gw, gh, true); g = filt(g, gw, gh, false); g = filt(g, gw, gh, false); g = filt(g, gw, gh, false);
-        return {g:g, gw:gw, gh:gh, f:f};
-      });
     }
     function filt(g, gw, gh, isMax){
       var o = new Float32Array(g.length);
@@ -829,7 +870,7 @@ body.focus .toast{bottom:calc(86px + env(safe-area-inset-bottom, 0px))}
     }
     function lookColor(P){   // white-balance each channel against its own paper level
       var N = P.N, lo = P.lo, span = P.span, X = P.X, out = new Uint8ClampedArray(N * 4), i, k, u, v, c2;
-      var R0 = new Float32Array(W), R1 = new Float32Array(W), R2 = new Float32Array(W), grids = bgGridRGB(P.f);
+      var R0 = new Float32Array(W), R1 = new Float32Array(W), R2 = new Float32Array(W), grids = [0, 1, 2].map(function(c){ return bgGrid(warped, P.f, 4, c); });
       var L = arr('g', Float32Array, N), glut = new Float32Array(1025);
       for (i = 0; i <= 1024; i++) glut[i] = Math.pow(i / 1024, 1.15) * 255;
       for (v = 0; v < H; v++){
@@ -892,16 +933,9 @@ body.focus .toast{bottom:calc(86px + env(safe-area-inset-bottom, 0px))}
       var n3 = [k3*m3[0] - m1[0], k3*m3[1] - m1[1], k3*m3[2] - m1[2]];
       var f2 = -(n2[0]*n3[0] + n2[1]*n3[1]) / (n2[2]*n3[2]);
       var lo = Math.pow(0.45 * Math.max(iw, ih), 2), hi = Math.pow(4 * Math.max(iw, ih), 2);
-      var r;
-      if (isFinite(f2) && f2 > lo && f2 < hi && Math.abs(n2[2] * n3[2]) > 1e-9){
-        var wh2 = (n2[0]*n2[0] + n2[1]*n2[1] + f2 * n2[2]*n2[2]) / (n3[0]*n3[0] + n3[1]*n3[1] + f2 * n3[2]*n3[2]);
-        r = 1 / Math.sqrt(wh2);
-      } else {
-        // nearly face-on, or one-directional tilt: focal length cannot be solved, assume a typical phone camera
-        var f = 0.8 * Math.max(iw, ih), ff = f * f;
-        var wh2b = (n2[0]*n2[0] + n2[1]*n2[1] + ff * n2[2]*n2[2]) / (n3[0]*n3[0] + n3[1]*n3[1] + ff * n3[2]*n3[2]);
-        r = 1 / Math.sqrt(wh2b);
-      }
+      // nearly face-on or tilted one way only: the focal length cannot be solved, assume a typical phone lens
+      if (!(f2 > lo && f2 < hi)) f2 = Math.pow(0.8 * Math.max(iw, ih), 2);
+      var r = 1 / Math.sqrt((n2[0]*n2[0] + n2[1]*n2[1] + f2 * n2[2]*n2[2]) / (n3[0]*n3[0] + n3[1]*n3[1] + f2 * n3[2]*n3[2]));
       if (!isFinite(r) || r <= 0 || r / naive > 1.8 || naive / r > 1.8) return naive;
       return r;
     } catch(e){ return naive; }
@@ -1017,9 +1051,13 @@ body.focus .toast{bottom:calc(86px + env(safe-area-inset-bottom, 0px))}
   function afterDownload(){
     var hint = $('#savehint');
     if (tg){
-      hint.textContent = (SEND_URL && tg.initData)
-        ? 'Якщо файл не з’явився в завантаженнях, натисни «Надіслати PDF у чат»: бот надішле його тобі в Telegram.'
-        : 'Якщо файл не з’явився в завантаженнях телефона, Telegram не дозволив його зберегти. Тоді знадобиться кнопка «Надіслати PDF у чат».';
+      if (SEND_URL && tg.initData) hint.textContent = 'Якщо файл не з’явився в завантаженнях, натисни «Надіслати PDF у чат»: бот надішле його тобі в Telegram.';
+      else {
+        hint.textContent = 'Якщо файл не з’явився в завантаженнях, Telegram не дав його зберегти. Відкрий сканер у браузері й відскануй там: звідти файл зберігається завжди. ';
+        var b = document.createElement('button'); b.type = 'button'; b.className = 'hintbtn'; b.textContent = 'Відкрити в браузері';
+        b.addEventListener('click', function(){ try { tg.openLink(location.href.split('#')[0]); } catch(e){} });
+        hint.appendChild(b);
+      }
       hint.hidden = false;
     } else hint.hidden = true;
   }
@@ -1041,7 +1079,7 @@ body.focus .toast{bottom:calc(86px + env(safe-area-inset-bottom, 0px))}
     var files = state.pages.map(function(p, i){ return new File([p.blob], base + (state.pages.length > 1 ? '_' + (i + 1) : '') + '.jpg', {type:'image/jpeg'}); });
     deliver(files, 'Скан').then(function(how){
       if (how === 'shared'){ toast('Готово'); haptic('ok'); }
-      else if (how === 'downloaded'){ toast(files.length > 1 ? 'Фото збережено' : 'Фото збережено'); afterDownload(); }
+      else if (how === 'downloaded'){ toast('Фото збережено'); afterDownload(); }
     });
   });
   $('#btn-send').addEventListener('click', function(){
@@ -1065,7 +1103,8 @@ body.focus .toast{bottom:calc(86px + env(safe-area-inset-bottom, 0px))}
     try {
       tg.ready(); tg.expand();
       if (tg.BackButton) tg.BackButton.onClick(function(){
-        if (!$('#v-edit').hidden) show('v-crop', function(){ layoutCrop(); });
+        if (!$('#cam').hidden) closeCam();
+        else if (!$('#v-edit').hidden) show('v-crop', function(){ layoutCrop(); });
         else if (!$('#v-crop').hidden){ state.work = null; state.queue = []; show('v-home'); }
       });
     } catch(e){}
