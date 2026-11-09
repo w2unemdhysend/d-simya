@@ -70,7 +70,7 @@ body.page-out .wrap{opacity:0;transform:translateY(6px);transition:opacity .2s e
 }
 
 /* draggable program knob */
-#dial .knobhit{fill:transparent;cursor:grab;outline:none;touch-action:none}
+#dial .knobhit{fill:none;pointer-events:all;cursor:grab;outline:none;touch-action:none}
 #dial .knobhit:active{cursor:grabbing}
 #dial .knobhit:focus-visible{stroke:var(--accent);stroke-width:2.5}
 #dial .knob.dragging{transition:none}

@@ -217,7 +217,7 @@ h2{font-family:var(--f-display);font-weight:600;font-size:17px;line-height:1.2;m
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 @media (min-width:480px){h1{font-size:38px}.machine{padding:18px}}
 </style>
-<link rel="stylesheet" href="../assets/ui.css">
+<link rel="stylesheet" href="../assets/ui.css?v=4">
 </head>
 <body>
 <div class="wrap">
@@ -339,7 +339,7 @@ h2{font-family:var(--f-display);font-weight:600;font-size:17px;line-height:1.2;m
   <p class="foot">За інструкцією Gorenje до сушарок цієї серії (SP10). <a href="https://img.moebelplus.de/pdf/gorenje_d622cm_bedien.pdf" target="_blank" rel="noopener">Відкрити інструкцію</a>.</p>
 </div>
 
-<script src="../assets/ui.js"></script>
+<script src="../assets/ui.js?v=4"></script>
 <script>
 (function(){
   var $ = function(s, r){ return (r || document).querySelector(s); };
@@ -513,7 +513,7 @@ h2{font-family:var(--f-display);font-weight:600;font-size:17px;line-height:1.2;m
   /* the knob itself can be turned: drag around the centre, tap for one step, or use arrow keys */
   function enableKnobDrag(){
     var svg = $('#dial');
-    var hit = mk('circle', {cx:CX, cy:CY, r:57, 'class':'knobhit', tabindex:'0', role:'slider',
+    var hit = mk('circle', {cx:CX, cy:CY, r:57, fill:'none', 'pointer-events':'all', 'class':'knobhit', tabindex:'0', role:'slider',
       'aria-label':'Ручка перемикача: покрути по колу або натискай стрілки', 'aria-valuemin':'0', 'aria-valuemax':String(PROGS.length - 1)}, svg);
     var byAngle = {}; PROGS.forEach(function(p){ byAngle[p.angle] = p; });
     function progAt(a){ var s = ((Math.round(a / 22.5) * 22.5) % 360 + 360) % 360; return byAngle[s]; }
