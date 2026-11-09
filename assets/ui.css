@@ -1,0 +1,77 @@
+/* Shared UI layer for both guides: theme toggle, sliding indicators, soft transitions */
+
+.toprow{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.toprow .devices{margin-bottom:0}
+
+/* device switch with a sliding thumb */
+.devices{position:relative}
+.devices a{position:relative;z-index:1;transition:color .25s ease, transform .12s ease}
+.devices a[aria-current="page"]{background:transparent;color:var(--bg)}
+.devices.going a[aria-current="page"]{color:var(--ink)}
+.devices a.to{color:var(--bg)}
+.dthumb{position:absolute;top:3px;bottom:3px;left:0;width:0;border-radius:999px;background:var(--ink);
+  transition:transform .32s cubic-bezier(.3,.9,.3,1), width .32s cubic-bezier(.3,.9,.3,1)}
+
+/* section tabs with a sliding thumb */
+.tabs{position:relative}
+.tabs button{position:relative;z-index:1;transition:color .25s ease, transform .12s ease}
+.tabs button[aria-selected="true"]{background:transparent;color:var(--bg)}
+.tthumb{position:absolute;top:4px;bottom:4px;left:0;width:0;border-radius:10px;background:var(--ink);
+  transition:transform .34s cubic-bezier(.3,.9,.3,1), width .34s cubic-bezier(.3,.9,.3,1)}
+.no-anim,.no-anim *{transition:none!important}
+
+/* theme toggle */
+.themebtn{flex:none;width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--ink);
+  display:grid;place-items:center;cursor:pointer;padding:0;overflow:hidden;transition:transform .12s ease}
+.themebtn svg{grid-area:1/1;width:22px;height:22px;transition:opacity .3s ease, transform .55s cubic-bezier(.3,1.3,.5,1)}
+.themebtn .i-moon{opacity:0;transform:rotate(-90deg) scale(.5)}
+:root[data-theme="dark"] .themebtn .i-sun{opacity:0;transform:rotate(90deg) scale(.5)}
+:root[data-theme="dark"] .themebtn .i-moon{opacity:1;transform:none}
+
+/* pressed feel */
+.tabs button:active,.devices a:active,.go:active,.show:active,.themebtn:active,.ch-q:active{transform:scale(.97)}
+.go,.show{transition:transform .12s ease, background-color .2s ease, color .2s ease}
+
+/* view switching: old view fades out, new one rises in */
+.view.leaving{opacity:0;transform:translateY(-4px);transition:opacity .16s ease, transform .16s ease}
+.view.entering{animation:ui-view .36s cubic-bezier(.2,.7,.2,1) backwards}
+@keyframes ui-view{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* explanation text cross-fades in when it changes */
+.explain.swap>*{animation:ui-ex .3s ease backwards}
+.explain.swap>*:nth-child(2){animation-delay:.03s}
+.explain.swap>*:nth-child(3){animation-delay:.06s}
+.explain.swap>*:nth-child(n+4){animation-delay:.09s}
+@keyframes ui-ex{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+
+/* opening an answer or a problem */
+.ch-a:not([hidden]){animation:ui-drop .32s cubic-bezier(.2,.7,.2,1) backwards}
+.help details[open] .body{animation:ui-drop .3s cubic-bezier(.2,.7,.2,1) backwards}
+@keyframes ui-drop{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+
+/* page in / page out between the two devices */
+.wrap{animation:ui-page .42s ease backwards}
+@keyframes ui-page{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+body.page-out .wrap{opacity:0;transform:translateY(6px);transition:opacity .2s ease, transform .2s ease}
+
+/* smooth state changes on the panels */
+.cap,.lbl,.seg,.msg,.lockbar,.power,.power .pb,.led .dot,.xkey,.wkey,.wkey i,.xkey i,.startbtn,.dwin,.ch-p,.zonemap button{
+  transition:color .2s ease, background-color .2s ease, border-color .2s ease, box-shadow .2s ease}
+#dial .pt{transition:fill .25s ease}
+#dial .lead{transition:stroke .25s ease, stroke-width .25s ease}
+
+/* theme change: cross-fade (View Transitions) or colour fade fallback */
+::view-transition-old(root),::view-transition-new(root){animation-duration:.45s;animation-timing-function:ease}
+.theme-fade,.theme-fade *,.theme-fade *::before,.theme-fade *::after{
+  transition:background-color .45s ease, color .45s ease, border-color .45s ease, fill .45s ease, stroke .45s ease, box-shadow .45s ease!important}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+
+/* draggable program knob */
+#dial .knobhit{fill:transparent;cursor:grab;outline:none;touch-action:none}
+#dial .knobhit:active{cursor:grabbing}
+#dial .knobhit:focus-visible{stroke:var(--accent);stroke-width:2.5}
+#dial .knob.dragging{transition:none}
+.dialhint{margin:-6px 0 0;text-align:center;font-size:14px;line-height:1.35;opacity:.72}

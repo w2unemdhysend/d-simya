@@ -1,0 +1,663 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>(function(){try{var s=null;try{s=localStorage.getItem('dsimya-theme')}catch(e){}var w=window.Telegram&&Telegram.WebApp;var tg=w&&w.platform&&w.platform!=='unknown';var t=s||(tg?(w.colorScheme==='dark'?'dark':'light'):(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));document.documentElement.setAttribute('data-theme',t)}catch(e){}})();</script>
+<title>Сушарка Gorenje</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@600;700&display=swap">
+<style>
+/* Layout: one phone-width column; the dryer's white panel parts sit as cards on a cool enamel ground, in the order they appear on the dryer, left to right */
+:root{
+  padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom);
+  --bg:#E7ECEF; --surface:#F6F8F9; --ink:#12181C; --muted:#53616A; --line:#C7D0D5;
+  --accent:#9A5800; --accent-soft:#F7E3BF;
+  --wp:#FBFCFC; --wp-2:#EEF2F3; --wp-ink:#30373D; --wp-muted:#6E7980; --wp-line:#B7C0C5; --wp-edge:#D3DADE;
+  --sel:#E0900C; --sel-ink:#8A4F00; --led-off:#4A5258; --led-on:#FF8C1A;
+  --win:#111315; --win-ink:#E9EDF0; --win-dim:rgba(233,237,240,.28); --win-edge:#111315;
+  --wp-hi:#FFFFFF; --wp-card:#FFFFFF; --key-face:#FFFFFF; --btn-hi:#FFFFFF; --btn-lo:#E9EDEF;
+  --knob-ring:#1C2023; --knob-hi:#FFFFFF; --knob-lo:#DCE2E5; --knob-ptr:#E9EDEF; --panel-shadow:rgba(0,0,0,.04);
+  --start-red:#C8402C;
+  --f-display:"Unbounded","Arial Black",system-ui,sans-serif;
+  --f-body:"Onest","Segoe UI",Roboto,system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1417; --surface:#182026; --ink:#E5EBEE; --muted:#98A6AE; --line:#2A343B;
+    --accent:#FFB424; --accent-soft:#3A2909; color-scheme:dark;
+    --wp:#1C2226; --wp-2:#252C31; --wp-hi:#262E33; --wp-card:#232A2F; --wp-ink:#E4E9EC; --wp-muted:#9AA6AD; --wp-line:#46515A; --wp-edge:#2C353B; --sel-ink:#FFB648; --led-off:#4A545B; --start-red:#FF6B57; --win:#0A0B0C; --win-edge:#3A444B; --key-face:#2B3338; --btn-hi:#3A444A; --btn-lo:#232A2E; --knob-ring:#0A0C0D; --knob-hi:#4A555C; --knob-lo:#2A3237; --knob-ptr:#E4E9EC; --panel-shadow:rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1417; --surface:#182026; --ink:#E5EBEE; --muted:#98A6AE; --line:#2A343B;
+  --accent:#FFB424; --accent-soft:#3A2909; color-scheme:dark;
+  --wp:#1C2226; --wp-2:#252C31; --wp-hi:#262E33; --wp-card:#232A2F; --wp-ink:#E4E9EC; --wp-muted:#9AA6AD; --wp-line:#46515A; --wp-edge:#2C353B; --sel-ink:#FFB648; --led-off:#4A545B; --start-red:#FF6B57; --win:#0A0B0C; --win-edge:#3A444B; --key-face:#2B3338; --btn-hi:#3A444A; --btn-lo:#232A2E; --knob-ring:#0A0C0D; --knob-hi:#4A555C; --knob-lo:#2A3237; --knob-ptr:#E4E9EC; --panel-shadow:rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font:400 17px/1.5 var(--f-body);
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+  padding-block:0 40px;
+}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+[hidden]{display:none!important}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2.5px solid var(--accent);outline-offset:2px}
+.wrap{max-width:560px;margin:0 auto}
+
+/* header + device switch */
+.top{padding-block:16px 6px}
+.devices{display:inline-grid;grid-auto-flow:column;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px;margin-bottom:14px}
+.devices a{display:block;padding:7px 16px;border-radius:999px;font-weight:600;font-size:14px;color:var(--ink);text-decoration:none}
+.devices a[aria-current="page"]{background:var(--ink);color:var(--bg)}
+.eyebrow{font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--f-display);font-weight:700;font-size:32px;line-height:1.05;margin:6px 0 8px;letter-spacing:-.01em;text-wrap:balance}
+.lede{margin:0;color:var(--muted);font-size:16px;max-width:40ch}
+
+/* tabs */
+.tabbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:6;background:var(--bg);padding-block:12px 12px}
+.tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:4px}
+.tabs button{border:0;background:transparent;border-radius:10px;min-height:44px;padding:6px 4px;font-weight:600;font-size:14px;line-height:1.15;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
+.view{display:grid;gap:16px}
+h2{font-family:var(--f-display);font-weight:600;font-size:17px;line-height:1.2;margin:0;text-wrap:balance}
+.note{margin:0;color:var(--muted);font-size:15px}
+
+/* zone map */
+.zonemap{display:flex;gap:2px;background:var(--wp);border:1px solid var(--wp-edge);border-radius:12px;padding:4px}
+.zonemap button{flex:1 1 0;min-width:0;border:0;background:var(--wp-2);color:var(--wp-ink);font-size:11.5px;font-weight:600;padding:10px 2px;border-radius:7px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.zonemap .z-start{color:var(--start-red)}
+.zonemap .z-win{background:var(--win);color:var(--win-ink)}
+.zonemap .z-dial{flex-grow:1.5}
+
+/* white machine cards */
+.machine{
+  background:linear-gradient(170deg, var(--wp-hi), var(--wp) 45%);
+  color:var(--wp-ink); border:1px solid var(--wp-edge); border-radius:18px;
+  padding:16px 14px; display:grid; gap:14px; scroll-margin-top:84px;
+  box-shadow:0 1px 0 var(--panel-shadow);
+}
+.mhead{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.mhead h2{color:var(--wp-ink)}
+.mnote{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--wp-muted);text-align:right}
+.cap-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--wp-muted);text-align:center}
+
+/* panel: start + lights */
+.p-top{display:grid;grid-template-columns:auto minmax(0,1fr);gap:16px;align-items:center;border:1px solid var(--wp-line);border-radius:12px;padding:12px}
+.startwrap{display:grid;justify-items:center;gap:6px}
+.startbtn{width:58px;height:58px;border-radius:50%;border:1.5px solid var(--wp-line);background:radial-gradient(circle at 40% 35%, var(--btn-hi), var(--btn-lo));box-shadow:0 2px 4px rgba(0,0,0,.12);display:grid;place-items:center;cursor:pointer;padding:0}
+.startbtn svg{width:26px;height:26px;color:var(--wp-ink)}
+.startlbl{font-size:11px;letter-spacing:.06em;color:var(--start-red);font-weight:600}
+.leds{display:grid;gap:4px}
+.led{display:flex;align-items:center;justify-content:flex-end;gap:10px;border:0;background:transparent;cursor:pointer;padding:6px 6px;border-radius:8px;text-align:right;min-height:40px}
+.led .lbl{font-size:12px;letter-spacing:.04em;line-height:1.2;color:var(--wp-ink)}
+.led .dot{flex:0 0 11px;height:11px;border-radius:2px;background:var(--led-off)}
+.led[aria-pressed="true"] .dot{background:var(--led-on);box-shadow:0 0 8px var(--led-on)}
+.led[aria-pressed="true"] .lbl{color:var(--sel-ink);font-weight:600}
+.startbtn[aria-pressed="true"]{border-color:var(--sel);box-shadow:0 0 0 3px rgba(224,144,12,.25)}
+
+/* panel: window + extras */
+.p-bot{display:grid;grid-template-columns:108px minmax(0,1fr);gap:14px;align-items:start}
+.wincol{display:grid;gap:8px;justify-items:center}
+.dwin{width:100%;border:1px solid var(--win-edge);background:var(--win);border-radius:8px;padding:10px 8px;display:grid;gap:6px;cursor:pointer}
+.dwin .row{display:flex;align-items:center;justify-content:space-between;gap:6px;color:var(--win-dim);font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+.dwin .row svg{width:18px;height:18px}
+.dwin .row.on{color:var(--win-ink)}
+.dwin .row.on svg{filter:drop-shadow(0 0 4px rgba(255,255,255,.5))}
+.dwin[aria-pressed="true"]{box-shadow:0 0 0 3px rgba(224,144,12,.45)}
+.wkey{width:100%;height:30px;border:1.5px solid var(--wp-line);border-radius:6px;background:var(--key-face);display:grid;place-items:center;cursor:pointer;padding:0}
+.wkey i,.xkey i{display:block;width:14px;height:5px;border-radius:2px;background:var(--led-off)}
+.wkey[aria-pressed="true"],.xbtn[aria-pressed="true"] .xkey{border-color:var(--sel)}
+.wkey[aria-pressed="true"] i,.xbtn[aria-pressed="true"] .xkey i{background:var(--led-on)}
+.extras{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0 6px;align-items:stretch}
+.xlist{display:grid;gap:4px}
+.xbtn{display:flex;align-items:center;justify-content:flex-end;gap:8px;border:0;background:transparent;cursor:pointer;padding:2px 2px;border-radius:8px;text-align:right;min-height:44px}
+.xbtn .lbl{font-size:12px;letter-spacing:.04em;line-height:1.15;color:var(--wp-ink)}
+.xbtn[aria-pressed="true"] .lbl{color:var(--sel-ink);font-weight:600}
+.xkey{flex:0 0 42px;height:40px;border:1.5px solid var(--wp-line);border-radius:4px;background:var(--key-face);display:grid;place-items:center}
+.lockbar{grid-column:2;grid-row:1;align-self:end;border:0;background:transparent;cursor:pointer;padding:0 2px;margin-bottom:22px;display:flex;align-items:center;color:var(--wp-muted);border-radius:6px}
+.lockbar .brk{width:8px;height:52px;border:1.5px solid currentColor;border-left:0;border-radius:0 3px 3px 0}
+.lockbar svg{width:16px;height:16px;margin-left:2px}
+.lockbar[aria-pressed="true"]{color:var(--sel-ink)}
+
+/* explain */
+.explain{background:var(--wp-2);border-radius:12px;padding:12px 14px;min-height:76px}
+.explain p{margin:6px 0 0;font-size:16px;line-height:1.45;max-width:60ch}
+.explain .ex-hint{color:var(--wp-muted);margin:0;font-size:15px}
+.ex-de{font-weight:700;font-size:19px;color:var(--sel-ink);line-height:1.2}
+.ex-uk{font-size:14px;color:var(--wp-muted);margin-top:2px}
+.ex-tip{border-left:2px solid var(--sel);padding-left:10px}
+.facts{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.facts span{font-size:14px;font-weight:600;padding:4px 10px;border-radius:999px;background:var(--wp-card);border:1px solid var(--wp-line)}
+
+/* dial */
+.dialwrap{max-width:420px;width:100%;margin:0 auto}
+#dial{display:block;width:100%;height:auto;overflow:visible}
+#dial .pt{font-family:var(--f-body);font-size:14.5px;fill:var(--wp-ink)}
+#dial .lead{fill:none;stroke:var(--wp-line);stroke-width:1.2}
+#dial .tick{fill:var(--wp-ink)}
+#dial .hit{fill:transparent}
+#dial .plabel{cursor:pointer;outline:none}
+#dial .plabel:focus-visible .hit{fill:rgba(224,144,12,.15)}
+#dial .plabel.on .pt{fill:var(--sel-ink);font-weight:700}
+#dial .plabel.on .lead{stroke:var(--sel);stroke-width:1.8}
+#dial .kring{fill:var(--knob-ring)}
+#dial .kptr{fill:var(--knob-ptr)}
+#dial .khi{stop-color:var(--knob-hi)}
+#dial .klo{stop-color:var(--knob-lo)}
+.mini .m-face{fill:var(--wp)}
+.mini .m-rim{fill:none;stroke:var(--wp-line)}
+.mini .m-dot{fill:var(--wp-muted)}
+.mini .m-dot.on{fill:var(--sel)}
+.mini .m-ring{fill:var(--knob-ring)}
+.mini .m-knob{fill:var(--wp-2)}
+.mini .m-ptr{fill:var(--sel)}
+#dial .knob{transform-box:view-box;transition:transform .55s cubic-bezier(.3,1.35,.5,1)}
+
+/* care */
+.care{display:grid;gap:8px}
+.cbox{border:1px solid var(--wp-line);border-radius:12px;padding:12px;display:grid;gap:4px;background:var(--wp-card)}
+.cbox .when{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--sel-ink);font-weight:600}
+.cbox b{font-size:16px}
+.cbox p{margin:0;font-size:15px;line-height:1.45}
+
+.pulse{animation:pulse 1.2s ease-out 2}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(224,144,12,.9)}100%{box-shadow:0 0 0 14px rgba(224,144,12,0)}}
+
+/* choose */
+.list{display:grid;gap:8px}
+.choice{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.ch-q{width:100%;border:0;background:transparent;text-align:left;cursor:pointer;display:grid;grid-template-columns:minmax(0,1fr) auto 20px;align-items:center;gap:10px;padding:14px;min-height:56px}
+.ch-t{font-weight:600;font-size:17px;line-height:1.3}
+.ch-p{font-size:13px;color:var(--muted);text-align:right;max-width:10em;line-height:1.2}
+.ch-q svg{width:18px;height:18px;color:var(--muted);transition:transform .2s}
+.ch-q[aria-expanded="true"] svg{transform:rotate(180deg)}
+.ch-q[aria-expanded="true"] .ch-p{color:var(--accent);font-weight:600}
+.ch-a{padding:0 14px 16px;display:grid;grid-template-columns:76px minmax(0,1fr);gap:14px;align-items:start}
+.ch-a .mini{width:76px;height:76px}
+.ch-a h3{margin:0;font-size:19px;line-height:1.2}
+.ch-a .uk{color:var(--muted);font-size:14px;margin-top:2px}
+.ch-a p{margin:8px 0 0;font-size:16px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chips span{font-size:14px;font-weight:600;padding:4px 10px;border-radius:999px;background:var(--accent-soft);color:var(--ink)}
+.go{margin-top:12px;border:1px solid var(--ink);background:var(--ink);color:var(--bg);border-radius:10px;padding:10px 14px;font-weight:600;font-size:15px;cursor:pointer;min-height:44px}
+
+/* steps */
+.steps{list-style:none;margin:0;padding:0;display:grid;gap:10px;counter-reset:s}
+.steps li{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;grid-template-columns:40px minmax(0,1fr);gap:12px;counter-increment:s}
+.steps li::before{content:counter(s);font-family:var(--f-display);font-weight:700;font-size:18px;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--ink);color:var(--bg)}
+.steps h3{margin:4px 0 0;font-size:18px;line-height:1.25}
+.steps p{margin:4px 0 0;font-size:16px}
+.de{font-size:14px;color:var(--muted);margin-top:6px}
+.de b{font-weight:600;letter-spacing:.06em;font-size:11px;margin-right:4px}
+.show{margin-top:10px;border:1px solid var(--line);background:transparent;border-radius:10px;padding:8px 12px;font-weight:600;font-size:15px;cursor:pointer;min-height:42px;color:var(--accent)}
+.nogo{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px}
+.nogo h3{margin:0 0 6px;font-size:18px}
+.nogo ul{margin:0;padding-left:20px;display:grid;gap:4px}
+
+/* help */
+.help{display:grid;gap:8px}
+.help details{background:var(--surface);border:1px solid var(--line);border-radius:14px}
+.help summary{cursor:pointer;list-style:none;padding:14px;font-weight:600;font-size:17px;line-height:1.3;display:grid;grid-template-columns:minmax(0,1fr) 20px;gap:10px;align-items:center;min-height:56px}
+.help summary::-webkit-details-marker{display:none}
+.help summary svg{width:18px;height:18px;color:var(--muted);transition:transform .2s}
+.help details[open] summary svg{transform:rotate(180deg)}
+.help .body{padding:0 14px 14px}
+.help ol,.help ul{margin:0;padding-left:22px;display:grid;gap:6px}
+.help p{margin:0}
+
+.foot{margin-top:24px;font-size:13px;color:var(--muted)}
+.foot a{color:var(--muted)}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+@media (min-width:480px){h1{font-size:38px}.machine{padding:18px}}
+</style>
+<link rel="stylesheet" href="../assets/ui.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="toprow"><nav class="devices" aria-label="Прилади"><span class="dthumb" aria-hidden="true"></span><a href="../">Пралка</a><a href="./" aria-current="page">Сушарка</a></nav><button class="themebtn" id="themebtn" type="button" aria-label="Увімкнути темну тему"><svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M5.3 18.7L7 17M17 7l1.7-1.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.6A8.2 8.2 0 0 1 9.4 4a8.2 8.2 0 1 0 10.6 10.6z" fill="currentColor"/></svg></button></div>
+    <div class="eyebrow">Gorenje SensoCare · 6 кг</div>
+    <h1>Сушарка</h1>
+    <p class="lede">Натисни на кнопку, лампочку чи програму, і нижче з’явиться пояснення.</p>
+  </header>
+
+  <div class="tabbar">
+    <div class="tabs" role="tablist" aria-label="Розділи">
+      <span class="tthumb" aria-hidden="true"></span>
+      <button role="tab" id="tab-panel" data-tab="panel" aria-controls="view-panel" aria-selected="true">Панель</button>
+      <button role="tab" id="tab-choose" data-tab="choose" aria-controls="view-choose" aria-selected="false">Що сушити</button>
+      <button role="tab" id="tab-steps" data-tab="steps" aria-controls="view-steps" aria-selected="false">Як сушити</button>
+      <button role="tab" id="tab-help" data-tab="help" aria-controls="view-help" aria-selected="false">Проблеми</button>
+    </div>
+  </div>
+
+  <main>
+  <section class="view" id="view-panel" role="tabpanel" aria-labelledby="tab-panel">
+    <div class="zonemap" aria-label="Панель сушарки зліва направо">
+      <button class="z-start" data-go="sec-panel">Start</button>
+      <button data-go="sec-panel">Лампи</button>
+      <button class="z-win" data-go="sec-panel">Віконце</button>
+      <button data-go="sec-panel">Extras</button>
+      <button class="z-dial" data-go="sec-dial">Програми</button>
+      <button data-go="sec-care">Бак</button>
+    </div>
+    <p class="note">Так панель розташована на сушарці, зліва направо. Натисни на частину, щоб перейти до неї.</p>
+
+    <section class="machine" id="sec-panel" aria-labelledby="h-panel">
+      <div class="mhead"><h2 id="h-panel">Кнопки й лампочки</h2><span class="mnote">ліворуч від перемикача</span></div>
+      <div class="p-top">
+        <div class="startwrap">
+          <button class="startbtn" data-id="start" aria-pressed="false" aria-label="START | PAUSE">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3l7 4.5L9 12z" fill="currentColor"/><path d="M5 13.5h14" stroke="currentColor" stroke-width="1.4"/><path d="M10 16v5M14 16v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </button>
+          <span class="startlbl">START | PAUSE</span>
+        </div>
+        <div class="leds">
+          <button class="led" data-id="led-filter" aria-pressed="false"><span class="lbl">FILTER<br>REINIGEN</span><span class="dot" aria-hidden="true"></span></button>
+          <button class="led" data-id="led-tank" aria-pressed="false"><span class="lbl">BEHÄLTER<br>LEEREN</span><span class="dot" aria-hidden="true"></span></button>
+          <button class="led" data-id="led-lock" aria-pressed="false"><span class="lbl">KINDER-<br>SICHERUNG</span><span class="dot" aria-hidden="true"></span></button>
+        </div>
+      </div>
+      <div class="p-bot">
+        <div class="wincol">
+          <button class="dwin" data-id="window" aria-pressed="false" aria-label="Віконце з індикаторами">
+            <span class="row on"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="3.6" fill="currentColor"/><path d="M10 1.5v3M10 15.5v3M1.5 10h3M15.5 10h3M4 4l2.1 2.1M13.9 13.9L16 16M4 16l2.1-2.1M13.9 6.1L16 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span>12h</span></span>
+            <span class="row"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 10c0-4 1.5-7 4-7s2 4-4 7zm0 0c4 0 7 1.5 7 4s-4 2-7-4zm0 0c0 4-1.5 7-4 7s-2-4 4-7zm0 0c-4 0-7-1.5-7-4s4-2 7 4z" fill="currentColor"/></svg><span>4h</span></span>
+            <span class="row"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 2.5L3 5l1.6 3.4L6 7.6V17.5h8V7.6l1.4.8L17 5l-4-2.5c-.4 1.3-1.6 2-3 2s-2.6-.7-3-2z" fill="currentColor"/></svg><span>2h</span></span>
+          </button>
+          <button class="wkey" data-id="delay" aria-pressed="false" aria-label="STARTZEITVORWAHL"><i aria-hidden="true"></i></button>
+          <span class="cap-label">Startzeit&shy;vorwahl</span>
+        </div>
+        <div>
+          <div class="extras">
+            <div class="xlist">
+              <button class="xbtn" data-id="super" aria-pressed="false"><span class="lbl">SUPER<br>TROCKEN</span><span class="xkey" aria-hidden="true"><i></i></span></button>
+              <button class="xbtn" data-id="knitter" aria-pressed="false"><span class="lbl">KNITTER<br>SCHUTZ</span><span class="xkey" aria-hidden="true"><i></i></span></button>
+              <button class="xbtn" data-id="tempred" aria-pressed="false"><span class="lbl">TEMPERATUR-<br>REDUKTION</span><span class="xkey" aria-hidden="true"><i></i></span></button>
+            </div>
+            <button class="lockbar" data-id="lockbar" aria-pressed="false" aria-label="Значок ключика: блокування від дітей">
+              <span class="brk" aria-hidden="true"></span>
+              <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="6" cy="10" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M9.2 10H18M15 10v3M17.5 10v2.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </button>
+          </div>
+          <div class="cap-label" style="margin-top:4px">Extras</div>
+        </div>
+      </div>
+      <div class="explain" id="ex-panel" aria-live="polite"><p class="ex-hint">Натисни будь-яку кнопку, лампочку чи віконце вище.</p></div>
+    </section>
+
+    <section class="machine" id="sec-dial" aria-labelledby="h-dial">
+      <div class="mhead"><h2 id="h-dial">Перемикач програм</h2><span class="mnote">він же вмикає</span></div>
+      <div class="dialwrap"><svg id="dial" viewBox="0 0 380 376" role="group" aria-label="Перемикач програм: натисни на назву програми"></svg></div>
+      <p class="dialhint">Покрути ручку пальцем або натисни на назву програми.</p>
+      <div class="explain" id="ex-dial" aria-live="polite"></div>
+    </section>
+
+    <section class="machine" id="sec-care" aria-labelledby="h-care">
+      <div class="mhead"><h2 id="h-care">Бак і фільтри</h2><span class="mnote">догляд</span></div>
+      <div class="care">
+        <div class="cbox"><span class="when">Після кожного сушіння</span><b>Бак для води</b><p>Висувна панель праворуч угорі, з написом gorenje. Потягни за виїмку знизу, вилий воду в раковину і встав бак на місце. Ця вода не для пиття.</p></div>
+        <div class="cbox"><span class="when">Після кожного сушіння</span><b>Фільтр у дверцятах</b><p>Відчини дверцята, вийми фільтр, зніми з нього ворс і встав назад до упору. Час від часу промий його під водою і просуши.</p></div>
+        <div class="cbox"><span class="when">Приблизно раз на 5 сушінь</span><b>Нижня кришка спереду</b><p>Відкрий кришку внизу спереду. Якщо там пластиковий блок (конденсатор), вийми його і промий з обох боків теплою водою, дай стекти. Якщо поролоновий фільтр, вийми, промий і просуши. Без них сушарку не вмикай.</p></div>
+      </div>
+    </section>
+  </section>
+
+  <section class="view" id="view-choose" role="tabpanel" aria-labelledby="tab-choose" hidden>
+    <div><h2>Що будемо сушити?</h2><p class="note">Вибери, і я покажу програму на перемикачі й найбільше завантаження.</p></div>
+    <div class="list" id="choose-list"></div>
+  </section>
+
+  <section class="view" id="view-steps" role="tabpanel" aria-labelledby="tab-steps" hidden>
+    <div><h2>Як запустити сушіння</h2><p class="note">По черзі, від етикетки до сухої білизни.</p></div>
+    <ol class="steps" id="steps"></ol>
+    <div class="nogo">
+      <h3>Не клади в сушарку</h3>
+      <ul>
+        <li>Речі зі значком перекресленого квадрата з колом на етикетці</li>
+        <li>Гуму, латекс, поролон, шкіру</li>
+        <li>Речі з паєтками або великими дерев’яними чи металевими деталями</li>
+        <li>Речі з плямами олії, ацетону, бензину, воску, поки їх не випрано в гарячій воді</li>
+        <li>Невипрані речі та погано віджаті (віджим має бути щонайменше 800 об/хв)</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="view" id="view-help" role="tabpanel" aria-labelledby="tab-help" hidden>
+    <div><h2>Якщо щось не так</h2><p class="note">Найчастіше допомагає почистити фільтри й вилити воду з бака.</p></div>
+    <div class="help" id="help"></div>
+  </section>
+  </main>
+
+  <p class="foot">За інструкцією Gorenje до сушарок цієї серії (SP10). <a href="https://img.moebelplus.de/pdf/gorenje_d622cm_bedien.pdf" target="_blank" rel="noopener">Відкрити інструкцію</a>.</p>
+</div>
+
+<script src="../assets/ui.js"></script>
+<script>
+(function(){
+  var $ = function(s, r){ return (r || document).querySelector(s); };
+  var $$ = function(s, r){ return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+  var reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var tgApp = window.Telegram && window.Telegram.WebApp;
+  var tg = (tgApp && tgApp.platform && tgApp.platform !== 'unknown') ? tgApp : null;
+  function haptic(){ try { if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged(); } catch(e){} }
+  var chevron = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 8l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  var INFO = {
+    'start': {de:'START | PAUSE', uk:'Старт і пауза', text:'Коротко натисни, щоб запустити програму або поставити на паузу. Поки програму вибирають, лампочка на кнопці блимає, після старту світиться.', tip:'Щоб змінити програму: натисни Start/Pause, поверни перемикач на AUS, вибери нову програму і знову натисни Start/Pause.'},
+    'led-filter': {de:'FILTER REINIGEN', uk:'Почистити фільтр', text:'Нагадування почистити фільтр від ворсу в дверцятах. Його чистять після кожного сушіння.', tip:'Брудний фільтр подовжує сушіння, і речі залишаються вологими.'},
+    'led-tank': {de:'BEHÄLTER LEEREN', uk:'Спорожнити бак', text:'Бак для води повний, і сушіння зупинилося. Витягни бак (висувна панель праворуч угорі з написом gorenje), вилий воду й встав назад. Потім натисни Start/Pause.'},
+    'led-lock': {de:'KINDERSICHERUNG', uk:'Блокування від дітей', text:'Світиться, коли кнопки заблоковані. Щоб увімкнути або вимкнути блокування, утримуй разом Knitterschutz і Temperaturreduktion 3 секунди.', tip:'Блокування не зникає, коли вимикаєш сушарку. Перед вибором нової програми його треба вимкнути.'},
+    'window': {de:'Віконце з лампочками', uk:'Час і етапи', text:'Якщо вибрано відкладений старт, тут світиться його час: 2h, 4h або 12h. Під час роботи ці лампочки показують етап: сушіння, охолодження, кінець.', tip:'Наприкінці сушарка пищить, і лампочка на Start/Pause блимає.'},
+    'delay': {de:'STARTZEITVORWAHL', uk:'Відкладений старт', text:'Кожне натискання вибирає 2, 4 або 12 годин. Потім натисни Start/Pause, і сушарка ввімкнеться сама, коли мине цей час.', tip:'Щоб скасувати, поверни перемикач на AUS.'},
+    'super': {de:'SUPER TROCKEN', uk:'Сухіше', text:'Кожне натискання робить білизну сухішою, а сушіння довшим. Є 3 рівні.', tip:'Знадобиться, якщо речі виходять трохи вологими.'},
+    'knitter': {de:'KNITTERSCHUTZ', uk:'Захист від зминання', text:'Якщо не вийняти білизну одразу, сушарка ще до 2 годин час від часу ворушить її, щоб вона не зім’ялася. Зупиняється, щойно відчиниш дверцята.'},
+    'tempred': {de:'TEMPERATURREDUKTION', uk:'Нижча температура', text:'Сушить при нижчій температурі. Для делікатних речей.', tip:'Після кінця програми вимикається сама.'},
+    'lockbar': {de:'Значок ключика', uk:'Блокування від дітей', text:'Ключик між Knitterschutz і Temperaturreduktion означає, що ці дві кнопки разом вмикають блокування. Утримуй обидві 3 секунди, поки не засвітиться Kindersicherung.'}
+  };
+
+  // Programs clockwise from the top (AUS), as printed around the dryer's dial
+  var PROGS = [
+    {id:'aus', de:'AUS', uk:'Вимкнено', angle:0, side:'T', text:'Сушарка вимкнена. Поверни перемикач сюди, щоб вимкнути її або скасувати програму.'},
+    {id:'sanft', de:'sanft', uk:'Делікатне', angle:22.5, side:'R', kg:2, text:'Делікатні речі сушаться при нижчій температурі: блузки, тонка білизна, футболки з принтом.', tip:'Клади речі в мішечок для прання.'},
+    {id:'pfl-x', de:'pflegeleicht extratrocken', lines:['pflegeleicht', 'extratrocken'], uk:'Синтетика, дуже сухо', angle:45, side:'R', kg:3, text:'Синтетика і змішані тканини: футболки, штани, сукні, шкарпетки. Висушує повністю.'},
+    {id:'pfl', de:'pflegeleicht', uk:'Синтетика, сухо', angle:67.5, side:'R', kg:3, text:'Синтетика і змішані тканини: футболки, штани, сукні, шкарпетки.'},
+    {id:'hemden', de:'hemden/blusen', uk:'Сорочки й блузки', angle:90, side:'R', kg:2, text:'Сорочки й блузки.'},
+    {id:'wolle', de:'wolle', uk:'Вовна', angle:112.5, side:'R', kg:2, text:'Не висушує, а робить вовняні речі м’якшими: светри, шарфи, хустки.', tip:'Тільки якщо на етикетці дозволено сушарку.'},
+    {id:'bett', de:'bettwäsche', uk:'Постільна білизна', angle:135, side:'R', kg:5, text:'Постіль, великі скатертини й рушники. Великі речі менше сплутуються.'},
+    {id:'t30', de:'30′', uk:'Сушіння 30 хвилин', angle:157.5, side:'R', kg:3, text:'Сушить рівно 30 хвилин, без датчика вологості. Для кількох речей або щоб досушити трохи вологе.'},
+    {id:'t60', de:'60′', uk:'Сушіння 60 хвилин', angle:180, side:'B', kg:3, text:'Сушить рівно 60 хвилин, без датчика вологості. Для невеликої кількості речей.'},
+    {id:'t90', de:'90′', uk:'Сушіння 90 хвилин', angle:202.5, side:'L', kg:3, text:'Сушить рівно 90 хвилин, без датчика вологості. Для невеликої кількості речей.'},
+    {id:'mix-b', de:'mix bügelleicht', lines:['mix', 'bügelleicht'], uk:'Змішані, під праску', angle:225, side:'L', kg:3, text:'Змішані тканини: штани, футболки, сукні. Залишаються трохи вологими, щоб легко прасувати.'},
+    {id:'mix-s', de:'mix schranktrocken', lines:['mix', 'schranktrocken'], uk:'Змішані, в шафу', angle:247.5, side:'L', kg:3, text:'Змішані тканини: штани, футболки, сукні. Висихають так, що можна одразу класти в шафу.'},
+    {id:'bw-b', de:'baumwolle bügelleicht', lines:['baumwolle', 'bügelleicht'], uk:'Бавовна, під праску', angle:270, side:'L', kg:6, text:'Бавовна залишається трохи вологою, щоб її було легко прасувати.'},
+    {id:'bw-t', de:'baumwolle trocken', lines:['baumwolle', 'trocken'], uk:'Бавовна, сухо', angle:292.5, side:'L', kg:6, text:'Звичайне сушіння бавовни: футболки, штани, кухонні рушники.'},
+    {id:'bw-s', de:'baumwolle schranktrocken', lines:['baumwolle', 'schranktrocken'], uk:'Бавовна, в шафу', angle:315, side:'L', kg:6, text:'Бавовна висихає так, що її можна одразу складати в шафу.'},
+    {id:'bw-x', de:'baumwolle extratrocken', lines:['baumwolle', 'extratrocken'], uk:'Бавовна, дуже сухо', angle:337.5, side:'L', kg:6, text:'Для товстих бавовняних речей: махрові рушники, халати.'}
+  ];
+  var PBYID = {}; PROGS.forEach(function(p){ PBYID[p.id] = p; });
+
+  var CHOICES = [
+    {q:'Рушники, махрові халати', p:'bw-x'},
+    {q:'Бавовняний одяг, одразу в шафу', p:'bw-s'},
+    {q:'Бавовна, яку будеш прасувати', p:'bw-b'},
+    {q:'Постільна білизна', p:'bett'},
+    {q:'Синтетика: футболки, штани, шкарпетки', p:'pfl'},
+    {q:'Бавовна й синтетика разом', p:'mix-s'},
+    {q:'Змішане, яке будеш прасувати', p:'mix-b'},
+    {q:'Сорочки, блузки', p:'hemden'},
+    {q:'Делікатне, тонка білизна', p:'sanft'},
+    {q:'Вовняні речі', p:'wolle'},
+    {q:'Кілька речей або досушити', p:'t30', tip:'Залежно від того, наскільки вологе: 30′, 60′ або 90′.'}
+  ];
+
+  var STEPS = [
+    {h:'Перевір етикетку', p:'Сушити можна речі зі значком квадрата з колом усередині. Якщо значок перекреслений, у сушарку не можна.', de:'Pflegeetikett prüfen'},
+    {h:'Підготуй сушарку', p:'Почисти фільтр у дверцятах і вилий воду з бака.', de:'Flusensieb reinigen, Behälter leeren', go:'sec-care'},
+    {h:'Поклади речі', p:'Не більше, ніж дозволяє програма. Застебни блискавки й ґудзики, виверни кишені. Зачини дверцята.', de:'Wäsche einlegen, Tür schließen'},
+    {h:'Вибери програму', p:'Поверни перемикач: сушарка вмикається саме ним. Не знаєш, яку обрати? Дивись вкладку «Що сушити».', de:'Programm wählen', go:'sec-dial'},
+    {h:'Додатково, якщо треба', p:'Кнопки праворуч від віконця: Super Trocken, Knitterschutz, Temperaturreduktion.', de:'Extras wählen', go:'super'},
+    {h:'Запусти', p:'Коротко натисни Start/Pause. Лампочка на кнопці перестане блимати і світитиметься.', de:'START/PAUSE drücken', go:'start'},
+    {h:'Дочекайся кінця', p:'Наприкінці сушарка охолоджує білизну, потім пищить. Дістань речі й розклади їх, поки теплі.', de:'Wäsche herausnehmen', go:'window'},
+    {h:'Після сушіння', p:'Поверни перемикач на AUS. Почисти фільтр у дверцятах і вилий воду з бака.', de:'Auf AUS drehen, Filter reinigen, Behälter leeren', go:'sec-care'}
+  ];
+
+  var PROBLEMS = [
+    {q:'Барабан не крутиться', a:'<ol><li>Зачини дверцята, поки не клацнуть.</li><li>Якщо світиться Behälter leeren, вилий воду з бака і натисни Start/Pause.</li><li>Можливо, вибрано відкладений старт: дочекайся його або поверни перемикач на AUS.</li></ol>'},
+    {q:'Не вмикається', a:'<p>Перевір, чи вставлена вилка в розетку і чи не вибило запобіжник.</p>'},
+    {q:'Речі вологі або сушить довше 4 годин', a:'<ol><li>Почисти фільтр у дверцятах і те, що за нижньою кришкою.</li><li>Не завантажуй більше норми.</li><li>Речі мають бути віджаті щонайменше на 800 об/хв.</li><li>У приміщенні має бути 10–25 °C.</li><li>Вибери сухіший рівень або увімкни Super Trocken.</li></ol>'},
+    {q:'Висохло нерівномірно', a:'<p>Не змішуй тонкі й товсті речі та різні тканини. Великі речі суши програмою bettwäsche.</p>'},
+    {q:'Мало води в баку', a:'<p>Почисти те, що за нижньою кришкою, і перевір температуру в приміщенні.</p>'},
+    {q:'Кнопки не реагують', a:'<p>Ймовірно, увімкнене блокування: світиться Kindersicherung. Утримуй разом Knitterschutz і Temperaturreduktion 3 секунди.</p>'},
+    {q:'Кнопка пищить, лампочка блимає', a:'<p>Цю функцію не можна вибрати для цієї програми.</p>'},
+    {q:'Лампочки погасли, блимає Start/Pause', a:'<p>Це режим енергозбереження: через 5 хвилин без дій лампочки гаснуть. Поверни перемикач або натисни будь-яку кнопку.</p>'},
+    {q:'Блимають усі лампочки', a:'<p>Вимкни сушарку і поклич майстра.</p>'}
+  ];
+
+  function explainHTML(it){
+    return '<div class="ex-de">' + it.de + '</div><div class="ex-uk">' + it.uk + '</div><p>' + it.text + '</p>' + (it.tip ? '<p class="ex-tip">' + it.tip + '</p>' : '');
+  }
+  function progHTML(p){
+    var facts = p.kg ? '<div class="facts"><span>до ' + p.kg + ' кг</span></div>' : '';
+    return '<div class="ex-de">' + p.de + '</div><div class="ex-uk">' + p.uk + '</div><p>' + p.text + '</p>' + facts + (p.tip ? '<p class="ex-tip">' + p.tip + '</p>' : '');
+  }
+  function clearPressed(card){ $$('[aria-pressed="true"]', card).forEach(function(x){ x.setAttribute('aria-pressed', 'false'); }); }
+
+  function selectInfo(id, quiet){
+    var el = document.querySelector('[data-id="' + id + '"]');
+    if (!el || !INFO[id]) return;
+    var card = el.closest('.machine');
+    clearPressed(card);
+    el.setAttribute('aria-pressed', 'true');
+    if (id === 'lockbar'){ $('[data-id="knitter"]').setAttribute('aria-pressed', 'true'); $('[data-id="tempred"]').setAttribute('aria-pressed', 'true'); $('[data-id="led-lock"]').setAttribute('aria-pressed', 'true'); }
+    $('.explain', card).innerHTML = explainHTML(INFO[id]);
+    if (!quiet) haptic();
+  }
+  $$('[data-id]').forEach(function(el){ el.addEventListener('click', function(){ selectInfo(el.dataset.id); }); });
+
+  /* dial */
+  var NS = 'http://www.w3.org/2000/svg';
+  var CX = 190, CY = 184, ROW = 40, TOP = 64;
+  var knob, knobAngle = 0;
+  function mk(tag, attrs, parent){ var n = document.createElementNS(NS, tag); for (var k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; }
+  function polar(r, deg){ var a = deg * Math.PI / 180; return [CX + r * Math.sin(a), CY - r * Math.cos(a)]; }
+  function buildDial(){
+    var svg = $('#dial');
+    var defs = mk('defs', {}, svg);
+    var g2 = mk('radialGradient', {id:'knobfill', cx:'.42', cy:'.36', r:'.8'}, defs);
+    mk('stop', {offset:'0', 'class':'khi'}, g2); mk('stop', {offset:'1', 'class':'klo'}, g2);
+    PROGS.forEach(function(p){
+      var dot = polar(58, p.angle), lead = polar(64, p.angle);
+      mk('circle', {cx:dot[0].toFixed(1), cy:dot[1].toFixed(1), r:2.2, 'class':'tick'}, svg);
+      var g = mk('g', {'class':'plabel', role:'button', tabindex:'0', 'data-prog':p.id, 'aria-label':p.de + ', ' + p.uk}, svg);
+      var lines = p.lines || [p.de];
+      var y, tx, anchor, pts, hit, ul;
+      if (p.side === 'L' || p.side === 'R'){
+        var idx = p.side === 'L' ? Math.round((337.5 - p.angle) / 22.5) : Math.round((p.angle - 22.5) / 22.5);
+        y = TOP + idx * ROW;
+        var band = y - ROW / 2;
+        ul = y + 7 + (lines.length - 1) * 9;
+        if (lines.length > 1) y -= 8;
+        if (p.side === 'L'){
+          tx = 10; anchor = 'start';
+          pts = '10,' + ul + ' 120,' + ul + ' ' + lead[0].toFixed(1) + ',' + lead[1].toFixed(1);
+          hit = {x:2, y:band, width:130, height:ROW};
+        } else {
+          tx = 370; anchor = 'end';
+          pts = '370,' + ul + ' 260,' + ul + ' ' + lead[0].toFixed(1) + ',' + lead[1].toFixed(1);
+          hit = {x:248, y:band, width:130, height:ROW};
+        }
+      } else if (p.side === 'T'){
+        y = 28; tx = CX; anchor = 'middle';
+        pts = CX + ',' + (y + 8) + ' ' + CX + ',' + (CY - 64);
+        hit = {x:130, y:6, width:120, height:34};
+      } else {
+        y = 368; tx = CX; anchor = 'middle';
+        pts = CX + ',' + (CY + 64) + ' ' + CX + ',' + (y - 18);
+        hit = {x:130, y:346, width:120, height:30};
+      }
+      mk('rect', {x:hit.x, y:hit.y, width:hit.width, height:hit.height, rx:6, 'class':'hit'}, g);
+      mk('polyline', {points:pts, 'class':'lead'}, g);
+      var text = mk('text', {x:tx, y:y, 'text-anchor':anchor, 'class':'pt'}, g);
+      lines.forEach(function(line, i){ var ts = mk('tspan', {x:tx, dy:i === 0 ? 0 : 17}, text); ts.textContent = line; });
+      g.addEventListener('click', function(){ selectProgram(p.id); });
+      g.addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); selectProgram(p.id); } });
+    });
+    knob = mk('g', {'class':'knob'}, svg);
+    knob.style.transformOrigin = CX + 'px ' + CY + 'px';
+    mk('circle', {cx:CX, cy:CY, r:49, 'class':'kring'}, knob);
+    mk('circle', {cx:CX, cy:CY, r:42, fill:'url(#knobfill)'}, knob);
+    mk('path', {d:'M' + (CX - 5) + ' ' + (CY - 49) + ' L' + (CX + 5) + ' ' + (CY - 49) + ' L' + (CX + 3) + ' ' + (CY - 40) + ' L' + (CX - 3) + ' ' + (CY - 40) + ' Z', 'class':'kptr'}, knob);
+  }
+  function selectProgram(id, quiet, noRotate){
+    var p = PBYID[id]; if (!p) return;
+    $$('#dial .plabel').forEach(function(g){ g.classList.toggle('on', g.getAttribute('data-prog') === id); });
+    if (!noRotate){
+      var delta = ((p.angle - knobAngle) % 360 + 540) % 360 - 180;
+      knobAngle += delta;
+      knob.style.transform = 'rotate(' + knobAngle + 'deg)';
+    }
+    var kh = $('#dial .knobhit');
+    if (kh){ kh.setAttribute('aria-valuenow', String(PROGS.indexOf(p))); kh.setAttribute('aria-valuetext', p.de + ', ' + p.uk); }
+    $('#ex-dial').innerHTML = progHTML(p);
+    if (!quiet) haptic();
+  }
+
+  /* the knob itself can be turned: drag around the centre, tap for one step, or use arrow keys */
+  function enableKnobDrag(){
+    var svg = $('#dial');
+    var hit = mk('circle', {cx:CX, cy:CY, r:57, 'class':'knobhit', tabindex:'0', role:'slider',
+      'aria-label':'Ручка перемикача: покрути по колу або натискай стрілки', 'aria-valuemin':'0', 'aria-valuemax':String(PROGS.length - 1)}, svg);
+    var byAngle = {}; PROGS.forEach(function(p){ byAngle[p.angle] = p; });
+    function progAt(a){ var s = ((Math.round(a / 22.5) * 22.5) % 360 + 360) % 360; return byAngle[s]; }
+    function ptAngle(e){
+      var pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
+      var q = pt.matrixTransform(svg.getScreenCTM().inverse());
+      return Math.atan2(q.x - CX, -(q.y - CY)) * 180 / Math.PI;
+    }
+    function step(dir){
+      knobAngle = Math.round(knobAngle / 22.5) * 22.5 + dir * 22.5;
+      knob.style.transform = 'rotate(' + knobAngle + 'deg)';
+      var p = progAt(knobAngle); if (p) selectProgram(p.id, false, true);
+    }
+    var drag = null;
+    hit.addEventListener('touchstart', function(e){ e.preventDefault(); }, {passive:false});
+    hit.addEventListener('pointerdown', function(e){
+      e.preventDefault();
+      try { hit.setPointerCapture(e.pointerId); } catch(err){}
+      var p0 = progAt(knobAngle);
+      drag = {last:ptAngle(e), raw:knobAngle, turned:0, id:p0 ? p0.id : null, x:e.clientX, y:e.clientY};
+      knob.classList.add('dragging');
+    });
+    hit.addEventListener('pointermove', function(e){
+      if (!drag) return;
+      var a = ptAngle(e), d = ((a - drag.last) % 360 + 540) % 360 - 180;
+      drag.last = a; drag.raw += d; drag.turned += Math.abs(d);
+      var snapped = Math.round(drag.raw / 22.5) * 22.5;
+      knob.style.transform = 'rotate(' + (drag.raw + (snapped - drag.raw) * 0.45) + 'deg)';
+      var p = progAt(drag.raw);
+      if (p && p.id !== drag.id){ drag.id = p.id; selectProgram(p.id, false, true); }
+    });
+    function end(e){
+      if (!drag) return;
+      knob.classList.remove('dragging');
+      var moved = Math.hypot(e.clientX - drag.x, e.clientY - drag.y);
+      if (drag.turned < 4 && moved < 6){ drag = null; step(1); return; }
+      knobAngle = Math.round(drag.raw / 22.5) * 22.5;
+      knob.style.transform = 'rotate(' + knobAngle + 'deg)';
+      var p = progAt(knobAngle); if (p) selectProgram(p.id, true, true);
+      drag = null;
+    }
+    hit.addEventListener('pointerup', end);
+    hit.addEventListener('pointercancel', end);
+    hit.addEventListener('keydown', function(e){
+      if (e.key === 'ArrowRight' || e.key === 'ArrowUp'){ e.preventDefault(); step(1); }
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown'){ e.preventDefault(); step(-1); }
+    });
+  }
+
+  function miniDial(angle){
+    var s = '<svg class="mini" viewBox="0 0 80 80" aria-hidden="true"><circle class="m-face" cx="40" cy="40" r="38"/><circle class="m-rim" cx="40" cy="40" r="38"/>';
+    for (var i = 0; i < 16; i++){
+      var a = i * 22.5, rad = a * Math.PI / 180, on = Math.abs(a - angle) < 0.1;
+      s += '<circle class="m-dot' + (on ? ' on' : '') + '" cx="' + (40 + 31 * Math.sin(rad)).toFixed(1) + '" cy="' + (40 - 31 * Math.cos(rad)).toFixed(1) + '" r="' + (on ? 3.6 : 1.6) + '"/>';
+    }
+    s += '<circle class="m-ring" cx="40" cy="40" r="21"/><circle class="m-knob" cx="40" cy="40" r="17"/>';
+    s += '<rect class="m-ptr" x="38.4" y="19.5" width="3.2" height="6" rx="1" transform="rotate(' + angle + ' 40 40)"/></svg>';
+    return s;
+  }
+  function buildChoose(){
+    var list = $('#choose-list');
+    CHOICES.forEach(function(c, i){
+      var p = PBYID[c.p];
+      var item = document.createElement('div');
+      item.className = 'choice';
+      var tips = [p.tip, c.tip].filter(Boolean).map(function(t){ return '<p>' + t + '</p>'; }).join('');
+      item.innerHTML =
+        '<button class="ch-q" id="chq-' + i + '" aria-expanded="false" aria-controls="cha-' + i + '"><span class="ch-t">' + c.q + '</span><span class="ch-p">' + p.de + '</span>' + chevron + '</button>' +
+        '<div class="ch-a" id="cha-' + i + '" role="region" aria-labelledby="chq-' + i + '" hidden>' + miniDial(p.angle) +
+          '<div><h3>' + p.de + '</h3><div class="uk">' + p.uk + '</div><div class="chips"><span>до ' + p.kg + ' кг</span></div><p>' + p.text + '</p>' + tips +
+          '<button class="go" data-prog="' + p.id + '">Показати на перемикачі</button></div></div>';
+      list.appendChild(item);
+    });
+    list.addEventListener('click', function(e){
+      var go = e.target.closest('.go'); if (go){ showProgramOnPanel(go.getAttribute('data-prog')); return; }
+      var q = e.target.closest('.ch-q'); if (!q) return;
+      var open = q.getAttribute('aria-expanded') === 'true';
+      $$('.ch-q', list).forEach(function(b){ b.setAttribute('aria-expanded', 'false'); $('#' + b.getAttribute('aria-controls')).hidden = true; });
+      if (!open){ q.setAttribute('aria-expanded', 'true'); $('#' + q.getAttribute('aria-controls')).hidden = false; haptic(); }
+    });
+  }
+  function buildSteps(){
+    var ol = $('#steps');
+    STEPS.forEach(function(s){
+      var li = document.createElement('li');
+      li.innerHTML = '<div><h3>' + s.h + '</h3><p>' + s.p + '</p><div class="de"><b>DE</b>' + s.de + '</div>' + (s.go ? '<button class="show" data-go-to="' + s.go + '">Показати на панелі</button>' : '') + '</div>';
+      ol.appendChild(li);
+    });
+    ol.addEventListener('click', function(e){ var b = e.target.closest('[data-go-to]'); if (b) showOnPanel(b.getAttribute('data-go-to')); });
+  }
+  function buildHelp(){
+    var box = $('#help');
+    PROBLEMS.forEach(function(p){
+      var d = document.createElement('details');
+      d.innerHTML = '<summary><span>' + p.q + '</span>' + chevron + '</summary><div class="body">' + p.a + '</div>';
+      box.appendChild(d);
+    });
+  }
+
+  var TABS = ['panel', 'choose', 'steps', 'help'];
+  function showTab(t, opts){
+    opts = opts || {};
+    if (TABS.indexOf(t) < 0) t = 'panel';
+    $$('.tabs [role="tab"]').forEach(function(b){ b.setAttribute('aria-selected', b.dataset.tab === t ? 'true' : 'false'); });
+    if (window.UI) UI.tabsThumb(opts.instant);
+    try { localStorage.setItem('sushka-tab', t); } catch(e){}
+    if (tg && tg.BackButton){ try { if (t === 'panel') tg.BackButton.hide(); else tg.BackButton.show(); } catch(e){} }
+    var views = TABS.map(function(x){ return $('#view-' + x); });
+    var next = $('#view-' + t);
+    if (window.UI) UI.switchView(views, next, opts);
+    else { views.forEach(function(v){ v.hidden = v !== next; }); if (!opts.keepScroll) window.scrollTo(0, 0); if (opts.done) opts.done(); }
+  }
+  $$('.tabs [role="tab"]').forEach(function(b){ b.addEventListener('click', function(){ showTab(b.dataset.tab); haptic(); }); });
+  function pulse(el){ el.classList.remove('pulse'); void el.offsetWidth; el.classList.add('pulse'); setTimeout(function(){ el.classList.remove('pulse'); }, 2600); }
+  function scrollToEl(el){ el.scrollIntoView({behavior: reduceMotion ? 'auto' : 'smooth', block:'center'}); }
+  function showOnPanel(target){
+    var el = document.getElementById(target) || document.querySelector('[data-id="' + target + '"]');
+    if (!el) return;
+    showTab('panel', {keepScroll:true, done:function(){ requestAnimationFrame(function(){ scrollToEl(el); pulse(el); if (INFO[target]) selectInfo(target, true); }); }});
+  }
+  function showProgramOnPanel(id){
+    selectProgram(id, true);
+    var card = $('#sec-dial');
+    showTab('panel', {keepScroll:true, done:function(){ requestAnimationFrame(function(){ scrollToEl(card); pulse(card); }); }});
+  }
+  $$('.zonemap [data-go]').forEach(function(b){
+    b.addEventListener('click', function(){
+      var el = document.getElementById(b.getAttribute('data-go'));
+      scrollToEl(el); pulse(el);
+      if (b.classList.contains('z-start')) selectInfo('start', true);
+      if (b.classList.contains('z-win')) selectInfo('window', true);
+    });
+  });
+
+  function applyTgTheme(){ if (window.UI) UI.sync(false); }
+  if (tg){
+    try { tg.ready(); tg.expand(); applyTgTheme();  if (tg.BackButton) tg.BackButton.onClick(function(){ showTab('panel'); }); } catch(e){}
+  }
+
+  buildDial(); enableKnobDrag(); buildChoose(); buildSteps(); buildHelp();
+  selectProgram('bw-s', true);
+  var saved = null; try { saved = localStorage.getItem('sushka-tab'); } catch(e){}
+  showTab(saved || 'panel', {keepScroll:true, instant:true});
+})();
+</script>
+</body>
+</html>
