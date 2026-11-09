@@ -217,12 +217,12 @@ h2{font-family:var(--f-display);font-weight:600;font-size:17px;line-height:1.2;m
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 @media (min-width:480px){h1{font-size:38px}.machine{padding:18px}}
 </style>
-<link rel="stylesheet" href="../assets/ui.css?v=4">
+<link rel="stylesheet" href="../assets/ui.css?v=5">
 </head>
 <body>
 <div class="wrap">
   <header class="top">
-    <div class="toprow"><nav class="devices" aria-label="Прилади"><span class="dthumb" aria-hidden="true"></span><a href="../">Пралка</a><a href="./" aria-current="page">Сушарка</a></nav><button class="themebtn" id="themebtn" type="button" aria-label="Увімкнути темну тему"><svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M5.3 18.7L7 17M17 7l1.7-1.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.6A8.2 8.2 0 0 1 9.4 4a8.2 8.2 0 1 0 10.6 10.6z" fill="currentColor"/></svg></button></div>
+    <div class="toprow"><nav class="devices" aria-label="Прилади"><span class="dthumb" aria-hidden="true"></span><a href="../">Пралка</a><a href="./" aria-current="page">Сушарка</a><a href="../scan/">Сканер</a></nav><button class="themebtn" id="themebtn" type="button" aria-label="Увімкнути темну тему"><svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M5.3 18.7L7 17M17 7l1.7-1.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.6A8.2 8.2 0 0 1 9.4 4a8.2 8.2 0 1 0 10.6 10.6z" fill="currentColor"/></svg></button></div>
     <div class="eyebrow">Gorenje SensoCare · 6 кг</div>
     <h1>Сушарка</h1>
     <p class="lede">Натисни на кнопку, лампочку чи програму, і нижче з’явиться пояснення.</p>
@@ -339,7 +339,7 @@ h2{font-family:var(--f-display);font-weight:600;font-size:17px;line-height:1.2;m
   <p class="foot">За інструкцією Gorenje до сушарок цієї серії (SP10). <a href="https://img.moebelplus.de/pdf/gorenje_d622cm_bedien.pdf" target="_blank" rel="noopener">Відкрити інструкцію</a>.</p>
 </div>
 
-<script src="../assets/ui.js?v=4"></script>
+<script src="../assets/ui.js?v=5"></script>
 <script>
 (function(){
   var $ = function(s, r){ return (r || document).querySelector(s); };
@@ -532,6 +532,7 @@ h2{font-family:var(--f-display);font-weight:600;font-size:17px;line-height:1.2;m
     hit.addEventListener('pointerdown', function(e){
       e.preventDefault();
       try { hit.setPointerCapture(e.pointerId); } catch(err){}
+      try { if (tg && tg.disableVerticalSwipes) tg.disableVerticalSwipes(); } catch(err){}
       var p0 = progAt(knobAngle);
       drag = {last:ptAngle(e), raw:knobAngle, turned:0, id:p0 ? p0.id : null, x:e.clientX, y:e.clientY};
       knob.classList.add('dragging');
@@ -548,6 +549,7 @@ h2{font-family:var(--f-display);font-weight:600;font-size:17px;line-height:1.2;m
     function end(e){
       if (!drag) return;
       knob.classList.remove('dragging');
+      try { if (tg && tg.enableVerticalSwipes) tg.enableVerticalSwipes(); } catch(err){}
       var moved = Math.hypot(e.clientX - drag.x, e.clientY - drag.y);
       if (drag.turned < 4 && moved < 6){ drag = null; step(1); return; }
       knobAngle = Math.round(drag.raw / 22.5) * 22.5;
