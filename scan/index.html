@@ -263,6 +263,9 @@ body.focus .toast{bottom:calc(86px + env(safe-area-inset-bottom, 0px))}
   var tg = (tgApp && tgApp.platform && tgApp.platform !== 'unknown') ? tgApp : null;
   function haptic(kind){ try { if (!tg || !tg.HapticFeedback) return; if (kind === 'ok') tg.HapticFeedback.notificationOccurred('success'); else tg.HapticFeedback.selectionChanged(); } catch(e){} }
   function swipes(on){ try { if (!tg) return; if (on && tg.enableVerticalSwipes) tg.enableVerticalSwipes(); if (!on && tg.disableVerticalSwipes) tg.disableVerticalSwipes(); } catch(e){} }
+  // Telegram on Android: its WebView neither opens the camera from a file input nor saves files a page creates
+  // (Telegram's own downloadFile accepts only HTTPS URLs), so camera and saving take other routes there
+  var tgAndroid = !!(tg && /^android/.test(tg.platform));
 
   var MAX_WORK = 2800;     // longest side of the photo we work on
   var MAX_OUT = 2480;      // longest side of the finished page (A4 at ~210 dpi)
@@ -336,8 +339,20 @@ body.focus .toast{bottom:calc(86px + env(safe-area-inset-bottom, 0px))}
     $('#empty').hidden = n > 0;
     $('#actions').hidden = n === 0;
     $('#btn-clear').hidden = n === 0;
-    $('#btn-send').hidden = !(SEND_URL && tg && tg.initData);
+    var canSend = !!(SEND_URL && tg && tg.initData);
+    $('#btn-send').hidden = !canSend;
+    $('#btn-send').classList.toggle('primary', tgAndroid);
+    $('#btn-pdf').hidden = $('#btn-jpg').hidden = tgAndroid;
     $('#btn-jpg').textContent = n > 1 ? 'Зберегти як фото (' + n + ')' : 'Зберегти як фото';
+    if (tgAndroid && !canSend && n) browserHint('Telegram на Android не дає сторінкам зберігати файли. Відкрий сканер у браузері й відскануй там: PDF збережеться в «Завантаження».');
+    else if (tgAndroid) $('#savehint').hidden = true;
+  }
+  function browserHint(text){
+    var hint = $('#savehint'), b = document.createElement('button');
+    hint.textContent = text + ' ';
+    b.type = 'button'; b.className = 'hintbtn'; b.textContent = 'Відкрити в браузері';
+    b.addEventListener('click', function(){ try { tg.openLink(location.href.split('#')[0]); } catch(e){} });
+    hint.appendChild(b); hint.hidden = false;
   }
   $('#pages').addEventListener('click', function(e){
     var b = e.target.closest('button[data-act]'); if (!b) return;
@@ -410,7 +425,7 @@ body.focus .toast{bottom:calc(86px + env(safe-area-inset-bottom, 0px))}
   /* Camera inside the page. Telegram on Android ignores capture="environment" and opens the
      gallery (bugs.telegram.org/c/44936), so there the page runs the camera itself. Browsers and
      iOS keep the native camera, which gives full-resolution photos. */
-  var liveCam = !!(tg && tg.platform === 'android' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+  var liveCam = !!(tgAndroid && navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
   var stream = null;
   function openCam(){
     navigator.mediaDevices.getUserMedia({audio:false, video:{facingMode:{ideal:'environment'}, width:{ideal:3840}, height:{ideal:2160}}}).then(function(s){
@@ -1048,18 +1063,11 @@ body.focus .toast{bottom:calc(86px + env(safe-area-inset-bottom, 0px))}
     files.forEach(download);
     return Promise.resolve('downloaded');
   }
-  function afterDownload(){
+  function afterDownload(){   // Telegram on iPhone or desktop: a download may still be blocked, say what to do
     var hint = $('#savehint');
-    if (tg){
-      if (SEND_URL && tg.initData) hint.textContent = 'Якщо файл не з’явився в завантаженнях, натисни «Надіслати PDF у чат»: бот надішле його тобі в Telegram.';
-      else {
-        hint.textContent = 'Якщо файл не з’явився в завантаженнях, Telegram не дав його зберегти. Відкрий сканер у браузері й відскануй там: звідти файл зберігається завжди. ';
-        var b = document.createElement('button'); b.type = 'button'; b.className = 'hintbtn'; b.textContent = 'Відкрити в браузері';
-        b.addEventListener('click', function(){ try { tg.openLink(location.href.split('#')[0]); } catch(e){} });
-        hint.appendChild(b);
-      }
-      hint.hidden = false;
-    } else hint.hidden = true;
+    if (!tg){ hint.hidden = true; return; }
+    if (SEND_URL && tg.initData){ hint.textContent = 'Якщо файл не з’явився в завантаженнях, натисни «Надіслати PDF у чат»: бот надішле його тобі в Telegram.'; hint.hidden = false; }
+    else browserHint('Якщо файл не з’явився в завантаженнях, Telegram не дав його зберегти. Відкрий сканер у браузері й відскануй там.');
   }
   $('#btn-pdf').addEventListener('click', function(){
     if (!state.pages.length) return;
@@ -1069,7 +1077,7 @@ body.focus .toast{bottom:calc(86px + env(safe-area-inset-bottom, 0px))}
       var file = new File([blob], 'Скан_' + stamp() + '.pdf', {type:'application/pdf'});
       return deliver([file], 'Скан').then(function(how){
         if (how === 'shared'){ toast('PDF готовий'); haptic('ok'); }
-        else if (how === 'downloaded'){ toast('PDF збережено'); afterDownload(); }
+        else if (how === 'downloaded'){ toast('PDF збережено в «Завантаження»', 3500); afterDownload(); }
       });
     }).catch(function(){ busy(false); toast('Не вдалося зібрати PDF.'); });
   });
@@ -1079,7 +1087,7 @@ body.focus .toast{bottom:calc(86px + env(safe-area-inset-bottom, 0px))}
     var files = state.pages.map(function(p, i){ return new File([p.blob], base + (state.pages.length > 1 ? '_' + (i + 1) : '') + '.jpg', {type:'image/jpeg'}); });
     deliver(files, 'Скан').then(function(how){
       if (how === 'shared'){ toast('Готово'); haptic('ok'); }
-      else if (how === 'downloaded'){ toast('Фото збережено'); afterDownload(); }
+      else if (how === 'downloaded'){ toast('Фото збережено в «Завантаження»', 3500); afterDownload(); }
     });
   });
   $('#btn-send').addEventListener('click', function(){

@@ -4,8 +4,9 @@
 
 Needs: playwright, Pillow, numpy. Exits 1 if any check fails.
 Covers: sheet detection and true proportions on four synthetic photos, the four looks,
-pages kept after reload, the PDF, and the camera: in-page camera on Telegram Android
-(fake camera), camera access denied, and the native file input everywhere else.
+pages kept after reload, the PDF, the camera (in-page camera on Telegram Android with a
+fake camera, camera access denied, native file input elsewhere) and saving on Telegram
+Android (browser fallback, and sending to the chat through a simulated Worker).
 """
 import asyncio, functools, http.server, json, math, os, sys, tempfile, threading
 from PIL import Image
@@ -46,6 +47,11 @@ async def new_page(browser, tg_script, init=None):
     pg = await ctx.new_page()
     pg.on('pageerror', lambda e: fails.append(f'page error: {e}'))
     return ctx, pg
+
+async def add_page(pg):
+    await pg.click('#crop-next')
+    await pg.wait_for_function("__scanState.enhanced && document.getElementById('pbusy').hidden", timeout=30000)
+    await pg.click('#edit-add'); await pg.wait_for_selector('#v-home:not([hidden])')
 
 async def to_crop_and_quad(pg):
     await pg.wait_for_selector('#v-crop:not([hidden])'); await pg.wait_for_timeout(300)
@@ -109,7 +115,11 @@ async def main(tmp):
         err = corner_error(r['q'], t['corners'], r['w'] / t['W'], math.hypot(t['W'], t['H']))
         check('telegram android: shot goes to corners with sheet found', err < 1.0, f'max error {err:.2f}% of diagonal')
         check('telegram android: camera released after the shot', await pg.evaluate("document.getElementById('camvideo').srcObject === null"))
-        await pg.evaluate('window.__backCb()')   # Telegram back button: corners -> home
+        await add_page(pg)
+        visible = await pg.evaluate("['btn-pdf', 'btn-jpg', 'btn-send'].filter(id => !document.getElementById(id).hidden)")
+        check('telegram android, no Worker: no save buttons that do nothing', visible == [], f'visible: {visible}')
+        await pg.click('#savehint .hintbtn')
+        check('telegram android, no Worker: offers to open the browser', (await pg.evaluate('window.__opened || ""')).endswith('/scan/'))
         await pg.click('label[for="in-camera"]'); await pg.wait_for_selector('#cam:not([hidden])')
         await pg.evaluate('window.__backCb()')   # back button closes the camera
         check('telegram android: back button closes camera', await pg.is_hidden('#cam'))
@@ -121,6 +131,27 @@ async def main(tmp):
         await pg.click('label[for="in-camera"]'); await pg.wait_for_timeout(400)
         toast = await pg.text_content('#toast')
         check('camera refused: explains what to do', 'Немає доступу до камери' in (toast or '') and await pg.is_hidden('#cam'))
+        await ctx.close()
+
+        # 5. Telegram on Android with the Worker set up: the PDF goes to the chat
+        ctx, pg = await new_page(browser, TG_ANDROID.replace("initData: ''", "initData: 'query_id=AAH&hash=00'"))
+        async def with_send_url(route):
+            resp = await route.fetch(); body = await resp.text()
+            await route.fulfill(response=resp, body=body.replace("var SEND_URL = '';", "var SEND_URL = 'https://send.test/';"))
+        sent = {}
+        async def fake_worker(route):
+            sent['body'] = route.request.post_data_buffer or b''
+            await route.fulfill(status=200, headers={'Access-Control-Allow-Origin': '*'}, content_type='application/json', body='{"ok":true}')
+        await ctx.route('**/scan/', with_send_url)
+        await ctx.route('https://send.test/**', fake_worker)
+        await pg.goto(url); await pg.wait_for_timeout(500)
+        await pg.set_input_files('#in-gallery', f'{tmp}/p4.jpg'); await to_crop_and_quad(pg); await add_page(pg)
+        visible = await pg.evaluate("['btn-pdf', 'btn-jpg', 'btn-send'].filter(id => !document.getElementById(id).hidden)")
+        check('telegram android + Worker: only "send to chat", as the main button', visible == ['btn-send'] and await pg.evaluate("document.getElementById('btn-send').classList.contains('primary')"), f'visible: {visible}')
+        await pg.click('#btn-send')
+        await pg.wait_for_function("(document.getElementById('toast').textContent || '').includes('Надіслано')", timeout=15000)
+        body = sent.get('body', b'')
+        check('telegram android + Worker: posts signed data and a PDF', b'name="initData"' in body and b'query_id=AAH' in body and b'%PDF-' in body)
         await ctx.close()
         await browser.close()
 
