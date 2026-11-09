@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>(function(){try{var s=null;try{s=localStorage.getItem('dsimya-theme')}catch(e){}var w=window.Telegram&&Telegram.WebApp;var tg=w&&w.platform&&w.platform!=='unknown';var t=s||(tg?(w.colorScheme==='dark'?'dark':'light'):(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));document.documentElement.setAttribute('data-theme',t)}catch(e){}})();</script>
+<title>Вивіз сміття</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@600;700&display=swap">
+<style>
+/* Layout: one column; the next pickup is the hero, then the reminder switch, the coming weeks, and what goes where */
+:root{
+  padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom);
+  --bg:#E7ECEF; --surface:#F6F8F9; --ink:#12181C; --muted:#53616A; --line:#C7D0D5;
+  --accent:#9A5800; --accent-soft:#F7E3BF; --on:#2E7D32; --danger:#B3261E;
+  --f-display:"Unbounded","Arial Black",system-ui,sans-serif;
+  --f-body:"Onest","Segoe UI",Roboto,system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1417; --surface:#182026; --ink:#E5EBEE; --muted:#98A6AE; --line:#2A343B;
+    --accent:#FFB424; --accent-soft:#3A2909; --on:#66BB6A; --danger:#FF8A80; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1417; --surface:#182026; --ink:#E5EBEE; --muted:#98A6AE; --line:#2A343B;
+  --accent:#FFB424; --accent-soft:#3A2909; --on:#66BB6A; --danger:#FF8A80; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.5 var(--f-body);
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:0 40px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+[hidden]{display:none!important}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2.5px solid var(--accent);outline-offset:2px}
+a{color:inherit}
+.wrap{max-width:560px;margin:0 auto}
+.top{padding-block:16px 10px}
+.devices{display:inline-grid;grid-auto-flow:column;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px}
+.devices a{display:block;border-radius:999px;font-weight:600;font-size:14px;color:var(--ink);text-decoration:none}
+.eyebrow{font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--f-display);font-weight:700;font-size:32px;line-height:1.05;margin:6px 0 8px;letter-spacing:-.01em}
+.lede{margin:0;color:var(--muted);font-size:16px;max-width:42ch}
+h2{font-family:var(--f-display);font-weight:600;font-size:17px;line-height:1.2;margin:0}
+main{display:grid;gap:16px;padding-top:8px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px}
+.note{margin:4px 0 0;color:var(--muted);font-size:15px}
+
+.next .when{font-family:var(--f-display);font-weight:700;font-size:24px;line-height:1.15}
+.next .date{color:var(--muted);font-size:16px;margin-top:2px}
+.bins{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:8px}
+.bin{display:flex;align-items:center;gap:12px;font-weight:600}
+.bin .dot{width:28px;height:28px;border-radius:8px;flex:none;box-shadow:inset 0 0 0 1px rgba(127,127,127,.45)}
+.bin small{display:block;font-weight:400;color:var(--muted);font-size:14px;line-height:1.3}
+.empty{color:var(--muted)}
+
+.remind .row{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.switch{flex:none;position:relative;width:60px;height:36px;border-radius:999px;border:0;background:var(--line);cursor:pointer;padding:0;transition:background-color .25s ease}
+.switch::after{content:"";position:absolute;top:4px;left:4px;width:28px;height:28px;border-radius:50%;background:#FFFFFF;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .25s cubic-bezier(.3,.9,.3,1)}
+.switch[aria-checked="true"]{background:var(--on)}
+.switch[aria-checked="true"]::after{transform:translateX(24px)}
+.switch:disabled{opacity:.45;cursor:default}
+.switch.busy::after{animation:pulse .8s ease-in-out infinite alternate}
+@keyframes pulse{from{opacity:1}to{opacity:.4}}
+.remind .state{margin:10px 0 0;font-size:15px;font-weight:600}
+.remind .state.on{color:var(--on)}
+.remind .state.err{color:var(--danger)}
+
+.days{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:8px}
+.day{display:grid;grid-template-columns:128px 1fr;gap:10px;align-items:start;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.day .d{font-weight:700;line-height:1.25}
+.day .d small{display:block;font-weight:400;color:var(--muted);font-size:14px}
+.day .bins{margin:0;gap:6px}
+.day .bin{font-weight:500;font-size:16px;gap:10px}
+.day .bin .dot{width:20px;height:20px;border-radius:6px}
+
+.rhythm{background:var(--accent-soft);border-color:transparent}
+.rhythm p{margin:6px 0 0;font-size:16px}
+
+.guide{display:grid;gap:8px;margin-top:10px}
+.guide details{background:var(--surface);border:1px solid var(--line);border-radius:14px}
+.guide summary{cursor:pointer;list-style:none;padding:12px 14px;font-weight:600;display:flex;align-items:center;gap:12px;min-height:52px}
+.guide summary::-webkit-details-marker{display:none}
+.guide summary .dot{width:22px;height:22px;border-radius:6px;flex:none;box-shadow:inset 0 0 0 1px rgba(127,127,127,.45)}
+.guide summary .chev{margin-left:auto;width:18px;height:18px;color:var(--muted);transition:transform .2s}
+.guide details[open] summary .chev{transform:rotate(180deg)}
+.guide .body{padding:0 14px 14px;font-size:16px}
+.guide .body p{margin:0 0 8px}
+.guide .body p:last-child{margin:0}
+.guide .no{color:var(--muted)}
+.foot{margin-top:8px;font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+@media (min-width:480px){h1{font-size:38px}}
+</style>
+<link rel="stylesheet" href="../assets/ui.css?v=7">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="toprow"><nav class="devices" aria-label="Розділи"><span class="dthumb" aria-hidden="true"></span><a href="../">Пралка</a><a href="../sushka/">Сушарка</a><a href="../scan/">Сканер</a><a href="./" aria-current="page">Сміття</a></nav><button class="themebtn" id="themebtn" type="button" aria-label="Увімкнути темну тему"><svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M5.3 18.7L7 17M17 7l1.7-1.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.6A8.2 8.2 0 0 1 9.4 4a8.2 8.2 0 1 0 10.6 10.6z" fill="currentColor"/></svg></button></div>
+    <div class="eyebrow">Xanten · район 2</div>
+    <h1>Сміття</h1>
+    <p class="lede">Коли вивозять баки біля будинку і що куди викидати.</p>
+  </header>
+
+  <main>
+    <section class="card next" id="next" aria-live="polite" aria-label="Наступний вивіз">
+      <div class="when">…</div>
+    </section>
+
+    <section class="card remind" aria-labelledby="h-remind">
+      <div class="row">
+        <div>
+          <h2 id="h-remind">Нагадування в Telegram</h2>
+          <p class="note">Бот напише о 18:00 напередодні вивозу.</p>
+        </div>
+        <button class="switch" id="sw" type="button" role="switch" aria-checked="false" aria-labelledby="h-remind" disabled></button>
+      </div>
+      <p class="state" id="sw-state" aria-live="polite"></p>
+    </section>
+
+    <section class="card rhythm" id="rhythm" hidden aria-label="Як часто вивозять сірий бак"></section>
+
+    <section aria-labelledby="h-days">
+      <h2 id="h-days">Наступні вивози</h2>
+      <ol class="days" id="days"></ol>
+    </section>
+
+    <section aria-labelledby="h-guide">
+      <h2 id="h-guide">Що куди викидати</h2>
+      <div class="guide">
+        <details><summary><span class="dot" style="background:#2F5DB3"></span>Синій бак · Papier<svg class="chev" viewBox="0 0 20 20" aria-hidden="true"><path d="M5 8l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
+          <div class="body"><p>Газети, журнали, зошити, конверти, паперові пакети, коробки й картон. Коробки краще складати, щоб більше влізло.</p>
+          <p class="no">Не можна: брудний чи жирний папір, серветки, касові чеки. Це в сірий бак.</p></div></details>
+        <details><summary><span class="dot" style="background:#E8C10A"></span>Жовтий бак або мішок · Gelbe Tonne<svg class="chev" viewBox="0 0 20 20" aria-hidden="true"><path d="M5 8l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
+          <div class="body"><p>Тільки упаковка: пластикові пляшки з-під шампуню й засобів, стаканчики від йогурту, плівка, пакети з-під молока й соку, бляшанки, кришки, фольга. Упаковка має бути порожня, мити не треба.</p>
+          <p class="no">Не можна: речі, які не були упаковкою (іграшки, тазики, зубні щітки), скло, папір. Жовті мішки дають безкоштовно в Bürgerservice-Büro в ратуші.</p></div></details>
+        <details><summary><span class="dot" style="background:#4A5258"></span>Сірий бак · Restmüll<svg class="chev" viewBox="0 0 20 20" aria-hidden="true"><path d="M5 8l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
+          <div class="body"><p>Те, що не переробляють: недоїдки й очистки (біо-бака у вас немає), підгузки й гігієна, пил із пилососа, брудний папір, кераміка й порцеляна, холодний попіл.</p></div></details>
+        <details><summary><span class="dot" style="background:#5E8C61"></span>Скло · Altglas<svg class="chev" viewBox="0 0 20 20" aria-hidden="true"><path d="M5 8l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
+          <div class="body"><p>Пляшки й банки без кришок у вуличні контейнери за кольором: біле, зелене, коричневе. Синє й інше кольорове скло кидай у зелений.</p>
+          <p class="no">Не можна: віконне скло, дзеркала, чашки й тарілки, лампочки. Кидай удень у будні, а не пізно ввечері й не в неділю: це шумно, і сусіди скаржаться.</p></div></details>
+        <details><summary><span class="dot" style="background:#C8402C"></span>Пляшки з Pfand<svg class="chev" viewBox="0 0 20 20" aria-hidden="true"><path d="M5 8l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
+          <div class="body"><p>Пляшки й бляшанки з позначкою Pfand не викидай: здай їх в автомат у супермаркеті. За одноразову пластикову пляшку чи бляшанку повертають 25 центів, за багаторазову скляну 8 або 15 центів. Автомат друкує чек, гроші віднімають на касі.</p></div></details>
+        <details><summary><span class="dot" style="background:#7B3F98"></span>Фарби, хімія, батарейки<svg class="chev" viewBox="0 0 20 20" aria-hidden="true"><path d="M5 8l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
+          <div class="body"><p>Батарейки кидай у коробки в супермаркетах і drogerie (dm, Rossmann).</p>
+          <p id="schadstoff">Фарби, лаки, розчинники й побутову хімію збирає Schadstoffmobil.</p></div></details>
+        <details><summary><span class="dot" style="background:#8A6D3B"></span>Меблі й великі речі<svg class="chev" viewBox="0 0 20 20" aria-hidden="true"><path d="M5 8l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
+          <div class="body"><p>Меблі, матраци й інше велике (Sperrmüll) забирають за заявкою на <a href="https://www.xanten.de/de/dienstleistungen/abfallinformationen-sperrmuellabfuhr/" target="_blank" rel="noopener">xanten.de</a>, коштує 15 €. Виставляти можна не раніше вечора напередодні.</p>
+          <p>Холодильник, пральну машину й іншу техніку та метал теж забирають лише за заявкою: телефон 0800 17 47 474 або онлайн. Дрібну техніку беруть тільки разом із великою.</p></div></details>
+        <details><summary><span class="dot" style="background:#3E7C8C"></span>Wertstoffhof у Біртені<svg class="chev" viewBox="0 0 20 20" aria-hidden="true"><path d="M5 8l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
+          <div class="body"><p>Bruchweg 14, Xanten-Birten. Середа 14–18, пʼятниця 10–18, субота 9–14.</p>
+          <p>Безкоштовно приймають великі речі, метал, холодильники, техніку, папір і гілки. Візьми Personalausweis або закордонний паспорт: без документа не приймуть.</p></div></details>
+      </div>
+    </section>
+  </main>
+
+  <p class="foot" id="foot"></p>
+</div>
+
+<script src="../assets/ui.js?v=7"></script>
+<script type="module">
+import { BINS, binsOn, berlinDay } from './due.js';
+
+// Same Worker as the scanner (worker/send-scan.js)
+const WORKER_URL = 'https://d-simya.whysends.workers.dev';
+const $ = (s) => document.querySelector(s);
+const tgApp = window.Telegram && window.Telegram.WebApp;
+const tg = tgApp && tgApp.platform && tgApp.platform !== 'unknown' ? tgApp : null;
+const haptic = () => { try { tg && tg.HapticFeedback.notificationOccurred('success'); } catch (e) {} };
+if (tg) { try { tg.ready(); tg.expand(); } catch (e) {} }
+
+const label = (day) => new Date(day + 'T12:00:00Z').toLocaleDateString('uk-UA', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
+const short = (day) => new Date(day + 'T12:00:00Z').toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', timeZone: 'UTC' });
+const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+const weekday = (day) => new Date(day + 'T12:00:00Z').toLocaleDateString('uk-UA', { weekday: 'long', timeZone: 'UTC' });
+const binItem = ({ bin, only14 }) => `<li class="bin"><span class="dot" style="background:${BINS[bin].color}"></span><span>${BINS[bin].uk}<small>${BINS[bin].de}${only14 ? ' · лише двотижневі баки' : ''}</small></span></li>`;
+
+function render(cal) {
+  const today = berlinDay(new Date()), tomorrow = berlinDay(new Date(), 1);
+  const upcoming = [];
+  for (let i = 0; i < 70 && berlinDay(new Date(), i) <= cal.until; i++) {
+    const day = berlinDay(new Date(), i), bins = binsOn(cal, day);
+    if (bins.length) upcoming.push({ day, bins });
+  }
+  const next = upcoming[0];
+  $('#next').innerHTML = next
+    ? `<div class="when">${next.day === today ? 'Сьогодні' : next.day === tomorrow ? 'Завтра' : cap(weekday(next.day))}</div>
+       <div class="date">${next.day === today || next.day === tomorrow ? label(next.day) : short(next.day)}</div><ul class="bins">${next.bins.map(binItem).join('')}</ul>`
+    : `<div class="when">Дат поки немає</div><p class="note">Календар на наступний рік ще не вийшов. Дати зʼявляться, щойно Schönmackers його опублікує.</p>`;
+  $('#days').innerHTML = upcoming.slice(next ? 1 : 0, 9).map(({ day, bins }) =>
+    `<li class="day"><div class="d">${short(day)}<small>${weekday(day)}</small></div><ul class="bins">${bins.map(binItem).join('')}</ul></li>`).join('')
+    || '<li class="empty">Більше дат у календарі цього року немає.</li>';
+
+  if (cal.home.restRhythm === 'unknown') {
+    const test = cal.dates.rest14.find((d) => d >= today && !cal.dates.rest4.includes(d));
+    if (test) {
+      $('#rhythm').innerHTML = `<h2>Як часто вивозять ваш сірий бак?</h2><p>${short(test)} забирають лише ті сірі баки, які вивозять кожні 2 тижні. Якщо ваш того дня спорожнять, він двотижневий. Якщо ні, його вивозять раз на 4 тижні.</p>`;
+      $('#rhythm').hidden = false;
+    }
+  }
+  const s = cal.schadstoff, sd = s.dates.find((d) => d >= today);
+  $('#schadstoff').textContent = sd
+    ? `Фарби, лаки, розчинники й побутову хімію збирає Schadstoffmobil: наступного разу ${label(sd)}, ${s.time}, ${s.place}.`
+    : 'Фарби, лаки, розчинники й побутову хімію збирає Schadstoffmobil. Дати на наступний рік зʼявляться разом із новим календарем.';
+  $('#foot').innerHTML = `Дати з <a href="${cal.source}" target="_blank" rel="noopener">календаря вивозу міста Ксантен</a> (Schönmackers), район ${cal.district}: ${cal.districtName}. Є до ${short(cal.until)} ${cal.until.slice(0, 4)} року.`;
+}
+
+/* reminder switch: the Worker keeps who wants the evening message */
+const sw = $('#sw'), state = $('#sw-state');
+function show(on, text, cls) { sw.setAttribute('aria-checked', String(on)); state.textContent = text; state.className = 'state' + (cls ? ' ' + cls : ''); }
+async function call(action) {
+  const fd = new FormData(); fd.append('initData', tg.initData); fd.append('action', action);
+  const r = await fetch(WORKER_URL.replace(/\/*$/, '/') + 'reminders', { method: 'POST', body: fd });
+  const d = await r.json(); if (!d.ok) throw new Error(d.error); return d;
+}
+const failText = (e) => e && e.message === 'bot_blocked'
+  ? 'Бот не може тобі написати. Відкрий чат із ботом, натисни «Почати» (Start) і спробуй ще раз.'
+  : 'Не вдалося. Перевір інтернет і спробуй ще раз.';
+if (tg && tg.initData) {
+  sw.classList.add('busy');
+  call('status').then((d) => { sw.disabled = false; show(d.on, d.on ? 'Увімкнено' : ''); }, () => show(false, 'Не вдалося перевірити нагадування. Спробуй пізніше.', 'err'))
+    .finally(() => sw.classList.remove('busy'));
+  sw.addEventListener('click', () => {
+    const want = sw.getAttribute('aria-checked') !== 'true';
+    sw.disabled = true; sw.classList.add('busy');
+    call(want ? 'on' : 'off').then((d) => {
+      show(d.on, d.on ? (d.confirmed ? 'Увімкнено. Бот щойно надіслав підтвердження в чат.' : 'Увімкнено. Перше нагадування прийде ввечері перед найближчим вивозом.') : 'Вимкнено', d.on ? 'on' : '');
+      if (d.on) haptic();
+    }, (e) => show(!want, failText(e), 'err'))
+      .finally(() => { sw.disabled = false; sw.classList.remove('busy'); });
+  });
+} else {
+  show(false, 'Увімкнути можна, якщо відкрити цю сторінку через бота в Telegram.');
+}
+
+fetch('kalender.json').then((r) => r.json()).then(render).catch(() => { $('#next').innerHTML = '<div class="when">Не вдалося завантажити дати</div><p class="note">Перевір інтернет і відкрий сторінку ще раз.</p>'; });
+</script>
+</body>
+</html>

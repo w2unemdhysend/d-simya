@@ -1,5 +1,5 @@
 // Checks the send-scan Worker: Telegram signature check, refusals, the call to sendDocument,
-// and the page hand-off to the browser (with an in-memory stand-in for Cloudflare KV).
+// the page hand-off to the browser and the waste-collection reminders (in-memory stand-in for Cloudflare KV).
 // Run: node tests/worker.test.mjs   (Node 22+, no packages needed)
 import { createHmac } from 'node:crypto';
 import worker from '../worker/send-scan.js';
@@ -13,8 +13,14 @@ function sign(fields, token = TOKEN, includeSigInHash = true) {
 }
 const now = Math.floor(Date.now() / 1000);
 const base = { query_id: 'AAH', user: JSON.stringify({ id: 4242, first_name: 'Стас' }), auth_date: String(now) };
-let sent = null;
-globalThis.fetch = async (url, init) => { sent = { url, chat: init.body.get('chat_id'), doc: init.body.get('document') }; return new Response(JSON.stringify({ ok: true })); };
+let sent = null; const messages = [];
+globalThis.fetch = async (url, init) => {
+  if (String(url).endsWith('/sendMessage')) {   // reminders; chat 999 has blocked the bot
+    const m = JSON.parse(init.body); messages.push(m);
+    return new Response(JSON.stringify({ ok: m.chat_id !== 999 }), { status: m.chat_id === 999 ? 403 : 200 });
+  }
+  sent = { url, chat: init.body.get('chat_id'), doc: init.body.get('document') }; return new Response(JSON.stringify({ ok: true }));
+};
 const pdf = new File([new TextEncoder().encode('%PDF-1.4\n%fake\n')], 'Скан_test.pdf', { type: 'application/pdf' });
 async function call(initData, file = pdf, method = 'POST') {
   sent = null;
@@ -45,11 +51,12 @@ const opt = await worker.fetch(new Request('https://w.example/', { method: 'OPTI
 t('preflight', opt.status === 204 && opt.headers.get('Access-Control-Allow-Origin') === 'https://w2unemdhysend.github.io');
 
 // hand-off of pages to the browser
-const kv = new Map();
+const kv = new Map(), ttls = [];
 const SCANS = {
-  async put(k, v, o) { if (!(o && o.expirationTtl >= 60)) throw new Error('KV needs a TTL of 60 s or more'); kv.set(k, v); },
+  async put(k, v, o) { if (o && o.expirationTtl !== undefined && !(o.expirationTtl >= 60)) throw new Error('KV needs a TTL of 60 s or more'); if (!k.startsWith('sub:') && !k.startsWith('sent:')) ttls.push(o && o.expirationTtl); kv.set(k, v); },
   async get(k) { return kv.has(k) ? kv.get(k) : null; },
   async delete(k) { kv.delete(k); },
+  async list({ prefix }) { return { keys: [...kv.keys()].filter((k) => k.startsWith(prefix)).map((name) => ({ name })), list_complete: true }; },
 };
 const env = { BOT_TOKEN: TOKEN, SCANS };
 const jpg = (n) => new File([new Uint8Array([0xFF, 0xD8, 0xFF, 0xE0, n, n, n])], `p${n}.jpg`, { type: 'image/jpeg' });
@@ -62,7 +69,7 @@ const get = (path, method = 'GET') => worker.fetch(new Request('https://w.exampl
 
 let r = await post(sign(base), [jpg(1), jpg(2)]);
 const id = r.body && r.body.id;
-t('handoff: signed upload of 2 pages', r.status === 200 && /^[0-9a-f-]{36}$/.test(id || '') && kv.size === 3, JSON.stringify(r.body));
+t('handoff: signed upload of 2 pages', r.status === 200 && /^[0-9a-f-]{36}$/.test(id || '') && kv.size === 3 && ttls.every((x) => x === 600), JSON.stringify(r.body));
 let res = await get(`/handoff/${id}`);
 t('handoff: browser sees the page count', res.status === 200 && (await res.json()).n === 2 && res.headers.get('Access-Control-Allow-Origin') === 'https://w2unemdhysend.github.io');
 res = await get(`/handoff/${id}/1`);
@@ -80,5 +87,51 @@ r = await post(sign(base), [jpg(1)], { BOT_TOKEN: TOKEN });
 t('handoff: missing KV binding reported', r.status === 500);
 res = await get('/handoff/../../etc');
 t('handoff: malformed id is not found', res.status === 404);
+
+// waste-collection reminders
+async function remind(action, initData = sign(base)) {
+  const fd = new FormData(); fd.append('initData', initData); fd.append('action', action);
+  const res = await worker.fetch(new Request('https://w.example/reminders', { method: 'POST', body: fd }), env);
+  return { status: res.status, body: await res.json().catch(() => null) };
+}
+messages.length = 0;
+r = await remind('on');
+t('reminders: switch on', r.status === 200 && r.body.on === true && JSON.parse(kv.get('sub:4242')).id === 4242);
+t('reminders: switching on confirms in the chat with the next pickup', r.body.confirmed === true && messages.length === 1 && messages[0].chat_id === 4242 && messages[0].text.includes('Найближчий вивіз'), messages[0] && messages[0].text);
+r = await remind('on', sign({ ...base, user: JSON.stringify({ id: 999, first_name: 'X' }) }));
+t('reminders: if the bot may not write to the person, nothing is saved', r.body.ok === false && r.body.error === 'bot_blocked' && !kv.has('sub:999'));
+r = await remind('status');
+t('reminders: status says on', r.body.on === true);
+r = await remind('off');
+t('reminders: switch off', r.body.on === false && !kv.has('sub:4242'));
+r = await remind('on', sign(base, '999:other'));
+t('reminders: forged signature refused', r.status === 401 && !kv.has('sub:4242'));
+r = await remind('maybe');
+t('reminders: unknown action refused', r.status === 400);
+
+async function cron(iso) {
+  const jobs = []; messages.length = 0;
+  await worker.scheduled({ scheduledTime: Date.parse(iso) }, env, { waitUntil: (p) => jobs.push(p) });
+  await Promise.all(jobs); return messages.slice();
+}
+await remind('on');
+kv.set('sub:999', JSON.stringify({ id: 999 }));
+let msgs = await cron('2026-11-16T16:00:00Z');
+t('cron 17:00 in Xanten: nothing sent', msgs.length === 0);
+msgs = await cron('2026-11-16T17:00:00Z');
+const m0 = msgs.find((m) => m.chat_id === 4242);
+t('cron 18:00 (winter): both subscribers get tomorrow\'s bins', msgs.length === 2 && m0 && m0.text.includes('Завтра, вівторок, 17 листопада') && m0.text.includes('Сірий бак (Restmüll): лише баки, які вивозять кожні 2 тижні'), m0 && m0.text);
+t('cron: message has a button that opens the schedule', m0 && m0.reply_markup.inline_keyboard[0][0].web_app.url.endsWith('/d-simya/smittia/'));
+t('cron: a person who blocked the bot is removed', !kv.has('sub:999') && kv.has('sub:4242'));
+msgs = await cron('2026-11-16T17:00:00Z');
+t('cron: the same evening is never sent twice', msgs.length === 0);
+msgs = await cron('2026-11-10T17:00:00Z');
+t('cron: no message when nothing goes out tomorrow (11.11)', msgs.length === 0);
+msgs = await cron('2026-11-11T17:00:00Z');
+t('cron: 12.11 yellow bin', msgs.length === 1 && msgs[0].text.includes('Завтра, четвер, 12 листопада') && msgs[0].text.includes('🟡 Жовтий бак (Gelbe Tonne)'), msgs[0] && msgs[0].text);
+msgs = await cron('2026-11-30T17:00:00Z');
+t('cron: 01.12 all grey bins, no note', msgs.length === 1 && msgs[0].text.includes('⚫ Сірий бак (Restmüll)\n') && !msgs[0].text.includes('лише'), msgs[0] && msgs[0].text);
+msgs = await cron('2026-06-01T16:00:00Z');
+t('cron 18:00 (summer time) works too', msgs.length === 1 && msgs[0].text.includes('2 червня'), msgs[0] && msgs[0].text);
 console.log(fails ? `${fails} FAILED` : 'ALL PASS');
 process.exitCode = fails ? 1 : 0;

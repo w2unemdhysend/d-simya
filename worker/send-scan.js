@@ -1,5 +1,5 @@
 /**
- * send-scan: the server half of the D-SIM'YA scanner Mini App. Cloudflare Worker, free plan.
+ * send-scan: the server half of the D-SIM'YA Mini Apps. Cloudflare Worker, free plan.
  *
  *   POST /                 PDF → sent to the user's own chat with the bot
  *   POST /handoff          scanned pages → kept 10 minutes under a random id, so the scanner
@@ -8,19 +8,24 @@
  *   GET  /handoff/<id>     {n: number of pages}
  *   GET  /handoff/<id>/<i> page i as JPEG
  *   DELETE /handoff/<id>   the browser removes the pages once it has them
+ *   POST /reminders        waste-collection reminders: action=on|off|status for the signed-in user
+ *   cron, daily            at 18:00 Xanten time: tells subscribers which bins go out tomorrow
  *
  * Settings (Cloudflare → Worker → Settings):
  *   BOT_TOKEN       secret, the token from @BotFather            (required)
- *   SCANS           KV namespace binding                          (required for /handoff)
+ *   SCANS           KV namespace binding                          (required for /handoff and reminders)
  *   ALLOWED_ORIGIN  text, defaults to https://w2unemdhysend.github.io
  *
  * Safety:
- *   - Both POSTs must carry Telegram's signed initData; it is checked with HMAC-SHA256
+ *   - All POSTs must carry Telegram's signed initData; it is checked with HMAC-SHA256
  *     against BOT_TOKEN, so only people who opened the Mini App inside Telegram can use them.
  *   - A PDF always goes to the user who sent it (user.id from the signed data), never elsewhere.
  *   - Handed-off pages are only JPEGs, live at most 10 minutes, and their id is a random UUID.
  *   - The bot token never leaves the Worker.
  */
+
+import cal from '../smittia/kalender.json' with { type: 'json' };
+import { BINS, binsOn, berlinDay } from '../smittia/due.js';
 
 const MAX_BYTES = 45 * 1024 * 1024;        // Bot API upload limit is 50 MB
 const MAX_AGE_SECONDS = 24 * 60 * 60;      // initData older than a day is refused
@@ -46,6 +51,7 @@ export default {
     const path = new URL(request.url).pathname;
     const hand = path.match(/^\/handoff(?:\/([0-9a-f-]{36})(?:\/(\d{1,2}))?)?\/?$/);
     if (hand) return handoff(request, env, hand[1], hand[2], reply, cors);
+    if (path === '/reminders') return reminders(request, env, reply);
     if (path !== '/') return reply(404, { ok: false, error: 'not found' });
     if (request.method !== 'POST') return reply(405, { ok: false, error: 'POST only' });
 
@@ -72,7 +78,79 @@ export default {
     if (!data.ok) return reply(502, { ok: false, error: data.description || 'Telegram refused the file' });
     return reply(200, { ok: true });
   },
+
+  // Cron runs at 16:00 and 17:00 UTC; one of them is 18:00 in Xanten, winter or summer time.
+  async scheduled(controller, env, ctx) {
+    ctx.waitUntil(sendReminders(env, new Date(controller.scheduledTime)));
+  },
 };
+
+/* ---------------- waste-collection reminders ---------------- */
+const SUB = 'sub:';
+const PAGE_URL = 'https://w2unemdhysend.github.io/d-simya/smittia/';
+
+async function reminders(request, env, reply) {
+  if (request.method !== 'POST') return reply(405, { ok: false, error: 'POST only' });
+  if (!env.SCANS) return reply(500, { ok: false, error: 'KV binding SCANS is not set' });
+  const signed = await readSigned(request, env, reply);
+  if (signed instanceof Response) return signed;
+  const key = SUB + signed.user.id, action = signed.form.get('action');
+  if (action === 'on') {
+    // Confirm in the chat right away: it proves the bot may write to this person (they must have started it)
+    const res = await tgSend(env, signed.user.id, confirmText(new Date()));
+    if (res.status === 403) return reply(200, { ok: false, on: false, error: 'bot_blocked' });
+    await env.SCANS.put(key, JSON.stringify({ id: signed.user.id, name: String(signed.user.first_name || '').slice(0, 40) }));
+    return reply(200, { ok: true, on: true, confirmed: res.ok });
+  }
+  if (action === 'off') await env.SCANS.delete(key);
+  else if (action !== 'status') return reply(400, { ok: false, error: 'action: on, off or status' });
+  return reply(200, { ok: true, on: (await env.SCANS.get(key)) !== null });
+}
+
+function tgSend(env, chatId, text) {
+  return fetch(`https://api.telegram.org/bot${env.BOT_TOKEN}/sendMessage`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: chatId, text, reply_markup: { inline_keyboard: [[{ text: 'Розклад', web_app: { url: PAGE_URL } }]] } }),
+  });
+}
+
+function confirmText(now) {
+  for (let i = 1; i <= 60; i++) {
+    const day = berlinDay(now, i), bins = binsOn(cal, day);
+    if (!bins.length) continue;
+    const date = new Date(day + 'T12:00:00Z').toLocaleDateString('uk-UA', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
+    return `Нагадування про сміття увімкнено. Я напишу о 18:00 напередодні кожного вивозу.\n\nНайближчий вивіз: ${date}, ${bins.map(({ bin }) => `${BINS[bin].dot} ${BINS[bin].uk}`).join(', ')}.`;
+  }
+  return 'Нагадування про сміття увімкнено. Дат у календарі поки немає: нагадування почнуться, щойно додамо календар на наступний рік.';
+}
+
+function reminderText(day, bins) {
+  const date = new Date(day + 'T12:00:00Z').toLocaleDateString('uk-UA', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
+  const lines = bins.map(({ bin, only14 }) => `${BINS[bin].dot} ${BINS[bin].uk} (${BINS[bin].de})${only14 ? ': лише баки, які вивозять кожні 2 тижні' : ''}`);
+  return `Завтра, ${date}, вивозять:\n${lines.join('\n')}\n\nВистав баки сьогодні ввечері або завтра рано вранці.`;
+}
+
+async function sendReminders(env, now) {
+  const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Berlin', hour: '2-digit', hourCycle: 'h23' }).format(now));
+  if (hour !== 18 || !env.SCANS || !env.BOT_TOKEN) return { sent: 0, why: 'not 18:00 in Xanten' };
+  const day = berlinDay(now, 1), bins = binsOn(cal, day);
+  if (!bins.length) return { sent: 0, why: 'nothing tomorrow' };
+  if (await env.SCANS.get('sent:' + day)) return { sent: 0, why: 'already sent' };
+  await env.SCANS.put('sent:' + day, '1', { expirationTtl: 3 * 86400 });
+
+  const text = reminderText(day, bins);
+  let sent = 0, cursor;
+  do {
+    const page = await env.SCANS.list({ prefix: SUB, cursor });
+    for (const { name } of page.keys) {
+      const res = await tgSend(env, Number(name.slice(SUB.length)), text);
+      if (res.ok) sent++;
+      else if (res.status === 403) await env.SCANS.delete(name);   // the person blocked the bot: stop writing to them
+    }
+    cursor = page.list_complete ? undefined : page.cursor;
+  } while (cursor);
+  return { sent, day };
+}
 
 /* Form data from the Mini App with a valid Telegram signature, or the error Response to return. */
 async function readSigned(request, env, reply) {
