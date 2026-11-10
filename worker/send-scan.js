@@ -187,24 +187,31 @@ async function translate(request, env, reply, path) {
   return reply(200, { ok: true, text: out.text });
 }
 
-async function runModel(env, pair, text) {
+async function runModel(env, pair, text, extra) {
   const [from, to] = pair.split('-');
+  const t0 = Date.now();
   let res;
   try {
     res = await env.AI.run(MODEL, {
       messages: [{ role: 'system', content: trPrompt(from, to) }, { role: 'user', content: text }],
-      max_completion_tokens: 4096, temperature: 0.2,
+      max_completion_tokens: 4096, temperature: 0.2, ...extra,
     });
   } catch (e) {
+    const diag = { ms: Date.now() - t0, message: String(e && e.message).slice(0, 300) };
+    console.log('translate failed', JSON.stringify(diag));
     // 4006: the account's free 10 000 neurons for today are used up
-    if (/4006|neurons|allocation/i.test(String(e && e.message))) return { status: 429, error: 'ai_quota' };
-    return { status: 502, error: 'ai_failed' };
+    if (/4006|neurons|allocation/i.test(diag.message)) return { status: 429, error: 'ai_quota', diag };
+    return { status: 502, error: 'ai_failed', diag };
   }
-  const msg = res && res.choices && res.choices[0] && res.choices[0].message;
+  const choice = res && res.choices && res.choices[0], msg = choice && choice.message;
   let t = (msg && msg.content) || (res && res.response) || '';
   if (Array.isArray(t)) t = t.map((p) => (p && p.text) || '').join('');
   t = String(t).replace(/<think>[\s\S]*?<\/think>/g, '').replace(/^\s*```[a-z]*\n|\n```\s*$/g, '').trim();
-  return t ? { text: t } : { status: 502, error: 'ai_empty' };
+  const reasoning = msg && (msg.reasoning_content || msg.reasoning);
+  const diag = { ms: Date.now() - t0, finish: choice && choice.finish_reason, usage: res && res.usage, contentChars: t.length,
+    reasoningChars: reasoning ? String(reasoning).length : 0, messageKeys: msg ? Object.keys(msg) : null, inChars: text.length };
+  console.log('translate', JSON.stringify(diag));
+  return t ? { text: t, diag } : { status: 502, error: 'ai_empty', diag };
 }
 
 function trPrompt(from, to) {
@@ -221,16 +228,47 @@ function trPrompt(from, to) {
   ].filter(Boolean).join('\n');
 }
 
+// ?page=1 translates a whole made-up letter page; &think=0|1 sets the model's thinking explicitly (default: model's own)
 async function translateCheck(request, env, reply) {
   if (request.method !== 'GET') return reply(405, { ok: false, error: 'GET only' });
-  const cached = env.SCANS && await env.SCANS.get('trcheck');
+  const q = new URL(request.url).searchParams, page = q.get('page') === '1', think = q.get('think');
+  const key = `trcheck:${page ? 'page' : 'line'}:${think === '0' || think === '1' ? think : 'd'}`;
+  const cached = env.SCANS && await env.SCANS.get(key);
   if (cached) return reply(200, JSON.parse(cached));
-  const out = await runModel(env, 'de-uk', 'Bitte überweisen Sie 125,00 € bis zum 24.11.2026.');
-  if (out.error) return reply(out.status, { ok: false, error: out.error });
-  const body = { ok: true, model: MODEL, sample: out.text, at: new Date().toISOString() };
-  if (env.SCANS) await env.SCANS.put('trcheck', JSON.stringify(body), { expirationTtl: 3600 });
-  return reply(200, body);
+  const extra = think === '0' || think === '1' ? { chat_template_kwargs: { enable_thinking: think === '1' } } : {};
+  const out = await runModel(env, 'de-uk', page ? SAMPLE_PAGE : 'Bitte überweisen Sie 125,00 € bis zum 24.11.2026.', extra);
+  const body = { ok: !out.error, error: out.error, model: MODEL, sample: out.text, diag: out.diag, at: new Date().toISOString() };
+  if (env.SCANS) await env.SCANS.put(key, JSON.stringify(body), { expirationTtl: 900 });
+  return reply(out.error ? out.status : 200, body);
 }
+const SAMPLE_PAGE = `Stadtverwaltung Musterstadt · Fachbereich Bürgerdienste · Rathausplatz 1 · 12345 Musterstadt
+
+Frau
+Olena Beispiel
+Beispielstraße 12
+12345 Musterstadt
+
+Musterstadt, 03.11.2026
+Aktenzeichen: 32-4711/26
+Sachbearbeiter: Herr M. Schmidt, Zimmer 214, Telefon 02801 7720-214
+
+Bescheid über die Festsetzung der Abfallgebühren für das Jahr 2026
+
+Sehr geehrte Frau Beispiel,
+
+auf Grundlage der Satzung über die Abfallentsorgung der Stadt Musterstadt in der zurzeit gültigen Fassung werden für das Grundstück Beispielstraße 12 die Abfallgebühren für das Jahr 2026 wie folgt festgesetzt: Restmülltonne 120 Liter, 14-tägliche Leerung: 186,00 €; Papiertonne 240 Liter: 0,00 €; Grundgebühr je Haushalt: 62,40 €. Der Gesamtbetrag beläuft sich somit auf 248,40 €.
+
+Bitte überweisen Sie den Betrag bis zum 24.11.2026 unter Angabe des Aktenzeichens auf das Konto der Stadtkasse Musterstadt, IBAN DE12 3205 0000 0000 1234 56. Sofern Sie uns ein SEPA-Lastschriftmandat erteilt haben, wird der Betrag zum Fälligkeitstermin von Ihrem Konto abgebucht.
+
+Wird die Gebühr nicht rechtzeitig entrichtet, ist nach § 240 der Abgabenordnung für jeden angefangenen Monat der Säumnis ein Säumniszuschlag von 1 Prozent des rückständigen Betrages zu zahlen. Außerdem können Mahngebühren entstehen.
+
+Änderungen der Anzahl der Personen im Haushalt oder der Behältergröße teilen Sie bitte schriftlich mit. Eine Änderung wird zum Ersten des folgenden Monats wirksam.
+
+Rechtsbehelfsbelehrung: Gegen diesen Bescheid kann innerhalb eines Monats nach Bekanntgabe Klage beim Verwaltungsgericht Düsseldorf, Bastionstraße 39, 40213 Düsseldorf, schriftlich oder zur Niederschrift des Urkundsbeamten der Geschäftsstelle erhoben werden. Die Klage kann auch elektronisch eingereicht werden.
+
+Mit freundlichen Grüßen
+Im Auftrag
+M. Schmidt`;
 
 /* Form data from the Mini App with a valid Telegram signature, or the error Response to return. */
 async function readSigned(request, env, reply) {
