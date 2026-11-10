@@ -79,6 +79,14 @@ res = await get(`/handoff/${id}`, 'DELETE');
 t('handoff: delete removes everything', res.status === 200 && kv.size === 0);
 res = await get(`/handoff/${id}`);
 t('handoff: gone after delete', res.status === 404);
+{
+  const fd = new FormData(); fd.append('initData', sign(base)); fd.append('page', jpg(1));
+  fd.append('meta', JSON.stringify([{ ocr: { lang: 'deu', text: 'Bescheid' }, tr: { pair: 'de-uk', src: 'Bescheid', text: 'Рішення' } }, { extra: true }]));
+  const up = await (await worker.fetch(new Request('https://w.example/handoff', { method: 'POST', body: fd }), env)).json();
+  const meta = await (await get(`/handoff/${up.id}`)).json();
+  t('handoff: translations travel with the pages (one entry per page)', meta.n === 1 && meta.pages.length === 1 && meta.pages[0].tr.text === 'Рішення', JSON.stringify(meta));
+  await get(`/handoff/${up.id}`, 'DELETE');
+}
 r = await post(sign(base), [jpg(1), new File(['%PDF-1.4'], 'x.jpg')]);
 t('handoff: non-JPEG refused, nothing stored', r.status === 415 && kv.size === 0);
 r = await post(sign(base, '999:other'), [jpg(1)]);
@@ -133,5 +141,54 @@ msgs = await cron('2026-11-30T17:00:00Z');
 t('cron: 01.12 all grey bins, no note', msgs.length === 1 && msgs[0].text.includes('⚫ Сірий бак (Restmüll)\n') && !msgs[0].text.includes('лише'), msgs[0] && msgs[0].text);
 msgs = await cron('2026-06-01T16:00:00Z');
 t('cron 18:00 (summer time) works too', msgs.length === 1 && msgs[0].text.includes('2 червня'), msgs[0] && msgs[0].text);
+
+// translation (Workers AI is replaced by a recorder)
+const aiCalls = []; let aiReply = { choices: [{ message: { content: 'Будь ласка, перекажіть 125,00 € до 24.11.2026.' } }] };
+const AI = { async run(model, input) { aiCalls.push({ model, input }); if (aiReply instanceof Error) throw aiReply; return aiReply; } };
+const envAI = { ...env, AI };
+async function tr(fields, initData = sign(base), e = envAI) {
+  const fd = new FormData(); if (initData) fd.append('initData', initData); Object.entries(fields).forEach(([k, v]) => fd.append(k, v));
+  const res = await worker.fetch(new Request('https://w.example/translate', { method: 'POST', body: fd }), e);
+  return { status: res.status, body: await res.json().catch(() => null) };
+}
+const letter = 'Bitte überweisen Sie 125,00 € bis zum 24.11.2026.';
+r = await tr({ pair: 'de-uk', text: letter });
+const sys0 = aiCalls[0] && aiCalls[0].input.messages[0].content;
+t('translate: signed page comes back translated', r.status === 200 && r.body.text.startsWith('Будь ласка'), JSON.stringify(r.body));
+t('translate: Gemma 4, German → Ukrainian, numbers kept, German terms in brackets', aiCalls[0].model === '@cf/google/gemma-4-26b-a4b-it' && sys0.includes('from German into Ukrainian') && sys0.includes('Copy every number exactly') && sys0.includes('(Bescheid)') && aiCalls[0].input.messages[1].content === letter && aiCalls[0].input.max_completion_tokens >= 2048);
+r = await tr({ pair: 'uk-de', text: 'Довідка' });
+t('translate: Ukrainian → German has no bracket rule', r.status === 200 && aiCalls[1].input.messages[0].content.includes('from Ukrainian into German') && !aiCalls[1].input.messages[0].content.includes('(Bescheid)'));
+const today = [...kv.keys()].find((k) => k.startsWith('tr:4242:'));
+t('translate: pages are counted per person and day', today && kv.get(today) === '2', today);
+const n0 = aiCalls.length;
+r = await tr({ pair: 'de-uk', text: letter }, sign(base, '999:other'));
+t('translate: forged signature refused, model not called', r.status === 401 && aiCalls.length === n0);
+r = await tr({ pair: 'de-ru', text: letter });
+t('translate: unknown language pair refused', r.status === 400);
+r = await tr({ pair: 'de-uk', text: '   ' });
+t('translate: empty page refused', r.status === 400);
+r = await tr({ pair: 'de-uk', text: 'x'.repeat(12001) });
+t('translate: overlong text refused', r.status === 413 && aiCalls.length === n0);
+kv.set(today, '80');
+r = await tr({ pair: 'de-uk', text: letter });
+t('translate: 80 pages a day, then a clear refusal', r.status === 429 && r.body.error === 'daily_limit' && aiCalls.length === n0);
+kv.delete(today);
+aiReply = new Error('AiError: 4006: you have used up your daily free allocation of 10,000 neurons');
+r = await tr({ pair: 'de-uk', text: letter });
+t('translate: free Workers AI allowance used up → ai_quota', r.status === 429 && r.body.error === 'ai_quota');
+aiReply = new Error('InferenceUpstreamError');
+r = await tr({ pair: 'de-uk', text: letter });
+t('translate: model failure → ai_failed', r.status === 502 && r.body.error === 'ai_failed');
+aiReply = { response: '<think>hmm</think>\nПереклад' };
+r = await tr({ pair: 'de-uk', text: letter });
+t('translate: older answer shape read, thinking stripped', r.status === 200 && r.body.text === 'Переклад', JSON.stringify(r.body));
+r = await tr({ pair: 'de-uk', text: letter }, sign(base), env);
+t('translate: missing AI binding reported', r.status === 500);
+aiReply = { choices: [{ message: { content: 'Будь ласка, перекажіть 125,00 € до 24.11.2026.' } }] };
+const n1 = aiCalls.length;
+const chk = async () => { const res = await worker.fetch(new Request('https://w.example/translate/check'), envAI); return { status: res.status, body: await res.json() }; };
+r = await chk(); const r2 = await chk();
+t('translate/check: answers with a sample, second call from cache', r.status === 200 && r.body.sample.includes('125,00') && r2.body.sample === r.body.sample && aiCalls.length === n1 + 1, JSON.stringify(r.body));
+
 console.log(fails ? `${fails} FAILED` : 'ALL PASS');
 process.exitCode = fails ? 1 : 0;

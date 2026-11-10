@@ -9,11 +9,15 @@
  *   GET  /handoff/<id>/<i> page i as JPEG
  *   DELETE /handoff/<id>   the browser removes the pages once it has them
  *   POST /reminders        waste-collection reminders: action=on|off|status for the signed-in user
+ *   POST /translate        text of one scanned page (recognised on the phone) → its translation,
+ *                          by Gemma 4 on Workers AI (free daily allowance)
+ *   GET  /translate/check  translates one fixed sentence: shows the model answers (no sign-in, cached 1 h)
  *   cron, daily            at 18:00 Xanten time: tells subscribers which bins go out tomorrow
  *
  * Settings (Cloudflare → Worker → Settings):
  *   BOT_TOKEN       secret, the token from @BotFather            (required)
  *   SCANS           KV namespace binding                          (required for /handoff and reminders)
+ *   AI              Workers AI binding                            (required for /translate)
  *   ALLOWED_ORIGIN  text, defaults to https://w2unemdhysend.github.io
  *
  * Safety:
@@ -31,6 +35,7 @@ const MAX_BYTES = 45 * 1024 * 1024;        // Bot API upload limit is 50 MB
 const MAX_AGE_SECONDS = 24 * 60 * 60;      // initData older than a day is refused
 const HANDOFF_TTL = 600;                   // seconds the pages wait for the browser
 const MAX_PAGES = 40;
+const MAX_META = 2 * 1024 * 1024;          // texts and translations sent along with handed-off pages
 
 export default {
   async fetch(request, env) {
@@ -52,6 +57,7 @@ export default {
     const hand = path.match(/^\/handoff(?:\/([0-9a-f-]{36})(?:\/(\d{1,2}))?)?\/?$/);
     if (hand) return handoff(request, env, hand[1], hand[2], reply, cors);
     if (path === '/reminders') return reminders(request, env, reply);
+    if (path === '/translate' || path === '/translate/check') return translate(request, env, reply, path);
     if (path !== '/') return reply(404, { ok: false, error: 'not found' });
     if (request.method !== 'POST') return reply(405, { ok: false, error: 'POST only' });
 
@@ -152,6 +158,80 @@ async function sendReminders(env, now) {
   return { sent, day };
 }
 
+/* ---------------- translation of scanned pages ---------------- */
+const MODEL = '@cf/google/gemma-4-26b-a4b-it';
+const LANGS = { de: 'German', uk: 'Ukrainian', en: 'English' };
+const PAIRS = ['de-uk', 'uk-de', 'en-uk'];
+const UNREADABLE = { uk: 'нерозбірливо', de: 'unleserlich', en: 'illegible' };
+const TR_MAX_CHARS = 12000;   // a dense A4 page is about 4 000
+const TR_PER_DAY = 80;        // pages per person and day: the free Workers AI allowance is shared by everyone
+
+async function translate(request, env, reply, path) {
+  if (!env.AI) return reply(500, { ok: false, error: 'AI binding is not set' });
+  if (path === '/translate/check') return translateCheck(request, env, reply);
+  if (request.method !== 'POST') return reply(405, { ok: false, error: 'POST only' });
+  const signed = await readSigned(request, env, reply);
+  if (signed instanceof Response) return signed;
+  const pair = String(signed.form.get('pair') || ''), text = String(signed.form.get('text') || '').trim();
+  if (!PAIRS.includes(pair)) return reply(400, { ok: false, error: `pair: ${PAIRS.join(', ')}` });
+  if (!text) return reply(400, { ok: false, error: 'no text' });
+  if (text.length > TR_MAX_CHARS) return reply(413, { ok: false, error: 'text too long' });
+
+  const key = `tr:${signed.user.id}:${berlinDay(new Date())}`;
+  const used = env.SCANS ? Number(await env.SCANS.get(key)) || 0 : 0;
+  if (used >= TR_PER_DAY) return reply(429, { ok: false, error: 'daily_limit' });
+
+  const out = await runModel(env, pair, text);
+  if (out.error) return reply(out.status, { ok: false, error: out.error });
+  if (env.SCANS) await env.SCANS.put(key, String(used + 1), { expirationTtl: 2 * 86400 });
+  return reply(200, { ok: true, text: out.text });
+}
+
+async function runModel(env, pair, text) {
+  const [from, to] = pair.split('-');
+  let res;
+  try {
+    res = await env.AI.run(MODEL, {
+      messages: [{ role: 'system', content: trPrompt(from, to) }, { role: 'user', content: text }],
+      max_completion_tokens: 4096, temperature: 0.2,
+    });
+  } catch (e) {
+    // 4006: the account's free 10 000 neurons for today are used up
+    if (/4006|neurons|allocation/i.test(String(e && e.message))) return { status: 429, error: 'ai_quota' };
+    return { status: 502, error: 'ai_failed' };
+  }
+  const msg = res && res.choices && res.choices[0] && res.choices[0].message;
+  let t = (msg && msg.content) || (res && res.response) || '';
+  if (Array.isArray(t)) t = t.map((p) => (p && p.text) || '').join('');
+  t = String(t).replace(/<think>[\s\S]*?<\/think>/g, '').replace(/^\s*```[a-z]*\n|\n```\s*$/g, '').trim();
+  return t ? { text: t } : { status: 502, error: 'ai_empty' };
+}
+
+function trPrompt(from, to) {
+  return [
+    `You translate letters and official documents for a Ukrainian family living in Germany. Translate the user's text from ${LANGS[from]} into ${LANGS[to]}.`,
+    'The text was read from a scanned page by OCR, so it may contain recognition errors: translate what the author meant and leave out obvious OCR garbage.',
+    'Rules:',
+    '- Reply with the translation only: no introduction, notes or quotation marks around it.',
+    '- Keep the layout: paragraphs separated by one empty line; keep the line breaks of addresses, lists and tables.',
+    '- Copy every number exactly as written in the original, without reformatting: dates, amounts, IBAN, phone numbers, postcodes, file and customer numbers, § references.',
+    '- Keep names of people, companies, authorities, streets and towns as written.',
+    from === 'de' ? '- After the first use of an important German official term, add the German word in brackets, for example "рішення (Bescheid)", "строк (Frist)", "заперечення (Widerspruch)".' : '',
+    `- If a part cannot be read, write [${UNREADABLE[to]}].`,
+  ].filter(Boolean).join('\n');
+}
+
+async function translateCheck(request, env, reply) {
+  if (request.method !== 'GET') return reply(405, { ok: false, error: 'GET only' });
+  const cached = env.SCANS && await env.SCANS.get('trcheck');
+  if (cached) return reply(200, JSON.parse(cached));
+  const out = await runModel(env, 'de-uk', 'Bitte überweisen Sie 125,00 € bis zum 24.11.2026.');
+  if (out.error) return reply(out.status, { ok: false, error: out.error });
+  const body = { ok: true, model: MODEL, sample: out.text, at: new Date().toISOString() };
+  if (env.SCANS) await env.SCANS.put('trcheck', JSON.stringify(body), { expirationTtl: 3600 });
+  return reply(200, body);
+}
+
 /* Form data from the Mini App with a valid Telegram signature, or the error Response to return. */
 async function readSigned(request, env, reply) {
   const len = Number(request.headers.get('Content-Length') || 0);
@@ -178,9 +258,15 @@ async function handoff(request, env, id, page, reply, cors) {
     if (bufs.some((b) => { const h = new Uint8Array(b, 0, Math.min(3, b.byteLength)); return h[0] !== 0xFF || h[1] !== 0xD8 || h[2] !== 0xFF; })) {
       return reply(415, { ok: false, error: 'only JPEG pages are accepted' });
     }
+    // recognised text and translations of the pages, if any: plain JSON, passed through as it is
+    let pagesMeta;
+    const raw = signed.form.get('meta');
+    if (typeof raw === 'string' && raw.length <= MAX_META) {
+      try { const m = JSON.parse(raw); if (Array.isArray(m)) pagesMeta = m.slice(0, bufs.length); } catch { /* ignored */ }
+    }
     const newId = crypto.randomUUID();
     await Promise.all(bufs.map((b, i) => env.SCANS.put(`${newId}/${i}`, b, { expirationTtl: HANDOFF_TTL })));
-    await env.SCANS.put(newId, JSON.stringify({ n: bufs.length }), { expirationTtl: HANDOFF_TTL });   // last, so a visible id has all its pages
+    await env.SCANS.put(newId, JSON.stringify(pagesMeta ? { n: bufs.length, pages: pagesMeta } : { n: bufs.length }), { expirationTtl: HANDOFF_TTL });   // last, so a visible id has all its pages
     return reply(200, { ok: true, id: newId });
   }
   if (!id) return reply(405, { ok: false, error: 'POST only' });
