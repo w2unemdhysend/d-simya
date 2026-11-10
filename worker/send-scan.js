@@ -194,7 +194,9 @@ async function runModel(env, pair, text, extra) {
   try {
     res = await env.AI.run(MODEL, {
       messages: [{ role: 'system', content: trPrompt(from, to) }, { role: 'user', content: text }],
-      max_completion_tokens: 4096, temperature: 0.2, ...extra,
+      // Gemma 4 here "thinks" before answering unless told not to; on a full page that used all 4096 tokens
+      // in 80 s and left no translation. Off: the same page takes about 13 s.
+      max_completion_tokens: 4096, temperature: 0.2, chat_template_kwargs: { enable_thinking: false }, ...extra,
     });
   } catch (e) {
     const diag = { ms: Date.now() - t0, message: String(e && e.message).slice(0, 300) };
@@ -228,17 +230,17 @@ function trPrompt(from, to) {
   ].filter(Boolean).join('\n');
 }
 
-// ?page=1 translates a whole made-up letter page; &think=0|1 sets the model's thinking explicitly (default: model's own)
+// ?page=1 translates a whole made-up letter page; &think=1 turns the model's thinking on, for comparison
 async function translateCheck(request, env, reply) {
   if (request.method !== 'GET') return reply(405, { ok: false, error: 'GET only' });
   const q = new URL(request.url).searchParams, page = q.get('page') === '1', think = q.get('think');
-  const key = `trcheck:${page ? 'page' : 'line'}:${think === '0' || think === '1' ? think : 'd'}`;
+  const key = `trchk:${page ? 'page' : 'line'}:${think === '1' ? 'on' : 'off'}`;
   const cached = env.SCANS && await env.SCANS.get(key);
   if (cached) return reply(200, JSON.parse(cached));
-  const extra = think === '0' || think === '1' ? { chat_template_kwargs: { enable_thinking: think === '1' } } : {};
+  const extra = think === '1' ? { chat_template_kwargs: { enable_thinking: true } } : {};
   const out = await runModel(env, 'de-uk', page ? SAMPLE_PAGE : 'Bitte überweisen Sie 125,00 € bis zum 24.11.2026.', extra);
   const body = { ok: !out.error, error: out.error, model: MODEL, sample: out.text, diag: out.diag, at: new Date().toISOString() };
-  if (env.SCANS) await env.SCANS.put(key, JSON.stringify(body), { expirationTtl: 900 });
+  if (env.SCANS && !out.error) await env.SCANS.put(key, JSON.stringify(body), { expirationTtl: 900 });
   return reply(out.error ? out.status : 200, body);
 }
 const SAMPLE_PAGE = `Stadtverwaltung Musterstadt · Fachbereich Bürgerdienste · Rathausplatz 1 · 12345 Musterstadt

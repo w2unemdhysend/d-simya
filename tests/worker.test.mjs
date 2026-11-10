@@ -156,6 +156,8 @@ r = await tr({ pair: 'de-uk', text: letter });
 const sys0 = aiCalls[0] && aiCalls[0].input.messages[0].content;
 t('translate: signed page comes back translated', r.status === 200 && r.body.text.startsWith('Будь ласка'), JSON.stringify(r.body));
 t('translate: Gemma 4, German → Ukrainian, numbers kept, German terms in brackets', aiCalls[0].model === '@cf/google/gemma-4-26b-a4b-it' && sys0.includes('from German into Ukrainian') && sys0.includes('Copy every number exactly') && sys0.includes('(Bescheid)') && aiCalls[0].input.messages[1].content === letter && aiCalls[0].input.max_completion_tokens >= 2048);
+// Gemma 4 on Workers AI thinks by default: on a full page that took 80 s and all 4096 tokens, leaving no translation
+t('translate: model thinking switched off', aiCalls[0].input.chat_template_kwargs && aiCalls[0].input.chat_template_kwargs.enable_thinking === false, JSON.stringify(aiCalls[0].input.chat_template_kwargs));
 r = await tr({ pair: 'uk-de', text: 'Довідка' });
 t('translate: Ukrainian → German has no bracket rule', r.status === 200 && aiCalls[1].input.messages[0].content.includes('from Ukrainian into German') && !aiCalls[1].input.messages[0].content.includes('(Bescheid)'));
 const today = [...kv.keys()].find((k) => k.startsWith('tr:4242:'));
