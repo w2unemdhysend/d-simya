@@ -175,9 +175,10 @@ async def main():
         check('three tabs fit 340 px', await pg.evaluate('document.documentElement.scrollWidth') <= 340 and await pg.is_visible('#view-art'))
         words = await pg.evaluate('__games.WORDS'); rules = await pg.evaluate('Object.keys(__games.RULES)')
         names = [w[0] for w in words]
-        bad = [w for w in words if w[1] not in ('der', 'die', 'das') or not w[2] or (len(w) > 3 and w[3] not in rules) or (len(w) > 3 and w[3] == 'comp' and not w[4].startswith(w[1] + ' '))]
+        bad = [w for w in words if w[1] not in ('der', 'die', 'das') or not w[2] or (w[3] and w[3] not in rules) or (w[3] == 'comp' and not (w[4] or '').startswith(w[1] + ' '))
+               or w[0] not in w[5] or not w[5].endswith(('.', '?'))]
         per = {a: sum(1 for w in words if w[1] == a) for a in ('der', 'die', 'das')}
-        check('words: 100+, valid articles and rules, compounds take the last word, no repeats, balanced', len(words) >= 100 and not bad and len(set(names)) == len(names) and min(per.values()) >= 30, f'{per} {bad[:3]}')
+        check('words: 100+, valid articles and rules, compounds take the last word, an example with the word, no repeats, balanced', len(words) >= 100 and not bad and len(set(names)) == len(names) and min(per.values()) >= 30, f'{per} {bad[:3]}')
         check('in Germany: der Prospekt', next(w for w in words if w[0] == 'Prospekt')[1] == 'der')
         check('start: a word to repeat is announced', 'На повторення: 1 слово' in await text(pg, '#a-learn'))
         share = await pg.evaluate("(() => { let n = 0; for (let i = 0; i < 3000; i++) if (__games.pickWord() === 'Gleis') n++; return n / 3000; })()")
@@ -243,6 +244,28 @@ async def main():
         await pg.click('#a-go'); await pg.clock.run_for(200)
         await pg.click('#tab-click'); await pg.clock.run_for(600)
         check('switching tabs ends the round', await pg.evaluate('__games.artRound()') is None and not await pg.evaluate("document.body.classList.contains('playing')"))
+        check('outside a signed Telegram session the word-of-the-day switch explains itself', await pg.is_disabled('#d-sw') and 'через бота' in await text(pg, '#d-state'))
+        await ctx.close()
+
+        # the word of the day: switched on from the articles tab (POST /reminders, kind=wort); ?tab=art opens the tab
+        ctx = await browser.new_context(viewport={'width': 360, 'height': 800})
+        tg2 = (TG % '{}').replace("initData: ''", "initData: 'user=%7B%22id%22%3A1%7D&hash=x'")
+        await ctx.route('**/telegram.org/**', lambda r: r.fulfill(body=tg2, content_type='text/javascript'))
+        posts = []
+        async def rem(route):
+            body = route.request.post_data or ''; posts.append(body)
+            on = 'name="action"\r\n\r\non' in body
+            await route.fulfill(json={'ok': True, 'on': on})
+        await ctx.route('**/*.workers.dev/reminders', rem)
+        pg = await ctx.new_page(); pg.on('pageerror', lambda e: fails.append(f'page error: {e}'))
+        await pg.goto(base + 'igry/?tab=art'); await pg.wait_for_timeout(700)
+        check('?tab=art opens the articles straight away (the bot button)', await pg.is_visible('#view-art') and await pg.get_attribute('#tab-art', 'aria-selected') == 'true')
+        await pg.wait_for_function("!document.getElementById('d-sw').disabled")
+        check('word of the day: status asked with kind=wort, switch off', any('wort' in b and 'status' in b for b in posts) and await pg.get_attribute('#d-sw', 'aria-checked') == 'false')
+        await pg.click('#d-sw'); await pg.wait_for_timeout(300)
+        check('word of the day: switched on, says today\'s word is in the chat', await pg.get_attribute('#d-sw', 'aria-checked') == 'true' and 'Сьогоднішнє слово' in await text(pg, '#d-state') and 'name="action"\r\n\r\non' in posts[-1])
+        await pg.click('#d-sw'); await pg.wait_for_timeout(300)
+        check('word of the day: switched off again', await pg.get_attribute('#d-sw', 'aria-checked') == 'false' and await text(pg, '#d-state') == 'Вимкнено')
         await ctx.close()
         await browser.close()
 

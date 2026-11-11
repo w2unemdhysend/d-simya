@@ -153,6 +153,18 @@ main{padding-top:4px}
 .artbtn.dim{opacity:.3}
 .artbtn.right{outline:3px solid var(--ink);outline-offset:2px;opacity:1}
 .learn{margin:-6px 0 14px;font-size:15px;color:var(--muted)}
+/* the bot's word of the day, switched on from the articles tab */
+.daily{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.daily b{display:block;font-weight:600;font-size:16px}
+.daily small{display:block;color:var(--muted);font-size:14px;line-height:1.35}
+.switch{flex:none;position:relative;width:60px;height:36px;border-radius:999px;border:0;background:var(--line);cursor:pointer;padding:0;transition:background-color .25s ease}
+.switch::after{content:"";position:absolute;top:4px;left:4px;width:28px;height:28px;border-radius:50%;background:#FFFFFF;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .25s cubic-bezier(.3,.9,.3,1)}
+.switch[aria-checked="true"]{background:var(--ok)}
+.switch[aria-checked="true"]::after{transform:translateX(24px)}
+.switch:disabled{opacity:.45;cursor:default}
+.dstate{margin:8px 0 0;font-size:14.5px;font-weight:600}
+.dstate:empty{display:none}
+.dstate.on{color:var(--ok)}.dstate.err{color:var(--danger)}
 
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom, 0px));transform:translate(-50%, 20px);max-width:min(92vw, 420px);
   background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:14px;font-weight:600;font-size:15px;opacity:0;pointer-events:none;
@@ -164,7 +176,7 @@ body.playing .top .eyebrow,body.playing .top h1,body.playing .top .lede,body.pla
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 @media (min-width:480px){h1{font-size:38px}}
 </style>
-<link rel="stylesheet" href="../assets/ui.css?v=13">
+<link rel="stylesheet" href="../assets/ui.css?v=14">
 </head>
 <body>
 <div class="wrap">
@@ -244,6 +256,11 @@ body.playing .top .eyebrow,body.playing .top h1,body.playing .top .lede,body.pla
       <p class="best" id="a-best"></p>
       <p class="learn" id="a-learn" hidden></p>
       <button class="btn primary" id="a-go" type="button">Почати</button>
+      <div class="daily">
+        <span><b id="d-title">Слово дня в Telegram</b><small>Щоранку о 9:00 бот надішле одне слово з артиклем, прикладом і правилом.</small></span>
+        <button class="switch" id="d-sw" type="button" role="switch" aria-checked="false" aria-labelledby="d-title" disabled></button>
+      </div>
+      <p class="dstate" id="d-state" aria-live="polite"></p>
     </div>
     <div id="a-play" hidden>
       <div class="hud"><span class="pts"><span id="a-score">0</span> <small class="note" id="a-pw">балів</small></span><span class="streak" id="a-streak"></span><span class="sec" id="a-time">60 с</span></div>
@@ -273,8 +290,9 @@ body.playing .top .eyebrow,body.playing .top h1,body.playing .top .lede,body.pla
   <p class="foot" id="foot">Прогрес зберігається на цьому пристрої.</p>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="../assets/ui.js?v=13"></script>
-<script>
+<script src="../assets/ui.js?v=14"></script>
+<script type="module">
+import { WORDS, RULES, ruleOf } from './words.js';
 (function(){
   var $ = function(s, r){ return (r || document).querySelector(s); };
   var tgApp = window.Telegram && window.Telegram.WebApp;
@@ -553,48 +571,6 @@ body.playing .top .eyebrow,body.playing .top h1,body.playing .top .lede,body.pla
   /* ---------------- der, die, das ----------------
      Everyday nouns from life in Germany. A word you got wrong comes back more often (kept on this device), and for
      every word with a rule the game says which one. Swipe the card: left der, up die, right das. */
-  var RULES = {
-    ung:'Слова на -ung завжди die.', heit:'Слова на -heit і -keit завжди die.', schaft:'Слова на -schaft завжди die.',
-    ion:'Слова на -ion завжди die.', taet:'Слова на -tät завжди die.', ik:'Слова на -ik здебільшого die.', ei:'Слова на -ei (як Bäckerei) — die.',
-    e:'Слова на -e здебільшого die.', kaese:'Виняток: хоч і на -e, але der Käse.',
-    chen:'Зменшувальні слова на -chen і -lein завжди das.', ment:'Слова на -ment здебільшого das.', um:'Слова на -um здебільшого das.',
-    ge:'Слова, що починаються на Ge-, часто das.', inf:'Дієслово як іменник (essen → das Essen) завжди das.',
-    ling:'Слова на -ling завжди der.', ismus:'Слова на -ismus завжди der.', er:'Хто щось робить або що працює, на -er: здебільшого der (der Fahrer, der Trockner).',
-    time:'Дні тижня, місяці й пори року — der.', comp:'У складеному слові артикль дає останнє слово',
-    prospekt:'У Німеччині кажуть der Prospekt; das Prospekt — це австрійський варіант.',
-  };
-  // [noun, article, Ukrainian, rule, last word of a compound]
-  var WORDS = [
-    ['Bahnhof','der','вокзал'], ['Bus','der','автобус'], ['Zug','der','потяг'], ['Termin','der','запис на прийом'], ['Antrag','der','заява'],
-    ['Ausweis','der','посвідчення'], ['Schlüssel','der','ключ'], ['Müll','der','сміття'], ['Kühlschrank','der','холодильник','comp','der Schrank'],
-    ['Trockner','der','сушарка','er'], ['Fahrplan','der','розклад руху','comp','der Plan'], ['Arzt','der','лікар'], ['Brief','der','лист'],
-    ['Vertrag','der','договір'], ['Mietvertrag','der','договір оренди','comp','der Vertrag'], ['Supermarkt','der','супермаркет','comp','der Markt'],
-    ['Montag','der','понеділок','time'], ['Winter','der','зима','time'], ['Januar','der','січень','time'], ['Regenschirm','der','парасолька','comp','der Schirm'],
-    ['Tisch','der','стіл'], ['Stuhl','der','стілець'], ['Löffel','der','ложка'], ['Kaffee','der','кава'], ['Käse','der','сир','kaese'], ['Apfel','der','яблуко'],
-    ['Frühling','der','весна','ling'], ['Lehrer','der','вчитель','er'], ['Fahrer','der','водій','er'], ['Optimismus','der','оптимізм','ismus'],
-    ['Bescheid','der','рішення установи'], ['Briefkasten','der','поштова скринька','comp','der Kasten'], ['Eingang','der','вхід'], ['Ausgang','der','вихід'],
-    ['Prospekt','der','рекламний проспект','prospekt'],
-    ['Haltestelle','die','зупинка','comp','die Stelle'], ['Tonne','die','бак для сміття','e'], ['Wohnung','die','квартира','ung'], ['Anmeldung','die','реєстрація місця проживання','ung'],
-    ['Rechnung','die','рахунок до сплати','ung'], ['Waschmaschine','die','пральна машина','comp','die Maschine'], ['Miete','die','орендна плата','e'], ['Bank','die','банк'],
-    ['Post','die','пошта'], ['Fahrkarte','die','квиток','comp','die Karte'], ['Apotheke','die','аптека','e'], ['Krankenkasse','die','лікарняна каса','comp','die Kasse'],
-    ['Versicherung','die','страховка','ung'], ['Frist','die','строк'], ['Freiheit','die','свобода','heit'], ['Möglichkeit','die','можливість','heit'],
-    ['Nachbarschaft','die','сусідство','schaft'], ['Information','die','інформація','ion'], ['Universität','die','університет','taet'], ['Musik','die','музика','ik'],
-    ['Bäckerei','die','пекарня','ei'], ['Straße','die','вулиця','e'], ['Tür','die','двері'], ['Küche','die','кухня','e'], ['Uhr','die','годинник'],
-    ['Zeitung','die','газета','ung'], ['Milch','die','молоко'], ['Butter','die','вершкове масло'], ['Kartoffel','die','картопля'],
-    ['Ausländerbehörde','die','відомство у справах іноземців','comp','die Behörde'], ['Behörde','die','установа','e'], ['Verspätung','die','запізнення','ung'],
-    ['Ticket','das','квиток'], ['Gleis','das','колія'], ['Fahrrad','das','велосипед','comp','das Rad'], ['Waschmittel','das','пральний засіб','comp','das Mittel'],
-    ['Formular','das','бланк'], ['Konto','das','банківський рахунок'], ['Geld','das','гроші'], ['Amt','das','відомство'], ['Bürgeramt','das','бюро громадян','comp','das Amt'],
-    ['Rathaus','das','ратуша','comp','das Haus'], ['Haus','das','будинок'], ['Zimmer','das','кімната'], ['Fenster','das','вікно'], ['Bett','das','ліжко'],
-    ['Handy','das','мобільний телефон'], ['Brot','das','хліб'], ['Wasser','das','вода'], ['Mädchen','das','дівчинка','chen'], ['Brötchen','das','булочка','chen'],
-    ['Dokument','das','документ','ment'], ['Zentrum','das','центр','um'], ['Studium','das','навчання в університеті','um'], ['Essen','das','їжа','inf'],
-    ['Gespräch','das','розмова','ge'], ['Gemüse','das','овочі','ge'], ['Gepäck','das','багаж','ge'], ['Angebot','das','пропозиція, акція'], ['Pfand','das','застава за тару'],
-    ['Auto','das','авто'], ['Problem','das','проблема'], ['Paket','das','посилка'], ['Rezept','das','рецепт'], ['Wetter','das','погода'], ['Kind','das','дитина'],
-    ['Messer','das','ніж'], ['Glas','das','склянка'], ['Datum','das','дата','um'],
-  ];
-  function ruleOf(w){
-    if (!w[3]) return '';
-    return w[3] === 'comp' ? RULES.comp + ': ' + w[4] + ' → ' + w[1] + ' ' + w[0] + '.' : RULES[w[3]];
-  }
   var A_BEST = 'dsimya-artikel-best', A_MISS = 'dsimya-artikel-miss', aRound = null, aWord = null;
   var aBest = Number(load(A_BEST)) || 0, aMiss = load(A_MISS) || {};
   function aShowBest(){
@@ -740,7 +716,33 @@ body.playing .top .eyebrow,body.playing .top h1,body.playing .top .lede,body.pla
 
   if (tg && tg.BackButton) try { tg.BackButton.onClick(function(){ if (aRound) aStop(); else stopRound(); }); } catch(e){}
 
-  var t0 = 'click'; try { var tSaved = localStorage.getItem('dsimya-igry-tab'); if (tSaved === 'sort' || tSaved === 'art') t0 = tSaved; } catch(e){}
+  /* the bot's word of the day (POST /reminders, kind=wort) */
+  var dsw = $('#d-sw'), dstate = $('#d-state'), WORKER = 'https://d-simya.whysends.workers.dev/';
+  function dShow(on, text, cls){ dsw.setAttribute('aria-checked', String(on)); dstate.textContent = text || ''; dstate.className = 'dstate' + (cls ? ' ' + cls : ''); }
+  function dCall(action){
+    var fd = new FormData(); fd.append('initData', tg.initData); fd.append('action', action); fd.append('kind', 'wort');
+    return fetch(WORKER + 'reminders', {method:'POST', body:fd}).then(function(r){ return r.json(); }).then(function(d){ if (!d.ok) throw new Error(d.error); return d; });
+  }
+  if (tg && tg.initData){
+    dCall('status').then(function(d){ dsw.disabled = false; dShow(d.on, d.on ? 'Увімкнено' : '', d.on ? 'on' : ''); },
+      function(){ dShow(false, 'Не вдалося перевірити. Спробуй пізніше.', 'err'); });
+    dsw.addEventListener('click', function(){
+      var want = dsw.getAttribute('aria-checked') !== 'true';
+      dsw.disabled = true;
+      dCall(want ? 'on' : 'off').then(function(d){
+        dShow(d.on, d.on ? 'Увімкнено. Сьогоднішнє слово вже в чаті з ботом.' : 'Вимкнено', d.on ? 'on' : ''); if (d.on) haptic('ok');
+      }, function(e){
+        dShow(!want, e && e.message === 'bot_blocked' ? 'Бот не може тобі написати. Відкрий чат із ботом, натисни «Почати» (Start) і спробуй ще раз.' : 'Не вдалося. Перевір інтернет і спробуй ще раз.', 'err');
+      }).then(function(){ dsw.disabled = false; });
+    });
+  } else {
+    dShow(false, 'Увімкнути можна, якщо відкрити гру через бота в Telegram.');
+  }
+
+  // ?tab=art (the bot's word of the day opens the articles straight away), else the tab used last
+  var t0 = 'click', tUrl = new URLSearchParams(location.search).get('tab');
+  try { var tSaved = localStorage.getItem('dsimya-igry-tab'); if (tSaved === 'sort' || tSaved === 'art') t0 = tSaved; } catch(e){}
+  if (tUrl === 'sort' || tUrl === 'art' || tUrl === 'click') t0 = tUrl;
   tab(t0, true);
   window.__games = {state:function(){ return S; }, item:function(){ return item; }, round:function(){ return round; }, ITEMS:ITEMS, BINS:BINS,
     word:function(){ return aWord; }, artRound:function(){ return aRound; }, WORDS:WORDS, RULES:RULES, pickWord:function(){ return aPick([])[0]; }};

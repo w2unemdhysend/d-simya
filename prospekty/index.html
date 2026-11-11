@@ -94,6 +94,14 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-top:10px}
 .go.seen svg{color:var(--on)}
 .chain > .go{width:100%;margin-top:12px}
 .extra{display:inline-flex;align-items:center;min-height:44px;margin-top:4px;font-size:15px;color:var(--ink);text-underline-offset:3px}
+/* "+ До списку": a note for the family shopping list, tied to this chain and to Saturday, when the offers end */
+.tolist{display:inline-flex;align-items:center;gap:6px;min-height:44px;margin-top:8px;padding:0 14px;border-radius:12px;border:1px dashed var(--line);background:transparent;font-weight:600;font-size:15px;cursor:pointer}
+.tolist svg{width:16px;height:16px}
+.addrow{display:flex;gap:8px;margin-top:10px}
+.addrow input{flex:1;min-width:0;width:0;min-height:46px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;padding:0 12px}
+.addrow button{flex:none;min-height:46px;padding:0 14px;border-radius:12px;border:1px solid var(--ink);background:var(--ink);color:var(--bg);font-weight:600;font-size:15px;cursor:pointer}
+.added{margin:8px 0 0;font-size:14.5px;font-weight:600;color:var(--on)}
+.added a{color:inherit}
 
 /* Monday reminder (same switch as on the waste page) */
 .remind .row{display:flex;align-items:center;justify-content:space-between;gap:16px}
@@ -117,7 +125,7 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-top:10px}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 @media (min-width:480px){h1{font-size:38px}}
 </style>
-<link rel="stylesheet" href="../assets/ui.css?v=13">
+<link rel="stylesheet" href="../assets/ui.css?v=14">
 </head>
 <body>
 <div class="wrap">
@@ -157,7 +165,7 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-top:10px}
   </main>
   <p class="foot">Адреси REWE й EDEKA взято з пошуку магазинів на сайтах мереж, решту з OpenStreetMap, програми знижок за оглядом MonsterDealz, станом на жовтень–листопад 2026. Якщо щось змінилося, напиши, і я виправлю.</p>
 </div>
-<script src="../assets/ui.js?v=13"></script>
+<script src="../assets/ui.js?v=14"></script>
 <script type="module">
 import { berlinDay } from '../smittia/due.js';
 import { flyerWeek, closures, rangeText, dayText, addDays } from './week.js';
@@ -252,10 +260,13 @@ function chainCard(c, town, i) {
     `<p class="perk">${esc(c.perk)}</p><ul class="stores">${rows}</ul>` +
     (c.url ? link(c.url, isSeen(c.url) ? CHECK + 'Переглянуто, відкрити ' + ARROW : 'Проспект цього тижня ' + ARROW, 'go' + (isSeen(c.url) ? ' seen' : ''),
       `Проспект ${c.name} цього тижня` + (isSeen(c.url) ? ', переглянуто' : '')) : '') +
-    (c.extra ? link(c.extra[1], esc(c.extra[0]), 'extra') : '') + '</section>';
+    (c.extra ? link(c.extra[1], esc(c.extra[0]), 'extra') : '') +
+    (canList ? `<button class="tolist" type="button" data-tolist="${esc(c.name)}">${svg('<path d="M12 5v14M5 12h14"/>')}До списку покупок</button>` : '') + '</section>';
 }
 
 let town = load('prospekty-town', 'xanten') === 'wesel' ? 'wesel' : 'xanten';
+const canList = !!(tg && tg.initData);   // the family list needs Telegram's sign-in
+const SHOP = (name) => name.replace(/ SÜD$/, '');   // as the list names the shops
 function render() {
   const here = CHAINS.filter((c) => storesOf(c, town).length);
   const mine = here.filter((c) => favs.includes(c.name)), rest = here.filter((c) => !favs.includes(c.name));
@@ -274,6 +285,15 @@ document.querySelector('.town').addEventListener('click', (e) => {
   town = b.dataset.town; store('prospekty-town', town); render(); haptic();
 });
 $('#list').addEventListener('click', (e) => {
+  const tl = e.target.closest('[data-tolist]');
+  if (tl) {
+    const card = tl.closest('.chain'), name = tl.dataset.tolist;
+    if (!card.querySelector('.addrow')) {
+      tl.insertAdjacentHTML('afterend', `<form class="addrow" data-chain="${esc(name)}"><input type="text" maxlength="80" enterkeyhint="done" placeholder="Що купити в ${esc(SHOP(name))}?" aria-label="Що купити в ${esc(SHOP(name))}"><button type="submit">Додати</button></form>`);
+    }
+    card.querySelector('.addrow input').focus(); haptic();
+    return;
+  }
   const star = e.target.closest('.star');
   if (star) {
     const name = star.closest('.chain').dataset.chain;
@@ -285,7 +305,25 @@ $('#list').addEventListener('click', (e) => {
   const a = e.target.closest('a[href]'); if (!a) return;
   if (a.matches('.go')) { markSeen(a.getAttribute('href')); setTimeout(render, 60); }
   // Inside Telegram links open in the phone's browser (or the maps app): chain sites remember the chosen store there
-  if (tg && tg.openLink) { e.preventDefault(); try { tg.openLink(a.href); } catch (err) { location.href = a.href; } }
+  if (tg && tg.openLink && a.target === '_blank') { e.preventDefault(); try { tg.openLink(a.href); } catch (err) { location.href = a.href; } }
+});
+
+$('#list').addEventListener('submit', async (e) => {
+  const f = e.target.closest('.addrow'); if (!f) return;
+  e.preventDefault();
+  const input = f.querySelector('input'), t = input.value.replace(/\s+/g, ' ').trim(); if (!t) { input.focus(); return; }
+  const btn = f.querySelector('button'); btn.disabled = true;
+  const old = f.parentElement.querySelector('.added'); if (old) old.remove();
+  try {
+    const fd = new FormData(); fd.append('initData', tg.initData); fd.append('action', 'add'); fd.append('t', t); fd.append('s', SHOP(f.dataset.chain)); fd.append('u', week.saturday);
+    const r = await fetch(WORKER_URL.replace(/\/*$/, '/') + 'list', { method: 'POST', body: fd });
+    const d = await r.json(); if (!d.ok) throw new Error(d.error);
+    f.insertAdjacentHTML('afterend', `<p class="added">✓ «${esc(t)}» у списку покупок · <a href="../spysok/">відкрити</a></p>`);
+    input.value = ''; haptic('success');
+  } catch (err) {
+    f.insertAdjacentHTML('afterend', '<p class="added" style="color:var(--danger)">Не вдалося додати. Перевір інтернет і спробуй ще раз.</p>');
+  }
+  btn.disabled = false;
 });
 
 /* ---------- Monday reminder: the Worker keeps who wants it ---------- */

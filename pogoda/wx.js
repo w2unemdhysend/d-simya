@@ -89,3 +89,23 @@ export function advice(d, hours = 12) {
   if (!out.some((a) => a.kind === 'rain' || a.kind === 'snow' || a.kind === 'storm')) out.push({ kind: 'dry', text: `Опадів найближчі ${n} годин не очікується.` });
   return out;
 }
+
+// Official DWD warnings for a spot (through our Worker; it keeps answers 5 minutes)
+export async function getWarnings(lat, lon) {
+  const u = new URL(WORKER_URL.replace(/\/*$/, '/') + 'warnings');
+  u.searchParams.set('lat', lat.toFixed(2)); u.searchParams.set('lon', lon.toFixed(2));
+  const r = await fetch(u);
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok || !d.ok) throw new Error(d.error || 'warnings ' + r.status);
+  return d;
+}
+const WHEN = new Intl.DateTimeFormat('uk-UA', { timeZone: 'Europe/Berlin', weekday: 'short', day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' });
+const HOUR = new Intl.DateTimeFormat('de-DE', { timeZone: 'Europe/Berlin', hour: '2-digit', minute: '2-digit' });
+// "з пт, 20.11, 04:00 до пт, 20.11, 11:00", or "до 11:00" when it is on already and ends today
+export function warnWhen(w, now = Date.now()) {
+  const on = w.onset ? Date.parse(w.onset) : 0, off = w.expires ? Date.parse(w.expires) : 0;
+  const sameDay = (t) => new Date(t).toLocaleDateString('en-CA', { timeZone: 'Europe/Berlin' }) === new Date(now).toLocaleDateString('en-CA', { timeZone: 'Europe/Berlin' });
+  if (on && on > now) return `з ${WHEN.format(on)}` + (off ? ` до ${WHEN.format(off)}` : '');
+  if (off) return sameDay(off) ? `до ${HOUR.format(off)}` : `до ${WHEN.format(off)}`;
+  return '';
+}

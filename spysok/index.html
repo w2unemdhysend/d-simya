@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>(function(){try{var s=null;try{s=localStorage.getItem('dsimya-theme')}catch(e){}var w=window.Telegram&&Telegram.WebApp;var tg=w&&w.platform&&w.platform!=='unknown';var t=s||(tg?(w.colorScheme==='dark'?'dark':'light'):(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));document.documentElement.setAttribute('data-theme',t)}catch(e){}})();addEventListener('unhandledrejection',function(e){var r=e.reason;if(r&&/Transition was (aborted|skipped)/.test(r.message||''))e.preventDefault()});</script>
+<title>Покупки</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@600;700&display=swap">
+<style>
+/* The family shopping list: add at the top (with the shop), the list grouped by shop, bought things at the bottom,
+   then who shares the list and how to invite someone. Changes show at once and wait in a queue without internet. */
+:root{
+  padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom);
+  --bg:#E7ECEF; --surface:#F6F8F9; --ink:#12181C; --muted:#53616A; --line:#C7D0D5; --accent:#9A5800;
+  --accent-soft:#F7E3BF; --on:#2E7D32; --danger:#B3261E;
+  --f-display:"Unbounded","Arial Black",system-ui,sans-serif;
+  --f-body:"Onest","Segoe UI",Roboto,system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --bg:#0F1417; --surface:#182026; --ink:#E5EBEE; --muted:#98A6AE; --line:#2A343B; --accent:#FFB424;
+    --accent-soft:#3A2909; --on:#66BB6A; --danger:#FF8A80; color-scheme:dark; }
+}
+:root[data-theme="dark"]{ --bg:#0F1417; --surface:#182026; --ink:#E5EBEE; --muted:#98A6AE; --line:#2A343B; --accent:#FFB424;
+  --accent-soft:#3A2909; --on:#66BB6A; --danger:#FF8A80; color-scheme:dark; }
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.5 var(--f-body);
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:0 40px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+[hidden]{display:none!important}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2.5px solid var(--accent);outline-offset:2px}
+a{color:inherit}
+.wrap{max-width:560px;margin:0 auto}
+.top{padding-block:16px 10px}
+.eyebrow{font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--f-display);font-weight:700;font-size:32px;line-height:1.05;margin:6px 0 8px;letter-spacing:-.01em}
+.lede{margin:0;color:var(--muted);font-size:16px;max-width:44ch}
+h2{font-family:var(--f-display);font-weight:600;font-size:18px;line-height:1.2;margin:0}
+main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-top:10px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;min-width:0}
+.note{margin:4px 0 0;color:var(--muted);font-size:15px}
+
+.add .srow{display:flex;gap:8px}
+.add input,.joinrow input{flex:1;min-width:0;width:0;min-height:50px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;padding:0 12px}
+.btn{min-height:50px;border-radius:12px;border:1px solid var(--ink);background:var(--ink);color:var(--bg);font-weight:600;font-size:16px;padding:0 16px;cursor:pointer;flex:none}
+.btn:disabled{opacity:.5;cursor:default}
+.ghost{min-height:44px;border-radius:12px;border:1px solid var(--line);background:transparent;font-weight:600;font-size:15px;padding:0 14px;cursor:pointer}
+.shops{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:10px -14px 0;padding:0 14px 2px}
+.shops::-webkit-scrollbar{display:none}
+.chip{flex:none;min-height:40px;padding:0 13px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-weight:600;font-size:14.5px;cursor:pointer;white-space:nowrap;transition:background-color .2s ease, color .2s ease}
+.chip[aria-checked="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+.sync{display:flex;align-items:center;gap:8px;margin:2px 2px 0;font-size:14px;color:var(--muted);min-height:20px}
+.sync::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--on)}
+.sync.wait::before{background:var(--accent);animation:blink 1.2s ease-in-out infinite}
+.sync.off::before{background:var(--danger)}
+@keyframes blink{50%{opacity:.3}}
+
+.group{margin:6px 2px -4px;display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.group h3{margin:0;font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.group span{font-size:13.5px;color:var(--muted)}
+.items{list-style:none;margin:0;padding:0;background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.item{display:flex;align-items:center;gap:6px;padding:4px 6px 4px 4px;border-top:1px solid var(--line);animation:in .28s var(--ease-out, ease) backwards}
+.item:first-child{border-top:0}
+@keyframes in{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.check{flex:none;width:48px;height:48px;border:0;background:transparent;display:grid;place-items:center;cursor:pointer;border-radius:12px}
+.check i{width:24px;height:24px;border-radius:50%;border:2px solid var(--muted);display:grid;place-items:center;transition:background-color .2s ease, border-color .2s ease}
+.check svg{width:15px;height:15px;color:var(--bg);opacity:0;transform:scale(.6);transition:opacity .15s ease, transform .2s var(--ease-out, ease)}
+.item.done .check i{background:var(--on);border-color:var(--on)}
+.item.done .check svg{opacity:1;transform:none}
+.item .txt{flex:1;min-width:0;padding:6px 0}
+.item .txt b{display:block;font-weight:500;font-size:17px;line-height:1.3;overflow-wrap:anywhere}
+.item .txt small{display:block;color:var(--muted);font-size:13.5px;line-height:1.3}
+.item.done .txt b{text-decoration:line-through;color:var(--muted)}
+.item.pending{opacity:.6}
+.item .old{color:var(--danger)}
+.del{flex:none;width:44px;height:44px;border:0;background:transparent;border-radius:12px;display:grid;place-items:center;cursor:pointer;color:var(--muted)}
+.del svg{width:18px;height:18px}
+.empty{text-align:center;color:var(--muted);padding:22px 12px;font-size:15.5px}
+.clear{justify-self:start;margin:4px 2px 0}
+
+.family .who{margin:6px 0 0;font-size:16px}
+.family .acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.code{margin-top:12px;padding:12px;border-radius:12px;background:var(--accent-soft);display:grid;gap:8px}
+.code .big{font-family:var(--f-display);font-weight:700;font-size:30px;letter-spacing:.14em;text-align:center;user-select:all}
+.code p{margin:0;font-size:14.5px}
+.joinrow{display:flex;gap:8px;margin-top:12px}
+.joinrow input{text-transform:uppercase;letter-spacing:.1em}
+.ferr{color:var(--danger);font-weight:600;font-size:15px;margin:8px 0 0}
+.fok{color:var(--on);font-weight:600;font-size:15px;margin:8px 0 0}
+.leave{border:0;background:transparent;color:var(--muted);text-decoration:underline;text-underline-offset:3px;min-height:44px;padding:0;cursor:pointer;font-size:14.5px;margin-top:6px}
+.leave.armed{color:var(--danger);font-weight:600}
+.notg{text-align:center;padding:22px 16px}
+.foot{margin-top:16px;font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+@media (min-width:480px){h1{font-size:38px}}
+</style>
+<link rel="stylesheet" href="../assets/ui.css?v=14">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="toprow"><button class="menubtn" id="menubtn" type="button" aria-expanded="false" aria-controls="drawer" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Розділи</span></button><button class="themebtn" id="themebtn" type="button" aria-label="Увімкнути темну тему"><svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M5.3 18.7L7 17M17 7l1.7-1.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.6A8.2 8.2 0 0 1 9.4 4a8.2 8.2 0 1 0 10.6 10.6z" fill="currentColor"/></svg></button></div>
+    <div class="eyebrow">Для всієї родини</div>
+    <h1>Покупки</h1>
+    <p class="lede">Спільний список: що купити, де, і хто вже купив.</p>
+  </header>
+  <main id="app" hidden>
+    <section class="card add" aria-label="Додати до списку">
+      <form class="srow" id="addform"><input id="t" type="text" autocomplete="off" enterkeyhint="done" maxlength="80" placeholder="Що купити?" aria-label="Що купити">
+        <button class="btn" id="addbtn" type="submit">Додати</button></form>
+      <div class="shops" id="shops" role="radiogroup" aria-label="Де купити"></div>
+    </section>
+    <p class="sync" id="sync" aria-live="polite"></p>
+    <div id="list"></div>
+    <section class="card family" aria-labelledby="h-family">
+      <h2 id="h-family">Родина</h2>
+      <p class="who" id="who"></p>
+      <div class="acts"><button class="ghost" id="invite" type="button">Запросити</button><button class="ghost" id="havecode" type="button" aria-expanded="false" aria-controls="joinbox">Маю код</button></div>
+      <div class="code" id="codebox" hidden>
+        <div class="big" id="code"></div>
+        <p>Код діє 24 години. Хай людина відкриє «Покупки» в боті, натисне «Маю код» і введе його. Тоді у вас буде один список.</p>
+        <button class="btn" id="sendcode" type="button">Надіслати в Telegram</button>
+      </div>
+      <div id="joinbox" hidden>
+        <form class="joinrow" id="joinform"><input id="jcode" type="text" autocomplete="off" maxlength="7" placeholder="ABC123" aria-label="Код запрошення"><button class="btn" type="submit">Приєднатися</button></form>
+      </div>
+      <p class="ferr" id="ferr" hidden></p><p class="fok" id="fok" hidden></p>
+      <button class="leave" id="leave" type="button" hidden>Вийти зі спільного списку</button>
+    </section>
+  </main>
+  <section class="card notg" id="notg" hidden>
+    <h2>Список працює в Telegram</h2>
+    <p class="note">Щоб список був спільним для родини, відкрий D-SIM’YA через бота в Telegram.</p>
+  </section>
+  <p class="foot">Список зберігається на сервері застосунку, і бачать його лише ті, кого ти запросив. Без інтернету зміни чекають і надсилаються, щойно зв’язок повернеться.</p>
+</div>
+<script src="../assets/ui.js?v=14"></script>
+<script type="module">
+import { berlinDay } from '../smittia/due.js';
+
+const WORKER_URL = 'https://d-simya.whysends.workers.dev';
+const $ = (s, r) => (r || document).querySelector(s);
+const tgApp = window.Telegram && window.Telegram.WebApp;
+const tg = tgApp && tgApp.platform && tgApp.platform !== 'unknown' ? tgApp : null;
+if (tg) { try { tg.ready(); tg.expand(); } catch (e) {} }
+const haptic = (k) => { try { if (!tg || !tg.HapticFeedback) return; k ? tg.HapticFeedback.notificationOccurred(k) : tg.HapticFeedback.selectionChanged(); } catch (e) {} };
+const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;'})[c]);
+const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } };
+const store = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+const CHECK = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+const X = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+const SHOPS = ['ALDI', 'Lidl', 'REWE', 'EDEKA', 'Netto', 'PENNY', 'Kaufland', 'trinkgut', 'dm', 'Rossmann'];
+
+if (!tg || !tg.initData) { $('#notg').hidden = false; }
+else start();
+
+function start() {
+  $('#app').hidden = false;
+  const me = String((tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.first_name) || '');
+  let server = load('spysok-cache', null);           // the list as the server last sent it
+  let queue = load('spysok-queue', []);              // changes not yet sent: [{action, f}]
+  let shop = '', offline = false, busy = false, armed = false;
+
+  /* ---------- what the list looks like with the changes still on their way ---------- */
+  function view() {
+    const items = (server ? server.items : []).map((x) => ({ ...x }));
+    for (const op of queue) {
+      if (op.action === 'add') items.push({ id: op.tmp, t: op.f.t, s: op.f.s || '', u: op.f.u || '', d: 0, by: me, at: op.at, pending: true });
+      else if (op.action === 'toggle') { const it = items.find((x) => x.id === op.f.id); if (it) { it.d = it.d ? 0 : 1; it.dby = me; } }
+      else if (op.action === 'remove') { const i = items.findIndex((x) => x.id === op.f.id); if (i >= 0) items.splice(i, 1); }
+      else if (op.action === 'clear') { for (let i = items.length - 1; i >= 0; i--) if (items[i].d && !items[i].pending) items.splice(i, 1); }
+    }
+    return items;
+  }
+  const today = berlinDay(new Date());
+  const shortDay = (day) => new Date(day + 'T12:00:00Z').toLocaleDateString('uk-UA', { weekday: 'short', day: 'numeric', month: 'numeric', timeZone: 'UTC' });
+  function itemHTML(x, many) {
+    const meta = [];
+    if (x.u) meta.push(x.u < today ? '<span class="old">акція вже закінчилась</span>' : `акція до ${esc(shortDay(x.u))}`);
+    if (x.d && x.dby && many) meta.push(`купив(ла) ${esc(x.dby)}`);
+    else if (!x.d && x.by && many && x.by !== me) meta.push(`додав(ла) ${esc(x.by)}`);
+    if (x.pending) meta.push('надсилаю…');
+    return `<li class="item${x.d ? ' done' : ''}${x.pending ? ' pending' : ''}" data-id="${esc(x.id)}">` +
+      `<button class="check" type="button" role="checkbox" aria-checked="${!!x.d}" aria-label="${esc(x.t)}${x.d ? ', куплено' : ''}"${x.pending ? ' disabled' : ''}><i>${CHECK}</i></button>` +
+      `<span class="txt"><b>${esc(x.t)}</b>${meta.length ? `<small>${meta.join(' · ')}</small>` : ''}</span>` +
+      `<button class="del" type="button" aria-label="Прибрати: ${esc(x.t)}"${x.pending ? ' disabled' : ''}>${X}</button></li>`;
+  }
+  function render() {
+    const items = view(), many = server ? server.members.length > 1 : false;
+    const open = items.filter((x) => !x.d), done = items.filter((x) => x.d);
+    const byShop = new Map();
+    for (const x of open) { const k = x.s || ''; if (!byShop.has(k)) byShop.set(k, []); byShop.get(k).push(x); }
+    const keys = [...byShop.keys()].sort((a, b) => (a === '' ? -1 : b === '' ? 1 : a.localeCompare(b, 'de')));
+    let html = '';
+    if (!items.length) html = '<div class="items"><p class="empty">Список порожній. Додай перше вище або натисни «+ До списку» в «Проспектах».</p></div>';
+    for (const k of keys) {
+      const list = byShop.get(k);
+      html += `<div class="group"><h3>${esc(k || 'Будь-де')}</h3><span>${list.length}</span></div><ul class="items">${list.map((x) => itemHTML(x, many)).join('')}</ul>`;
+    }
+    if (done.length) html += `<div class="group"><h3>Куплено</h3><span>${done.length}</span></div><ul class="items">${done.map((x) => itemHTML(x, many)).join('')}</ul>` +
+      '<button class="ghost clear" id="clear" type="button">Прибрати куплене</button>';
+    $('#list').innerHTML = html;
+    if (server) {
+      const names = server.members;
+      $('#who').textContent = names.length > 1 ? `Список спільний: ${names.join(', ')}.` : 'Поки що список лише твій. Запроси родину, і ви бачитимете одне й те саме.';
+      $('#leave').hidden = names.length < 2;
+    }
+    const s = $('#sync');
+    s.className = 'sync' + (offline ? ' off' : queue.length ? ' wait' : '');
+    s.textContent = offline ? 'Немає зв’язку: зміни надішлю, щойно повернеться інтернет' : queue.length ? 'Надсилаю…' : server ? 'Синхронізовано' : 'Завантажую…';
+  }
+  $('#shops').innerHTML = ['', ...SHOPS].map((x) => `<button class="chip" type="button" role="radio" data-shop="${esc(x)}" aria-checked="${x === shop}">${esc(x || 'Будь-де')}</button>`).join('');
+
+  /* ---------- talking to the server ---------- */
+  async function send(action, f = {}) {
+    const fd = new FormData(); fd.append('initData', tg.initData); fd.append('action', action);
+    for (const [k, v] of Object.entries(f)) if (v != null) fd.append(k, v);
+    let r;
+    try { r = await fetch(WORKER_URL.replace(/\/*$/, '/') + 'list', { method: 'POST', body: fd }); }
+    catch (e) { const err = new Error('offline'); err.offline = true; throw err; }
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.ok) { const err = new Error(d.error || 'http ' + r.status); err.status = r.status; throw err; }
+    return d;
+  }
+  function accept(d) {
+    if (!d || !Array.isArray(d.items)) return;
+    server = { items: d.items, members: d.members || [], v: d.v || 0 }; store('spysok-cache', server);
+  }
+  async function flush() {
+    if (busy) return;
+    busy = true;
+    try {
+      while (queue.length) {
+        const op = queue[0];
+        try { accept(await send(op.action, op.f)); offline = false; }
+        catch (e) { if (e.offline || e.status >= 500) { offline = !!e.offline; break; } }   // a change the server refuses (gone already) is dropped
+        queue.shift(); store('spysok-queue', queue); render();
+      }
+      if (!queue.length) { accept(await send('get')); offline = false; }
+    } catch (e) { offline = !!e.offline; }
+    busy = false; render();
+  }
+  function change(action, f) {
+    const op = { action, f, at: Date.now() };
+    if (action === 'add') op.tmp = 'tmp-' + Math.random().toString(36).slice(2, 9);
+    queue.push(op); store('spysok-queue', queue); render(); flush();
+  }
+
+  /* ---------- adding, ticking, removing ---------- */
+  $('#shops').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-shop]'); if (!b) return;
+    shop = b.dataset.shop; document.querySelectorAll('#shops .chip').forEach((c) => c.setAttribute('aria-checked', String(c === b))); haptic();
+  });
+  $('#addform').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const t = $('#t').value.replace(/\s+/g, ' ').trim(); if (!t) { $('#t').focus(); return; }
+    change('add', { t, s: shop }); $('#t').value = ''; $('#t').focus(); haptic();
+  });
+  $('#list').addEventListener('click', (e) => {
+    if (e.target.closest('#clear')) { change('clear', {}); haptic(); return; }
+    const li = e.target.closest('.item'); if (!li || li.classList.contains('pending')) return;
+    if (e.target.closest('.check')) { change('toggle', { id: li.dataset.id }); haptic(li.classList.contains('done') ? null : 'success'); }
+    else if (e.target.closest('.del')) { change('remove', { id: li.dataset.id }); haptic(); }
+  });
+
+  /* ---------- family: invite, join, leave ---------- */
+  const err = (t) => { $('#ferr').textContent = t; $('#ferr').hidden = !t; if (t) $('#fok').hidden = true; };
+  const ok = (t) => { $('#fok').textContent = t; $('#fok').hidden = !t; if (t) $('#ferr').hidden = true; };
+  let code = '';
+  $('#invite').addEventListener('click', async () => {
+    err(''); ok(''); $('#invite').disabled = true;
+    try { code = (await send('invite')).code; $('#code').textContent = code.slice(0, 3) + ' ' + code.slice(3); $('#codebox').hidden = false; $('#joinbox').hidden = true; haptic(); }
+    catch (e) { err(e.offline ? 'Немає зв’язку. Спробуй, коли буде інтернет.' : 'Не вдалося створити код. Спробуй ще раз.'); }
+    $('#invite').disabled = false;
+  });
+  $('#sendcode').addEventListener('click', () => {
+    const text = `Код для нашого спільного списку покупок у D-SIM’YA: ${code}. Відкрий бота, розділ «Покупки» → «Маю код».`;
+    const url = 'https://t.me/share/url?url=' + encodeURIComponent('https://t.me/whysendbot') + '&text=' + encodeURIComponent(text);
+    try { if (tg.openTelegramLink) tg.openTelegramLink(url); else tg.openLink(url); } catch (e) {}
+  });
+  $('#havecode').addEventListener('click', () => {
+    const box = $('#joinbox'); box.hidden = !box.hidden; $('#havecode').setAttribute('aria-expanded', String(!box.hidden)); $('#codebox').hidden = true;
+    if (!box.hidden) $('#jcode').focus();
+  });
+  $('#joinform').addEventListener('submit', async (e) => {
+    e.preventDefault(); err(''); ok('');
+    const c = $('#jcode').value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (c.length !== 6) { err('Код має 6 знаків, наприклад K7Q 4ZP.'); return; }
+    try {
+      await flush();
+      const d = await send('join', { code: c }); accept(d); queue = []; store('spysok-queue', queue);
+      $('#joinbox').hidden = true; $('#jcode').value = ''; ok('Готово: тепер у вас один список.'); haptic('success'); render();
+    } catch (e2) { err(e2.status === 404 ? 'Код не підходить або вже минуло 24 години. Попроси новий.' : e2.offline ? 'Немає зв’язку. Спробуй, коли буде інтернет.' : 'Не вдалося приєднатися. Спробуй ще раз.'); }
+  });
+  $('#leave').addEventListener('click', async () => {
+    if (!armed) { armed = true; $('#leave').classList.add('armed'); $('#leave').textContent = 'Точно вийти? Натисни ще раз'; setTimeout(() => { armed = false; $('#leave').classList.remove('armed'); $('#leave').textContent = 'Вийти зі спільного списку'; }, 4000); return; }
+    armed = false;
+    try { accept(await send('leave')); queue = []; store('spysok-queue', queue); ok('Ти вийшов зі спільного списку. Тепер список лише твій.'); render(); }
+    catch (e) { err('Не вдалося. Спробуй ще раз.'); }
+  });
+
+  /* ---------- keep in step with the others ---------- */
+  render(); flush();
+  setInterval(() => { if (document.visibilityState === 'visible') flush(); }, 5000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') flush(); });
+  window.addEventListener('online', () => { offline = false; flush(); });
+  window.__spysok = { view, queue: () => queue };
+}
+</script>
+</body>
+</html>

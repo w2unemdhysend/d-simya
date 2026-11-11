@@ -29,27 +29,31 @@ def serve():
     return f'http://127.0.0.1:{srv.server_address[1]}/'
 
 def tg_js(platform):
-    return """window.Telegram = {WebApp: {platform: '%s', colorScheme: 'light', initData: '', ready() {}, expand() {}, onEvent() {},
+    return """window.Telegram = {WebApp: {platform: '%s', colorScheme: 'light', initData: 'user=%%7B%%22id%%22%%3A1%%7D&hash=x', initDataUnsafe: {user: {id: 1, first_name: 'Стас'}}, ready() {}, expand() {}, onEvent() {},
   isVersionAtLeast() { return true; }, setHeaderColor() {}, setBackgroundColor() {}, openLink(u) { (window.__opened = window.__opened || []).push(u); },
   CloudStorage: {getItem(k, cb) { setTimeout(() => cb(null, ''), 20); }, setItem() {}},
   HapticFeedback: {selectionChanged() {}, impactOccurred() {}, notificationOccurred() {}}, BackButton: {show() {}, hide() {}, onClick() {}}}};""" % platform
 
 class Worker:
-    def __init__(self): self.calls = []
+    def __init__(self, warnings=None):
+        self.calls, self.warnings = [], warnings or []
     async def __call__(self, route):
         u = urllib.parse.urlparse(route.request.url); q = urllib.parse.parse_qs(u.query)
         self.calls.append((u.path, q))
         if u.path == '/weather': return await route.fulfill(json=WX)
+        if u.path == '/warnings': return await route.fulfill(json={'ok': True, 'place': 'Xanten', 'warnings': self.warnings})
+        if u.path == '/list': return await route.fulfill(json={'ok': True, 'v': 3, 'members': ['Стас', 'Наталія'], 'items': [
+            {'id': 'a', 't': 'Milch', 's': 'Lidl', 'd': 0}, {'id': 'b', 't': 'Brot', 's': '', 'd': 0}, {'id': 'c', 't': 'Eier', 's': 'ALDI', 'd': 1}]})
         if u.path == '/transit/departures':
             d = dict(DEP); d['stop'] = {'id': q['stop'][0], 'name': 'Xanten, Bahnhof'}
             return await route.fulfill(json=d)
         await route.fulfill(status=404, json={'ok': False})
 
-async def page(browser, url, when=DEP['at'], store=None, tg='', width=390, scheme='light'):
+async def page(browser, url, when=DEP['at'], store=None, tg='', width=390, scheme='light', worker=None):
     ctx = await browser.new_context(viewport={'width': width, 'height': 860}, color_scheme=scheme)
     await ctx.route('**/telegram.org/**', lambda r: r.fulfill(body=tg, content_type='text/javascript'))
     await ctx.route('**/fonts.googleapis.com/**', lambda r: r.fulfill(body='', content_type='text/css'))
-    w = Worker(); await ctx.route('**/*.workers.dev/**', w)
+    w = worker or Worker(); await ctx.route('**/*.workers.dev/**', w)
     if store:
         sets = ''.join(f"localStorage.setItem({json.dumps(k)}, {json.dumps(json.dumps(v))});" for k, v in store.items())
         await ctx.add_init_script(f"if (!sessionStorage.getItem('seeded')) {{ {sets} sessionStorage.setItem('seeded', '1'); }}")
@@ -89,8 +93,10 @@ async def main():
         fly = await pg.evaluate(TEXT, '#c-fly')
         check('flyers: KW 46, until Saturday 14 November, 2 seen', 'KW 46' in fly and 'Акції до суботи, 14 листопада' in fly and 'Переглянуто 2 проспекти' in fly, fly)
         links = await pg.evaluate("() => [...document.querySelectorAll('main a')].map(a => a.getAttribute('href'))")
-        check('cards and tiles lead to every section, instructions last', links[:4] == ['pogoda/', 'smittia/', 'transport/', 'prospekty/'] and links[5] == 'scan/' and links[-2:] == ['pralka/', 'sushka/'], str(links))
-        check('D-Ticket on a computer: Google Play in a new tab', links[4].startswith('https://play.google.com/store/apps/details?id=mentz.com.vrr_cibo_app') and await pg.get_attribute('#t-dticket', 'target') == '_blank')
+        check('cards and tiles lead to every section, instructions last', links[:5] == ['pogoda/', 'smittia/', 'transport/', 'prospekty/', 'spysok/'] and links[6] == 'scan/' and links[-2:] == ['pralka/', 'sushka/'], str(links))
+        check('D-Ticket on a computer: Google Play in a new tab', links[5].startswith('https://play.google.com/store/apps/details?id=mentz.com.vrr_cibo_app') and await pg.get_attribute('#t-dticket', 'target') == '_blank')
+        check('shopping list outside Telegram: says it works through the bot', 'через бота' in await pg.evaluate(TEXT, '#c-list'))
+        check('no DWD warning: no warning line', await pg.locator('.dwd').count() == 0)
         check('"Інструкції" heading above the appliance tiles', await pg.evaluate("document.querySelector('.group').textContent") == 'Інструкції')
         check('fits 390 px', await pg.evaluate('document.documentElement.scrollWidth') <= 390)
         if OUT: await pg.screenshot(path=os.path.join(OUT, 'home-390.png'), full_page=True)
@@ -125,8 +131,15 @@ async def main():
         check('flyers: Christmas closures listed', 'Різдво' in fly or 'Святвечір' in fly or 'зачинені' in fly, fly)
         await ctx.close()
 
-        # iPhone in Telegram: App Store through openLink
-        ctx, pg, w = await page(browser, url, tg=tg_js('ios'))
+        # iPhone in Telegram: App Store through openLink; the shared list and an official warning on the cards
+        ctx, pg, w = await page(browser, url, tg=tg_js('ios'), worker=Worker(warnings=[{'level': 2, 'uk': 'ожеледь', 'onset': '2026-11-11T18:00:00Z', 'expires': '2026-11-12T08:00:00Z'},
+                                                                                     {'level': 1, 'uk': 'мороз', 'onset': None, 'expires': '2026-11-11T20:00:00Z'}]))
+        await pg.wait_for_selector('#list-body .big'); await pg.wait_for_selector('.dwd')
+        lst = await pg.evaluate(TEXT, '#c-list')
+        check('shopping list in Telegram: what is left to buy, names and shops', '2 речі купити' in lst and 'Milch, Brot' in lst and 'Lidl' in lst and 'Eier' not in lst, lst)
+        dwd = await pg.evaluate(TEXT, '.dwd')
+        check('weather card: the strongest DWD warning with its level and time, and how many more', 'DWD: ожеледь' in dwd and 'рівень 2 з 4' in dwd and 'з ср, 11.11, 19:00' in dwd and 'ще 1' in dwd and 'lv2' in await pg.get_attribute('.dwd', 'class'), dwd)
+        check('the list was cached for the next visit', 'Milch' in (await pg.evaluate("localStorage.getItem('spysok-cache')") or ''))
         check('iPhone: App Store link', (await pg.get_attribute('#t-dticket', 'href')).startswith('https://apps.apple.com/de/app/'))
         await pg.click('#t-dticket')
         opened = await pg.evaluate('window.__opened')

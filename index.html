@@ -67,6 +67,14 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-top:14px}
 .tip svg{flex:none;width:18px;height:18px;margin-top:1px;color:var(--accent)}
 .tip.dry svg{color:var(--on)}
 .wxi .sun,.wxi .moon,.wxi .bolt{stroke:var(--accent)}
+/* an official DWD warning on the weather card */
+:root{--w1:#C9A100;--w2:#D9700F;--w3:#C62828;--w4:#7B1FA2}
+:root[data-theme="dark"]{--w1:#F2D24B;--w2:#FFA24D;--w3:#FF6B60;--w4:#CE93D8}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--w1:#F2D24B;--w2:#FFA24D;--w3:#FF6B60;--w4:#CE93D8}}
+.dwd{margin:12px 0 0;display:flex;gap:10px;align-items:flex-start;font-size:15px;line-height:1.4;border-radius:12px;padding:9px 11px;background:var(--bg);border-left:5px solid var(--wc)}
+.dwd.lv1{--wc:var(--w1)}.dwd.lv2{--wc:var(--w2)}.dwd.lv3{--wc:var(--w3)}.dwd.lv4{--wc:var(--w4)}
+.dwd b{font-weight:700}
+.dwd small{display:block;color:var(--muted);font-size:13.5px}
 
 /* waste */
 .card.soon{background:var(--accent-soft);border-color:transparent}
@@ -118,7 +126,7 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-top:14px}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 @media (min-width:480px){h1{font-size:36px}}
 </style>
-<link rel="stylesheet" href="assets/ui.css?v=13">
+<link rel="stylesheet" href="assets/ui.css?v=14">
 </head>
 <body>
 <div class="wrap">
@@ -145,22 +153,26 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-top:14px}
       <div class="ch"><span class="ic" data-icon="tag"></span><span class="lab" id="fly-lab">Проспекти</span><span data-icon="next"></span></div>
       <div id="fly-body"></div>
     </a>
+    <a class="card" id="c-list" href="spysok/" style="--i:4">
+      <div class="ch"><span class="ic" data-icon="cart"></span><span class="lab">Список покупок</span><span data-icon="next"></span></div>
+      <div id="list-body"><span class="skel w60"></span></div>
+    </a>
     <div class="grid2">
-      <a class="tile dt" id="t-dticket" href="https://play.google.com/store/apps/details?id=mentz.com.vrr_cibo_app" target="_blank" rel="noopener" style="--i:4">
+      <a class="tile dt" id="t-dticket" href="https://play.google.com/store/apps/details?id=mentz.com.vrr_cibo_app" target="_blank" rel="noopener" style="--i:5">
         <span class="ic" aria-hidden="true">D</span><span><b>Мій D-Ticket</b><small id="dt-sub">Відкрити VRR App</small></span></a>
-      <a class="tile" href="scan/" style="--i:5"><span class="ic" data-icon="scan"></span><span><b>Сканер</b><small>Фото документа в PDF і переклад</small></span></a>
+      <a class="tile" href="scan/" style="--i:6"><span class="ic" data-icon="scan"></span><span><b>Сканер</b><small>Фото документа в PDF і переклад</small></span></a>
     </div>
     <div class="group">Інструкції</div>
     <div class="grid2">
-      <a class="tile quiet" href="pralka/" style="--i:6"><span class="ic" data-icon="wash"></span><span><b>Пралка</b><small>Beko</small></span></a>
-      <a class="tile quiet" href="sushka/" style="--i:7"><span class="ic" data-icon="dry"></span><span><b>Сушарка</b><small>Gorenje</small></span></a>
+      <a class="tile quiet" href="pralka/" style="--i:7"><span class="ic" data-icon="wash"></span><span><b>Пралка</b><small>Beko</small></span></a>
+      <a class="tile quiet" href="sushka/" style="--i:8"><span class="ic" data-icon="dry"></span><span><b>Сушарка</b><small>Gorenje</small></span></a>
     </div>
   </main>
   <p class="foot">D-SIM’YA — помічник для життя в Німеччині. Свайп від лівого краю відкриває розділи.</p>
 </div>
-<script src="assets/ui.js?v=13"></script>
+<script src="assets/ui.js?v=14"></script>
 <script type="module">
-import { WORKER_URL, PLACES, homePlace, getWeather, wxIcon, wxText, advice, deg } from './pogoda/wx.js';
+import { WORKER_URL, PLACES, homePlace, getWeather, getWarnings, warnWhen, wxIcon, wxText, advice, deg } from './pogoda/wx.js';
 import { BINS, binsOn, berlinDay, prefsOf } from './smittia/due.js';
 import { flyerWeek, closures, rangeText, dayText, addDays } from './prospekty/week.js';
 
@@ -180,6 +192,7 @@ const ICON = {
   wash: '<rect x="4" y="3" width="16" height="18" rx="2.5"/><circle cx="12" cy="13" r="4.5"/><path d="M7.5 6.5h2"/>',
   dry: '<rect x="4" y="3" width="16" height="18" rx="2.5"/><circle cx="12" cy="13" r="4.5"/><path d="M10.2 11.8c.6.6 1.2.6 1.8 0s1.2-.6 1.8 0M10.2 14.6c.6.6 1.2.6 1.8 0s1.2-.6 1.8 0"/>',
   next: '<path d="M9 6l6 6-6 6"/>',
+  cart: '<path d="M3 4h2.2l2.2 10.2a1.5 1.5 0 0 0 1.5 1.2h8.3a1.5 1.5 0 0 0 1.5-1.1L20.5 8H6.2"/><circle cx="9.5" cy="19.5" r="1.3"/><circle cx="17" cy="19.5" r="1.3"/>',
 };
 document.querySelectorAll('[data-icon]').forEach((el) => {
   const k = el.dataset.icon;
@@ -206,6 +219,14 @@ getWeather(...PLACES[place]).then((d) => {
     `<div class="d">${esc(wxText(d.now.weather_code))} · ${deg(t.temperature_2m_min[0])} … ${deg(t.temperature_2m_max[0])}</div></div></div>` +
     `<p class="tip ${first.kind === 'dry' ? 'dry' : ''}">${svg(TIP[first.kind] || TIP.dry)}<span>${esc(first.text)}</span></p>`;
   $('#c-wx').setAttribute('aria-label', `Погода, ${place}: ${deg(d.now.temperature_2m)}, ${wxText(d.now.weather_code)}. ${first.text}`);
+  // the strongest official warning, if there is one
+  getWarnings(...PLACES[place]).then((w) => {
+    const top = (w.warnings || [])[0]; if (!top) return;
+    const more = w.warnings.length - 1;
+    $('#wx-body').insertAdjacentHTML('beforeend', `<p class="dwd lv${top.level}"><span><b>DWD: ${esc(top.uk)}</b> · рівень ${top.level} з 4` +
+      `<small>${esc(warnWhen(top))}${more > 0 ? ` · ще ${more} ${more === 1 ? 'попередження' : 'попередження'}` : ''}</small></span></p>`);
+    $('#c-wx').setAttribute('aria-label', $('#c-wx').getAttribute('aria-label') + ` Попередження DWD: ${top.uk}, рівень ${top.level} з 4.`);
+  }).catch(() => {});
 }).catch(() => { $('#wx-body').innerHTML = '<div class="big">Погода</div><p class="sub">Не вдалося завантажити. Натисни, щоб відкрити розділ.</p>'; });
 
 /* ---------- waste: the next pickup for the household ---------- */
@@ -283,6 +304,29 @@ const ahead = closures(today > week.monday ? today : week.monday, week.saturday)
 $('#fly-body').innerHTML = `<div class="big">${week.sunday ? 'Нові проспекти вже вийшли' : `Акції до суботи, ${esc(dayText(week.saturday, { day: 'numeric', month: 'long' }))}`}</div>` +
   `<p class="sub">${nSeen ? `Переглянуто ${nSeen} ${nSeen === 1 ? 'проспект' : nSeen < 5 ? 'проспекти' : 'проспектів'} цього тижня.` : week.sunday ? 'На наступний тиждень, ' + esc(rangeText(week.monday, week.saturday)) + '.' : 'Цього тижня ще нічого не переглянуто.'}</p>` +
   (ahead.length ? `<ul class="closed">${ahead.map((c) => `<li class="${c.kind}">${esc(dayText(c.day))}: ${esc(c.uk)}, ${c.kind === 'closed' ? 'магазини зачинені' : 'до 14:00'}</li>`).join('')}</ul>` : '');
+
+/* ---------- the family shopping list ---------- */
+function renderList(d) {
+  if (!d || !Array.isArray(d.items)) return;
+  const open = d.items.filter((x) => !x.d), names = open.slice(0, 3).map((x) => x.t);
+  const shops = [...new Set(open.map((x) => x.s).filter(Boolean))];
+  const word = (n) => (n % 10 === 1 && n % 100 !== 11 ? 'річ' : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'речі' : 'речей');
+  $('#list-body').innerHTML = open.length
+    ? `<div class="big">${open.length} ${word(open.length)} купити</div><p class="sub">${esc(names.join(', '))}${open.length > 3 ? ' …' : ''}${shops.length ? ` · ${esc(shops.join(', '))}` : ''}</p>`
+    : `<div class="big">Список порожній</div><p class="sub">${(d.members || []).length > 1 ? 'Спільний: ' + esc(d.members.join(', ')) + '.' : 'Додай, що купити, і запроси родину.'}</p>`;
+}
+if (tg && tg.initData) {
+  renderList(load('spysok-cache'));
+  const fd = new FormData(); fd.append('initData', tg.initData); fd.append('action', 'get');
+  fetch(WORKER_URL.replace(/\/*$/, '/') + 'list', { method: 'POST', body: fd }).then((r) => r.json()).then((d) => {
+    if (!d.ok) throw new Error(d.error);
+    const keep = { items: d.items, members: d.members, v: d.v };
+    try { localStorage.setItem('spysok-cache', JSON.stringify(keep)); } catch (e) {}
+    renderList(keep);
+  }).catch(() => { if (!load('spysok-cache')) $('#list-body').innerHTML = '<p class="sub">Не вдалося завантажити список. Натисни, щоб відкрити.</p>'; });
+} else {
+  $('#list-body').innerHTML = '<div class="big">Спільний для родини</div><p class="sub">Працює, коли D-SIM’YA відкрито через бота в Telegram.</p>';
+}
 
 /* ---------- D-Ticket: the VRR App through its store page ---------- */
 const PLAY = 'https://play.google.com/store/apps/details?id=mentz.com.vrr_cibo_app', APPLE = 'https://apps.apple.com/de/app/vrr-app-bus-bahn-bike-p-r/id1491339288';

@@ -6,6 +6,7 @@
 //   GET /transit/stops?lat=<..>&lon=<..> the stops nearest to the phone
 //   GET /transit/departures?stop=<id>    next departures from a stop, with live times and notices
 //   GET /weather?lat=<..>&lon=<..>       now, next 24 hours and 7 days (Open-Meteo)
+//   GET /warnings?lat=<..>&lon=<..>      official weather warnings of the Deutscher Wetterdienst (through Bright Sky)
 //
 // VRR OpenService terms: live queries for one person at a time, no bulk download, and the source is named
 // on the page ("Fahrplanauskünfte werden durch den VRR zur Verfügung gestellt. Alle Angaben ohne Gewähr.").
@@ -17,7 +18,9 @@ const STOP_ID = /^de:\d{5}:\d{1,7}$/;
 const memo = new Map();   // per Worker instance; the Cloudflare cache below is shared
 const CACHE_V = 2;         // raise when the shape of an answer changes, so a new version never serves old answers
 
-export function isTransit(path) { return path === '/transit/stops' || path === '/transit/departures' || path === '/weather'; }
+import { fetchWarnings } from './warn.js';
+
+export function isTransit(path) { return path === '/transit/stops' || path === '/transit/departures' || path === '/weather' || path === '/warnings'; }
 
 export async function transit(request, env, ctx, reply, cors) {
   if (request.method !== 'GET') return reply(405, { ok: false, error: 'GET only' });
@@ -45,6 +48,7 @@ export async function transit(request, env, ctx, reply, cors) {
       return reply(400, { ok: false, error: 'lat and lon' });
     // two decimals is about a kilometre: enough for the weather, and the exact spot never leaves the Worker
     const la = lat.toFixed(2), lo = lon.toFixed(2);
+    if (url.pathname === '/warnings') return await cached(`warn:${la},${lo}`, 300, ctx, cors, url.origin, () => fetchWarnings(la, lo));
     return await cached(`wx:${la},${lo}`, 600, ctx, cors, url.origin, () => weather(la, lo));
   } catch (e) {
     console.log('transit failed', url.pathname, String(e && e.message || e));

@@ -10,7 +10,11 @@
   "kv_namespaces": [{ "binding": "SCANS" }],
   // Workers AI translates scanned pages (free plan: 10 000 neurons a day)
   "ai": { "binding": "AI" },
+  // The family shopping list: one Durable Object per list (SQLite storage, available on the free plan)
+  "durable_objects": { "bindings": [{ "name": "LISTS", "class_name": "ShoppingList" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ShoppingList"] }],
   // 16:00 and 17:00 UTC: one of them is 18:00 in Xanten in winter, the other in summer (waste reminders);
-  // Mondays 06:00 and 07:00 UTC: 08:00 in Xanten (new flyers)
-  "triggers": { "crons": ["0 16,17 * * *", "0 6,7 * * 1"] }
+  // Mondays 06:00 and 07:00 UTC: 08:00 in Xanten (new flyers);
+  // every 30 minutes: DWD weather warnings, and at 09:00 in Xanten the word of the day (3 of the free plan's 5 crons)
+  "triggers": { "crons": ["0 16,17 * * *", "0 6,7 * * 1", "*/30 * * * *"] }
 }

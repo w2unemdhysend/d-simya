@@ -6,7 +6,9 @@
 Covers: now (temperature, words, feels like, wind, humidity, sunrise and sunset), the advice lines (umbrella,
 "maybe rain", snow, slippery roads, wind, dry), 24 hours and 7 days, the place chips (home place from the
 Сміття page, Xanten, Wesel; the choice is remembered), "Тут" from the phone's location rounded to about a
-kilometre, errors with a retry, 340 px and dark theme. Exits 1 if a check fails.
+kilometre, errors with a retry, 340 px and dark theme. Official DWD warnings: colour and level, time, tip, the German
+text; "no warnings" line; the bot switch (only in Telegram) with the household's place and the level to write from.
+Exits 1 if a check fails.
 """
 import asyncio, copy, functools, http.server, json, os, sys, threading, urllib.parse
 from playwright.async_api import async_playwright
@@ -32,22 +34,36 @@ def weather(change=None):
     if change: change(d)
     return d
 
+WARN = [{'id': 'A1', 'code': 85, 'level': 2, 'levelUk': 'помаранчевий', 'uk': 'ожеледь', 'tip': 'Дуже слизько: на велосипеді краще не їхати, на тротуарі обережно.',
+         'de': 'Amtliche WARNUNG vor GLATTEIS', 'event': 'GLATTEIS', 'onset': '2026-11-11T18:00:00+00:00', 'expires': '2026-11-12T08:00:00+00:00',
+         'text': 'Es tritt Glatteis auf.', 'instruction': 'Hinweis auf: Verkehrsbehinderungen.'},
+        {'id': 'A2', 'code': 22, 'level': 1, 'levelUk': 'жовтий', 'uk': 'мороз', 'tip': 'Вночі нижче нуля: вранці може бути слизько.',
+         'de': 'Amtliche WARNUNG vor FROST', 'event': 'FROST', 'onset': '2026-11-11T10:00:00+00:00', 'expires': '2026-11-11T20:00:00+00:00', 'text': 'Leichter Frost.', 'instruction': ''}]
+
 class Worker:
-    def __init__(self, answer=None, fail=0):
-        self.calls, self.answer, self.fail = [], answer or weather(), fail
+    def __init__(self, answer=None, fail=0, warnings=None):
+        self.calls, self.answer, self.fail, self.warnings, self.posts = [], answer or weather(), fail, warnings or [], []
     async def __call__(self, route):
-        q = urllib.parse.parse_qs(urllib.parse.urlparse(route.request.url).query)
+        u = urllib.parse.urlparse(route.request.url); q = urllib.parse.parse_qs(u.query)
+        if u.path == '/warnings': return await route.fulfill(json={'ok': True, 'place': 'Xanten', 'warnings': self.warnings})
+        if u.path == '/reminders':
+            form = dict(urllib.parse.parse_qsl(route.request.post_data or '')) if 'urlencoded' in (route.request.headers.get('content-type') or '') else route.request.post_data
+            self.posts.append(form)
+            return await route.fulfill(json={'ok': True, 'on': 'name="action"\r\n\r\non' in form or 'name="action"\r\n\r\nprefs' in form, 'place': 'Lüttingen', 'level': 3})
         self.calls.append((q.get('lat', [''])[0], q.get('lon', [''])[0]))
         if self.fail:
             self.fail -= 1
             return await route.fulfill(status=502, json={'ok': False, 'error': 'upstream'})
         await route.fulfill(json=self.answer)
 
-async def page(browser, url, worker=None, prefs=None, width=390, scheme='light', geo=None):
+TG = """window.Telegram = {WebApp: {platform: 'android', colorScheme: 'light', initData: 'user=%7B%22id%22%3A1%7D&hash=x', ready() {}, expand() {}, onEvent() {},
+  setHeaderColor() {}, setBackgroundColor() {}, openLink(u) {}, HapticFeedback: {selectionChanged() {}, impactOccurred() {}, notificationOccurred() {}}, BackButton: {show() {}, hide() {}, onClick() {}}}};"""
+
+async def page(browser, url, worker=None, prefs=None, width=390, scheme='light', geo=None, tg=''):
     opts = {'viewport': {'width': width, 'height': 860}, 'color_scheme': scheme}
     if geo: opts.update(geolocation=geo, permissions=['geolocation'])
     ctx = await browser.new_context(**opts)
-    await ctx.route('**/telegram.org/**', lambda r: r.fulfill(body='', content_type='text/javascript'))
+    await ctx.route('**/telegram.org/**', lambda r: r.fulfill(body=tg, content_type='text/javascript'))
     await ctx.route('**/fonts.googleapis.com/**', lambda r: r.fulfill(body='', content_type='text/css'))
     w = worker or Worker()
     await ctx.route('**/*.workers.dev/**', w)
@@ -140,6 +156,30 @@ async def main():
         check('error: clear message with a retry button', 'Не вдалося завантажити погоду' in await pg.inner_text('#now-wait') and await pg.is_visible('#again'))
         await pg.click('#again'); await pg.wait_for_selector('#now-body:not([hidden])')
         check('retry shows the weather', '5°' in await pg.inner_text('#now-body'))
+        await ctx.close()
+
+        # official warnings, and the bot switch inside Telegram
+        ctx, pg, w = await page(browser, url, worker=Worker(warnings=WARN), prefs={'district': '2', 'place': 'Lüttingen'}, tg=TG)
+        await pg.wait_for_selector('.warn')
+        cards = await pg.evaluate("() => [...document.querySelectorAll('.warn')].map(c => ({cls: c.className, t: c.textContent.replace(/\\s+/g, ' ')}))")
+        check('warnings: orange first, then yellow, with level and colour', len(cards) == 2 and 'lv2' in cards[0]['cls'] and '2 з 4 · помаранчевий' in cards[0]['t'] and 'lv1' in cards[1]['cls'], str(cards))
+        check('warnings: Ukrainian name, from–to in Xanten time, tip', 'ожеледь' in cards[0]['t'] and 'з ср, 11.11, 19:00 до чт, 12.11, 09:00' in cards[0]['t'] and 'на велосипеді' in cards[0]['t'], cards[0]['t'])
+        check('warnings: one on already and ending today says "до 21:00"', 'до 21:00' in cards[1]['t'], cards[1]['t'])
+        check('warnings: the German DWD text inside, and a translate button in Telegram', 'Amtliche WARNUNG vor GLATTEIS' in cards[0]['t'] and await pg.locator('.warn [data-tr]').count() == 2)
+        await pg.wait_for_function("document.getElementById('sw').getAttribute('disabled') === null")
+        check('bot switch: status read, level from the saved subscription (red only)', await pg.get_attribute('#levels [data-level="3"]', 'aria-checked') == 'true' and 'для Lüttingen' in await pg.text_content('#remind-note'))
+        await pg.click('#sw'); await pg.wait_for_timeout(300)
+        on = w.posts[-1]
+        check('bot switch on: sends kind wetter, the household place and the level', 'wetter' in on and 'Lüttingen' in on and 'name="level"\r\n\r\n3' in on and await pg.get_attribute('#sw', 'aria-checked') == 'true', on[:400] if isinstance(on, str) else str(on))
+        await pg.click('#levels [data-level="1"]'); await pg.wait_for_timeout(300)
+        check('changing the level while on saves it (prefs)', 'name="action"\r\n\r\nprefs' in w.posts[-1] and 'name="level"\r\n\r\n1' in w.posts[-1])
+        if OUT: await pg.screenshot(path=os.path.join(OUT, 'pogoda-warn.png'), full_page=True)
+        await ctx.close()
+
+        ctx, pg, w = await page(browser, url)
+        await pg.wait_for_selector('#warns:not([hidden])')
+        check('no warnings: a calm line', 'попереджень DWD зараз немає' in await pg.text_content('#warns'))
+        check('outside Telegram: the switch explains how to turn it on', 'через бота в Telegram' in await pg.text_content('#sw-state') and await pg.is_disabled('#sw'))
         await ctx.close()
 
         ctx, pg, w = await page(browser, url, width=340, scheme='dark', prefs={'place': 'Obermörmter', 'district': '2'})

@@ -12,7 +12,7 @@ from playwright.async_api import async_playwright
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # in menu order: home first, the appliance instructions last
-PAGES = {'': 'Головна', 'transport/': 'Транспорт', 'pogoda/': 'Погода', 'smittia/': 'Сміття', 'prospekty/': 'Проспекти', 'scan/': 'Сканер', 'pralka/': 'Пралка', 'sushka/': 'Сушарка'}
+PAGES = {'': 'Головна', 'transport/': 'Транспорт', 'pogoda/': 'Погода', 'smittia/': 'Сміття', 'spysok/': 'Список покупок', 'prospekty/': 'Проспекти', 'scan/': 'Сканер', 'pralka/': 'Пралка', 'sushka/': 'Сушарка'}
 fails = []
 
 def check(name, ok, detail=''):

@@ -8,9 +8,10 @@
  *   GET  /handoff/<id>     {n: number of pages}
  *   GET  /handoff/<id>/<i> page i as JPEG
  *   DELETE /handoff/<id>   the browser removes the pages once it has them
- *   POST /reminders        reminders for the signed-in user: action=on|off|status,
- *                          kind=smittia (default, evening before a waste pickup) or prospekty (Monday flyers);
- *                          for smittia also district, bins (comma list) and rhythm; action=prefs updates them
+ *   POST /reminders        reminders for the signed-in user: action=on|off|status, kind=
+ *                            smittia (default, evening before a waste pickup; district, bins, rhythm; action=prefs updates them)
+ *                            prospekty (Monday flyers) · wetter (DWD weather warnings; place, level 1–3) · wort (word of the day)
+ *   POST /list             the family shopping list (Durable Object), see list.js
  *   POST /translate        text of one scanned page (recognised on the phone) → its translation,
  *                          by Gemma 4 on Workers AI (free daily allowance)
  *   GET  /translate/check  translates a fixed sentence (?page=1: a fixed letter): shows the model answers;
@@ -19,11 +20,13 @@
  *                          public timetable (VRR) and weather (Open-Meteo) data for the pages, see transit.js
  *   cron, daily            at 18:00 Xanten time: tells subscribers which bins go out tomorrow
  *   cron, Mondays          at 08:00 Xanten time: new flyers are out, and which days shops close that week
+ *   cron, every 30 minutes new DWD warnings for subscribers' places; at 09:00 Xanten time the word of the day
  *
  * Settings (Cloudflare → Worker → Settings):
  *   BOT_TOKEN       secret, the token from @BotFather            (required)
  *   SCANS           KV namespace binding                          (required for /handoff and reminders)
  *   AI              Workers AI binding                            (required for /translate)
+ *   LISTS           Durable Object binding (class ShoppingList)   (required for /list)
  *   ALLOWED_ORIGIN  text, defaults to https://w2unemdhysend.github.io
  *
  * Safety:
@@ -38,6 +41,10 @@ import cal from '../smittia/kalender.json' with { type: 'json' };
 import { BINS, binsOn, berlinDay, prefsOf } from '../smittia/due.js';
 import { flyerWeek, closures, rangeText, dayText, weekdayOf } from '../prospekty/week.js';
 import { isTransit, transit } from './transit.js';
+import { PLACES, fetchWarnings, warnConfirmText, sendWarnings } from './warn.js';
+import { listRoute } from './list.js';
+import { WORD_BUTTON, wordConfirmText, sendWordOfDay } from './word.js';
+export { ShoppingList } from './list.js';   // the Durable Object class must be exported by the main module
 
 const MAX_BYTES = 45 * 1024 * 1024;        // Bot API upload limit is 50 MB
 const MAX_AGE_SECONDS = 24 * 60 * 60;      // initData older than a day is refused
@@ -66,6 +73,12 @@ export default {
     const hand = path.match(/^\/handoff(?:\/([0-9a-f-]{36})(?:\/(\d{1,2}))?)?\/?$/);
     if (hand) return handoff(request, env, hand[1], hand[2], reply, cors);
     if (path === '/reminders') return reminders(request, env, reply);
+    if (path === '/list') {
+      if (request.method !== 'POST') return reply(405, { ok: false, error: 'POST only' });
+      const signed = await readSigned(request, env, reply);
+      if (signed instanceof Response) return signed;
+      return listRoute(env, signed, reply);
+    }
     if (path === '/translate' || path === '/translate/check') return translate(request, env, reply, path);
     if (path !== '/') return reply(404, { ok: false, error: 'not found' });
     if (request.method !== 'POST') return reply(405, { ok: false, error: 'POST only' });
@@ -96,9 +109,12 @@ export default {
 
   // Crons: 16:00 and 17:00 UTC daily, 06:00 and 07:00 UTC on Mondays. Each job checks the Xanten hour
   // itself (18:00 for waste, 08:00 for flyers), so it runs once, winter or summer time.
+  // Every 30 minutes: weather warnings, and the word of the day when it is 09:00 in Xanten.
+  // Each cron runs only its own jobs, so two crons firing at the same minute never send a message twice.
   async scheduled(controller, env, ctx) {
     const now = new Date(controller.scheduledTime);
-    ctx.waitUntil(Promise.all([sendReminders(env, now), sendFlyerReminders(env, now)]));
+    if (controller.cron === EVERY_30) ctx.waitUntil(Promise.all([sendWarnings(env, now, tgSend, WEATHER_BUTTON), sendWordOfDay(env, now, broadcast)]));
+    else ctx.waitUntil(Promise.all([sendReminders(env, now), sendFlyerReminders(env, now)]));
   },
 };
 
@@ -107,6 +123,9 @@ const SUB = 'sub:';
 const PAGE_URL = 'https://w2unemdhysend.github.io/d-simya/smittia/';
 const WASTE_BUTTON = { text: 'Розклад', url: PAGE_URL };
 const FLYERS = { prefix: 'fsub:', sent: 'fsent:', button: { text: 'Проспекти', url: 'https://w2unemdhysend.github.io/d-simya/prospekty/' } };
+const WEATHER_BUTTON = { text: 'Погода', url: 'https://w2unemdhysend.github.io/d-simya/pogoda/' };
+const EVERY_30 = '*/30 * * * *';
+const KINDS = { smittia: 'sub:', prospekty: FLYERS.prefix, wetter: 'wsub:', wort: 'dsub:' };
 
 async function reminders(request, env, reply) {
   if (request.method !== 'POST') return reply(405, { ok: false, error: 'POST only' });
@@ -114,29 +133,42 @@ async function reminders(request, env, reply) {
   const signed = await readSigned(request, env, reply);
   if (signed instanceof Response) return signed;
   const kind = String(signed.form.get('kind') || 'smittia');
-  if (kind !== 'smittia' && kind !== 'prospekty') return reply(400, { ok: false, error: 'kind: smittia or prospekty' });
-  const flyers = kind === 'prospekty';
-  const key = (flyers ? FLYERS.prefix : SUB) + signed.user.id, action = signed.form.get('action');
-  // the household's district, bins and grey-bin rhythm, as chosen on the Сміття page (only the district, never the street)
-  const f = signed.form, prefs = flyers ? null : prefsOf(cal, {
-    district: f.get('district'), rhythm: f.get('rhythm'), bins: f.has('bins') ? String(f.get('bins')).split(',') : undefined });
+  if (!KINDS[kind]) return reply(400, { ok: false, error: 'kind: ' + Object.keys(KINDS).join(', ') });
+  const flyers = kind === 'prospekty', waste = kind === 'smittia';
+  const key = KINDS[kind] + signed.user.id, action = signed.form.get('action');
+  // the household's district, bins and grey-bin rhythm, as chosen on the Сміття page (only the district, never the street);
+  // for weather warnings the place (a village of Xanten or Wesel) and from which DWD level to write
+  const f = signed.form;
+  const prefs = waste ? prefsOf(cal, { district: f.get('district'), rhythm: f.get('rhythm'), bins: f.has('bins') ? String(f.get('bins')).split(',') : undefined })
+    : kind === 'wetter' ? { place: PLACES[f.get('place')] ? String(f.get('place')) : 'Xanten', level: [1, 2, 3].includes(Number(f.get('level'))) ? Number(f.get('level')) : 2 }
+    : null;
   const record = () => JSON.stringify({ id: signed.user.id, name: String(signed.user.first_name || '').slice(0, 40), ...prefs });
   if (action === 'on') {
     // Confirm in the chat right away: it proves the bot may write to this person (they must have started it)
-    const res = flyers ? await tgSend(env, signed.user.id, flyerConfirmText(new Date()), FLYERS.button)
-      : await tgSend(env, signed.user.id, confirmText(new Date(), prefs));
+    let text, button;
+    if (flyers) { text = flyerConfirmText(new Date()); button = FLYERS.button; }
+    else if (kind === 'wort') { text = wordConfirmText(new Date()); button = WORD_BUTTON; }
+    else if (kind === 'wetter') {
+      let list = [];
+      try { list = (await fetchWarnings(...PLACES[prefs.place].map((n) => n.toFixed(2)))).warnings; } catch { /* the confirmation goes out anyway */ }
+      text = warnConfirmText(prefs.place, prefs.level, list); button = WEATHER_BUTTON;
+    } else { text = confirmText(new Date(), prefs); button = WASTE_BUTTON; }
+    const res = await tgSend(env, signed.user.id, text, button);
     if (res.status === 403) return reply(200, { ok: false, on: false, error: 'bot_blocked' });
     await env.SCANS.put(key, record());
     return reply(200, { ok: true, on: true, confirmed: res.ok });
   }
-  if (action === 'prefs' && !flyers) {   // the household changed district or bins: quietly update a running subscription
+  if (action === 'prefs' && prefs) {   // district, bins, place or level changed: quietly update a running subscription
     const on = (await env.SCANS.get(key)) !== null;
     if (on) await env.SCANS.put(key, record());
     return reply(200, { ok: true, on });
   }
   if (action === 'off') await env.SCANS.delete(key);
   else if (action !== 'status') return reply(400, { ok: false, error: 'action: on, off, status or prefs' });
-  return reply(200, { ok: true, on: (await env.SCANS.get(key)) !== null });
+  const rec = await env.SCANS.get(key);
+  let saved = null;
+  if (rec && kind === 'wetter') { try { const r = JSON.parse(rec); saved = { place: r.place, level: r.level }; } catch { /* old record */ } }
+  return reply(200, { ok: true, on: rec !== null, ...(saved || {}) });
 }
 
 function tgSend(env, chatId, text, button = WASTE_BUTTON) {

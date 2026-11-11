@@ -7,11 +7,12 @@
     ['', [['', 'Головна', 'Усе важливе на сьогодні', 'home']]],
     ['Щодня', [['transport/', 'Транспорт', 'D-Ticket і відправлення наживо', 'bus'], ['pogoda/', 'Погода', 'Зараз, на добу й тиждень', 'sun']]],
     ['Дім', [['smittia/', 'Сміття', 'Вивіз баків і нагадування', 'trash']]],
-    ['Покупки', [['prospekty/', 'Проспекти', 'Акції магазинів Ксантена й Везеля', 'tag']]],
+    ['Покупки', [['spysok/', 'Список покупок', 'Спільний для родини', 'cart'], ['prospekty/', 'Проспекти', 'Акції магазинів Ксантена й Везеля', 'tag']]],
     ['Документи', [['scan/', 'Сканер', 'Фото аркуша в PDF і переклад', 'scan']]],
     ['Інструкції', [['pralka/', 'Пралка', 'Beko: кнопки, програми, проблеми', 'wash'], ['sushka/', 'Сушарка', 'Gorenje SensoCare', 'dry']]],
   ];
   var ICONS = {
+    cart: '<path d="M3 4h2.2l2.2 10.2a1.5 1.5 0 0 0 1.5 1.2h8.3a1.5 1.5 0 0 0 1.5-1.1L20.5 8H6.2"/><circle cx="9.5" cy="19.5" r="1.3"/><circle cx="17" cy="19.5" r="1.3"/>',
     home: '<path d="M4 11.2L12 4.5l8 6.7"/><path d="M6.5 9.5v10h11v-10"/><path d="M10 19.5v-5h4v5"/>',
     wash: '<rect x="4" y="3" width="16" height="18" rx="2.5"/><circle cx="12" cy="13" r="4.5"/><path d="M7.5 6.5h2"/>',
     dry: '<rect x="4" y="3" width="16" height="18" rx="2.5"/><circle cx="12" cy="13" r="4.5"/><path d="M10.2 11.8c.6.6 1.2.6 1.8 0s1.2-.6 1.8 0M10.2 14.6c.6.6 1.2.6 1.8 0s1.2-.6 1.8 0"/>',
@@ -347,6 +348,22 @@
     initMenu();
     initExplain();
     initSwipes();
+    initOffline();
+  }
+
+  /* Offline mode: the service worker keeps the pages on the phone (see sw.js). Not in automated browsers, unless a test
+     asks for it, so the other tests see the network as it is. A small label says when there is no internet. */
+  function initOffline(){
+    var want = !navigator.webdriver; try { if (localStorage.getItem('dsimya-sw-test')) want = true; } catch(e){}
+    if (want && 'serviceWorker' in navigator && window.isSecureContext){
+      navigator.serviceWorker.register(SITE + 'sw.js', { scope: SITE }).catch(function(){});
+    }
+    var tag = document.createElement('div');
+    tag.className = 'offline'; tag.setAttribute('role', 'status'); tag.hidden = true;
+    tag.textContent = 'Немає інтернету: показано збережене';
+    document.body.appendChild(tag);
+    function show(){ tag.hidden = navigator.onLine !== false; root.classList.toggle('is-offline', !tag.hidden); }
+    window.addEventListener('online', show); window.addEventListener('offline', show); show();
   }
 
   window.UI = { setTheme: setTheme, sync: sync, tabsThumb: tabsThumb, switchView: switchView, reserve: reserve, reduce: reduce };
