@@ -1,0 +1,50 @@
+# Runs every test of the site and the Worker on each push and pull request.
+# Publishing (GitHub Pages, Cloudflare) is separate and not blocked by this: a red run here is the signal to look.
+name: tests
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  worker:
+    name: Worker (Node)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Worker tests
+        run: |
+          set -e
+          for t in tests/*.test.mjs; do echo "::group::$t"; node "$t"; echo "::endgroup::"; done
+  pages:
+    name: Pages (headless Chrome)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Playwright and image tools
+        run: |
+          pip install --quiet playwright pillow numpy
+          python -m playwright install --with-deps chromium
+      - name: Page tests
+        run: |
+          mkdir -p "$RUNNER_TEMP/shots"
+          export SHOTS="$RUNNER_TEMP/shots"
+          failed=""
+          for t in tests/*_e2e.py; do
+            echo "::group::$t"
+            python "$t" || failed="$failed $t"
+            echo "::endgroup::"
+          done
+          if [ -n "$failed" ]; then echo "::error::failed:$failed"; exit 1; fi
