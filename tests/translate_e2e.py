@@ -221,7 +221,7 @@ async def main(tmp):
             await cdn(route)
         ctx, pg = await context(browser, TG, letter, worker)
         await ctx.unroute('https://cdn.jsdelivr.net/npm/**'); await ctx.route('https://cdn.jsdelivr.net/npm/**', tampered)
-        await pg.goto(url); await pg.evaluate("indexedDB.deleteDatabase('dsimya-scan')"); await pg.evaluate(ADD_LETTER); await pg.reload(); await pg.wait_for_timeout(500)
+        await pg.goto(url); await pg.evaluate(ADD_LETTER); await pg.reload(); await pg.wait_for_timeout(500)   # a fresh context: no stored text yet
         n = len(worker.calls)
         await pg.click('#btn-tr'); await pg.wait_for_function(DONE, timeout=30000)
         c = await pg.evaluate(CARD)
