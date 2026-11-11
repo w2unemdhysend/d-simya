@@ -51,6 +51,11 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-top:10px}
 .ghost{min-height:44px;border-radius:12px;border:1px solid var(--line);background:transparent;font-weight:600;font-size:15px;padding:0 14px;cursor:pointer}
 .shops{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:10px -14px 0;padding:0 14px 2px}
 .shops::-webkit-scrollbar{display:none}
+/* "buy again": what this phone added before and is not on the list now, most often bought first */
+.again{margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+.again > span{display:block;font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.again .shops{margin-top:8px}
+.again .chip small{font-weight:400;color:var(--muted);margin-left:6px}
 .chip{flex:none;min-height:40px;padding:0 13px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-weight:600;font-size:14.5px;cursor:pointer;white-space:nowrap;transition:background-color .2s ease, color .2s ease}
 .chip[aria-checked="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 
@@ -114,6 +119,7 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-top:10px}
       <form class="srow" id="addform"><input id="t" type="text" autocomplete="off" enterkeyhint="done" maxlength="80" placeholder="Що купити?" aria-label="Що купити">
         <button class="btn" id="addbtn" type="submit">Додати</button></form>
       <div class="shops" id="shops" role="radiogroup" aria-label="Де купити"></div>
+      <div class="again" id="again" hidden><span id="again-lab">Купити знову</span><div class="shops" id="again-list" role="group" aria-labelledby="again-lab"></div></div>
     </section>
     <p class="sync" id="sync" aria-live="polite"></p>
     <div id="list"></div>
@@ -165,6 +171,22 @@ function start() {
   let server = load('spysok-cache', null);           // the list as the server last sent it
   let queue = load('spysok-queue', []);              // changes not yet sent: [{action, f}]
   let shop = '', offline = false, busy = false, armed = false;
+  // what was added on this phone before: {text → {t, s, n, at}}; kept here only, to offer it again
+  let history = load('spysok-history', {});
+  const hkey = (t) => t.toLowerCase();
+  function remember(t, s) {
+    const k = hkey(t), h = history[k] || { t, s: '', n: 0 };
+    history[k] = { t, s: s || h.s, n: h.n + 1, at: Date.now() };
+    const keys = Object.keys(history);
+    if (keys.length > 60) keys.sort((a, b) => history[a].at - history[b].at).slice(0, keys.length - 60).forEach((x) => delete history[x]);
+    store('spysok-history', history);
+  }
+  function renderAgain(items) {
+    const onList = new Set(items.filter((x) => !x.d).map((x) => hkey(x.t)));
+    const list = Object.values(history).filter((h) => !onList.has(hkey(h.t))).sort((a, b) => b.n - a.n || b.at - a.at).slice(0, 8);
+    $('#again').hidden = !list.length;
+    $('#again-list').innerHTML = list.map((h) => `<button class="chip" type="button" data-again="${esc(hkey(h.t))}" aria-label="Купити знову: ${esc(h.t)}${h.s ? ', ' + esc(h.s) : ''}">${esc(h.t)}${h.s ? `<small>${esc(h.s)}</small>` : ''}</button>`).join('');
+  }
 
   /* ---------- what the list looks like with the changes still on their way ---------- */
   function view() {
@@ -205,6 +227,7 @@ function start() {
     if (done.length) html += `<div class="group"><h3>Куплено</h3><span>${done.length}</span></div><ul class="items">${done.map((x) => itemHTML(x, many)).join('')}</ul>` +
       '<button class="ghost clear" id="clear" type="button">Прибрати куплене</button>';
     $('#list').innerHTML = html;
+    renderAgain(items);
     if (server) {
       const names = server.members;
       $('#who').textContent = names.length > 1 ? `Список спільний: ${names.join(', ')}.` : 'Поки що список лише твій. Запроси родину, і ви бачитимете одне й те саме.';
@@ -259,7 +282,13 @@ function start() {
   $('#addform').addEventListener('submit', (e) => {
     e.preventDefault();
     const t = $('#t').value.replace(/\s+/g, ' ').trim(); if (!t) { $('#t').focus(); return; }
+    remember(t, shop);
     change('add', { t, s: shop }); $('#t').value = ''; $('#t').focus(); haptic();
+  });
+  $('#again-list').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-again]'), h = b && history[b.dataset.again]; if (!h) return;
+    remember(h.t, h.s);
+    change('add', { t: h.t, s: h.s }); haptic();
   });
   $('#list').addEventListener('click', (e) => {
     if (e.target.closest('#clear')) { change('clear', {}); haptic(); return; }

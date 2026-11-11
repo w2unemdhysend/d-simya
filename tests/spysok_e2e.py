@@ -120,6 +120,13 @@ async def main():
         check('ticking moves it to «Куплено»', items[-2:] == ['# Куплено', '[x] Milch'] and await a.is_visible('#clear'), str(items))
         await a.click('#clear'); await a.wait_for_timeout(300)
         check('«Прибрати куплене» removes only what was bought', await a.evaluate(ITEMS) == ['# Будь-де', '[ ] Brot'])
+        again = "() => [...document.querySelectorAll('#again-list .chip')].map(b => b.textContent)"
+        check('"buy again": what was bought and is gone is offered, with its shop; what is on the list is not', await a.is_visible('#again') and await a.evaluate(again) == ['MilchLidl'], str(await a.evaluate(again)))
+        await a.click('#again-list .chip'); await a.wait_for_timeout(400)
+        items = await a.evaluate(ITEMS)
+        check('"buy again": one tap puts it back under its shop', items == ['# Будь-де', '[ ] Brot', '# Lidl', '[ ] Milch'] and await a.is_hidden('#again'), str(items))
+        await a.click('.item:has-text("Milch") .del'); await a.wait_for_timeout(300)
+        check('"buy again": removed from the list → offered again', await a.evaluate(again) == ['MilchLidl'])
 
         # no internet: the change waits, is kept, and goes out later
         server.down.add('stas')

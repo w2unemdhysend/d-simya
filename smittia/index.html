@@ -101,6 +101,22 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;padding-top:8px}
 .rhythm{background:var(--accent-soft);border-color:transparent}
 .rhythm p{margin:6px 0 0;font-size:16px}
 
+/* "where does it go": a search field, a few things to try, then each match with its place */
+.wq{width:100%;min-height:50px;margin-top:10px;border-radius:14px;border:1px solid var(--line);background:var(--surface);padding:0 14px;font:inherit;color:inherit}
+.wtry{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.wtry button{min-height:40px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:transparent;font:600 14.5px/1 var(--f-body);color:inherit;cursor:pointer}
+.wres{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:8px}
+.wres li{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.wres .what{font-weight:600;font-size:16.5px;line-height:1.3}
+.wres .what small{display:block;font-weight:400;font-size:14px;color:var(--muted)}
+.wres .to{display:flex;align-items:center;gap:10px;margin-top:8px;font-weight:600;font-size:16px;line-height:1.25}
+.wres .to .dot{width:22px;height:22px;border-radius:6px;flex:none;box-shadow:inset 0 0 0 1px rgba(127,127,127,.45)}
+.wres .to small{display:block;font-weight:400;font-size:13.5px;color:var(--muted)}
+.wres p{margin:6px 0 0;font-size:14.5px;color:var(--muted);line-height:1.4}
+.wres .none{color:var(--muted);font-size:15.5px}
+.soon{border-color:var(--accent)}
+.soon p{margin:0;font-size:15.5px}
+.soon p + p{margin-top:6px;color:var(--muted)}
 .guide{display:grid;gap:8px;margin-top:10px}
 .guide details{background:var(--surface);border:1px solid var(--line);border-radius:14px}
 .guide summary{cursor:pointer;list-style:none;padding:12px 14px;font-weight:600;display:flex;align-items:center;gap:12px;min-height:52px}
@@ -172,6 +188,15 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;padding-top:8px}
       <ol class="days" id="days"></ol>
     </section>
 
+    <section class="card soon" id="cal-end" hidden></section>
+
+    <section aria-labelledby="h-wohin">
+      <h2 id="h-wohin">Куди це викинути?</h2>
+      <input class="wq" id="wq" type="search" placeholder="Наприклад: батарейки, олія, Windeln" aria-label="Що викинути" enterkeyhint="search" autocomplete="off">
+      <div class="wtry" id="wtry"></div>
+      <ul class="wres" id="wres" aria-live="polite"></ul>
+    </section>
+
     <section aria-labelledby="h-guide">
       <h2 id="h-guide">Що куди викидати</h2>
       <div class="guide">
@@ -210,6 +235,7 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;padding-top:8px}
 <script src="../assets/ui.js?v=16"></script>
 <script type="module">
 import { BINS, binsOn, berlinDay, prefsOf, districtOf } from './due.js';
+import { find as findItem, whereFor } from './wohin.js';
 
 // Same Worker as the scanner (worker/send-scan.js)
 const WORKER_URL = 'https://d-simya.whysends.workers.dev';
@@ -439,12 +465,41 @@ function initSwitch() {
   });
 }
 
+/* ---------- "Куди це викинути?" ---------- */
+const TRY = ['батарейки', 'олія', 'коробка від піци', 'лампочка', 'ліки', 'одяг'];
+$('#wtry').innerHTML = TRY.map((t) => `<button type="button" data-try="${t}">${t}</button>`).join('');
+function renderWohin() {
+  const q = $('#wq').value.trim(), hasBio = !!(prefs && Array.isArray(prefs.bins) && prefs.bins.includes('bio'));
+  $('#wtry').hidden = !!q;
+  if (q.length < 2) { $('#wres').innerHTML = ''; return; }
+  const found = findItem(q);
+  $('#wres').innerHTML = found.length ? found.map((it) => {
+    const w = whereFor(it, hasBio), notes = [it.note, w.note].filter(Boolean);
+    return `<li><div class="what">${esc(cap(it.uk))}<small lang="de">${esc(it.de)}</small></div>` +
+      `<div class="to" data-to="${w.key}"><span class="dot" style="background:${w.color}"></span><span>${esc(w.name)}<small lang="de">${esc(w.de)}</small></span></div>` +
+      notes.map((n) => `<p>${esc(n)}</p>`).join('') + '</li>';
+  }).join('') : '<li class="none">Такого в списку немає. Спробуй інше слово, українською чи німецькою. Якщо річ не небезпечна й не переробляється, вона йде в сірий бак.</li>';
+}
+$('#wq').addEventListener('input', renderWohin);
+$('#wtry').addEventListener('click', (e) => { const b = e.target.closest('[data-try]'); if (!b) return; $('#wq').value = b.dataset.try; renderWohin(); haptic(); });
+
+// The calendar's last 30 days: say that next year's dates are not in yet (the city publishes them in December)
+function renderCalEnd() {
+  const today = berlinDay(new Date()), left = Math.round((Date.parse(cal.until + 'T12:00:00Z') - Date.parse(today + 'T12:00:00Z')) / 86400000);
+  const box = $('#cal-end'), next = Number(cal.until.slice(0, 4)) + 1;
+  box.hidden = left > 30;
+  if (left > 30) return;
+  box.innerHTML = left >= 0
+    ? `<p><b>Дати є до ${short(cal.until)}.</b> Календар на ${next} рік місто ще не опублікувало, зазвичай він виходить у грудні.</p><p>Щойно він з’явиться, дати додадуться сюди, а нагадування бота продовжаться.</p>`
+    : `<p><b>Календар на ${next} рік ще не додано.</b> Дати й нагадування з’являться, щойно місто його опублікує.</p><p>Поки що дивись паперовий календар або сайт міста.</p>`;
+}
+
 fetch('kalender.json').then((r) => r.json()).then(async (c) => {
   cal = c;
   prefs = loadLocal();
   if (!prefs) { prefs = await cloudGet(); if (prefs) saveAll(prefs); }   // chosen on another device
   if (prefs && !cal.dates[prefs.district]) prefs = null;
-  renderSchadstoff();
+  renderSchadstoff(); renderCalEnd();
   if (prefs) renderWhere(false); else openForm();
   renderSchedule(); initSwitch();
 }).catch(() => { $('#next').hidden = false; $('#next').innerHTML = '<div class="when">Не вдалося завантажити дати</div><p class="note">Перевір інтернет і відкрий сторінку ще раз.</p>'; });
