@@ -1,14 +1,18 @@
-/* Shared UI layer for all sections: light/dark theme, the section menu, sliding tab indicators, view and page transitions */
+/* Shared UI layer for all sections: light/dark theme, the section menu, sliding tab indicators, view and page transitions,
+   swipes (between tabs, from the left edge for the menu), and steady heights for boxes whose text changes */
 (function(){
   // The section menu. A new Mini App = one line here (path relative to the site root, name, one-line note, icon).
+  // Life in Germany first; the appliance instructions are helpers, so they sit at the bottom. A group without a title has no heading.
   var SECTIONS = [
-    ['Побутова техніка', [['', 'Пралка', 'Beko: кнопки, програми, проблеми', 'wash'], ['sushka/', 'Сушарка', 'Gorenje SensoCare', 'dry']]],
-    ['Документи', [['scan/', 'Сканер', 'Фото аркуша в PDF', 'scan']]],
+    ['', [['', 'Головна', 'Усе важливе на сьогодні', 'home']]],
+    ['Щодня', [['transport/', 'Транспорт', 'D-Ticket і відправлення наживо', 'bus'], ['pogoda/', 'Погода', 'Зараз, на добу й тиждень', 'sun']]],
     ['Дім', [['smittia/', 'Сміття', 'Вивіз баків і нагадування', 'trash']]],
     ['Покупки', [['prospekty/', 'Проспекти', 'Акції магазинів Ксантена й Везеля', 'tag']]],
-    ['Щодня', [['transport/', 'Транспорт', 'D-Ticket і відправлення наживо', 'bus'], ['pogoda/', 'Погода', 'Зараз, на добу й тиждень', 'sun']]],
+    ['Документи', [['scan/', 'Сканер', 'Фото аркуша в PDF і переклад', 'scan']]],
+    ['Інструкції', [['pralka/', 'Пралка', 'Beko: кнопки, програми, проблеми', 'wash'], ['sushka/', 'Сушарка', 'Gorenje SensoCare', 'dry']]],
   ];
   var ICONS = {
+    home: '<path d="M4 11.2L12 4.5l8 6.7"/><path d="M6.5 9.5v10h11v-10"/><path d="M10 19.5v-5h4v5"/>',
     wash: '<rect x="4" y="3" width="16" height="18" rx="2.5"/><circle cx="12" cy="13" r="4.5"/><path d="M7.5 6.5h2"/>',
     dry: '<rect x="4" y="3" width="16" height="18" rx="2.5"/><circle cx="12" cy="13" r="4.5"/><path d="M10.2 11.8c.6.6 1.2.6 1.8 0s1.2-.6 1.8 0M10.2 14.6c.6.6 1.2.6 1.8 0s1.2-.6 1.8 0"/>',
     scan: '<path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16M7.5 12h9"/>',
@@ -50,7 +54,14 @@
     var apply = function(){ root.setAttribute('data-theme', t); label(); paintTg(); };
     if (root.getAttribute('data-theme') === t){ label(); paintTg(); return; }
     if (!animate || reduce){ apply(); return; }
-    if (document.startViewTransition){ try { document.startViewTransition(apply); return; } catch(e){} }
+    if (document.startViewTransition){
+      try {
+        root.classList.add('theme-vt');
+        var vt = document.startViewTransition(apply);
+        vt.finished.then(function(){ root.classList.remove('theme-vt'); }, function(){ root.classList.remove('theme-vt'); });
+        return;
+      } catch(e){ root.classList.remove('theme-vt'); }
+    }
     root.classList.add('theme-fade');
     apply();
     setTimeout(function(){ root.classList.remove('theme-fade'); }, 480);
@@ -73,7 +84,8 @@
     if (tabs) place(tabs, tabs.querySelector('.tthumb'), tabs.querySelector('[aria-selected="true"]'), instant);
   }
 
-  /* view switching: fade the old view out, then let the new one rise in */
+  /* view switching: the old view slides out the way the tabs go, the new one slides in from the other side.
+     Direction comes from the order of the views (the same as the tabs), so buttons and swipes look alike. */
   var timer = null;
   function switchView(views, next, opts){
     opts = opts || {};
@@ -81,29 +93,70 @@
     views.forEach(function(v){ if (v !== next && !v.hidden) cur = v; });
     clearTimeout(timer);
     var animate = !!cur && !opts.instant && !reduce;
+    var dir = cur && views.indexOf(next) < views.indexOf(cur) ? -1 : 1;
     function finish(){
-      views.forEach(function(v){ v.classList.remove('leaving'); v.hidden = v !== next; });
+      views.forEach(function(v){ v.classList.remove('leaving', 'entering'); v.style.removeProperty('transform'); v.style.removeProperty('opacity'); v.hidden = v !== next; });
       if (!opts.keepScroll) window.scrollTo(0, 0);
-      if (animate){ next.classList.remove('entering'); void next.offsetWidth; next.classList.add('entering'); }
+      if (animate){ next.style.setProperty('--dx', (dir * 28) + 'px'); void next.offsetWidth; next.classList.add('entering'); }
       if (opts.done) opts.done();
     }
-    if (animate){ cur.classList.add('leaving'); timer = setTimeout(finish, 160); }
+    if (animate){
+      cur.style.setProperty('--dx', (-dir * 28) + 'px');
+      cur.style.removeProperty('transform'); cur.style.removeProperty('opacity');   // a swipe may have moved it: carry on from there
+      cur.classList.add('leaving'); timer = setTimeout(finish, 150);
+    }
     else finish();
+  }
+
+  /* Boxes whose text changes (what a button or a program means) keep the height of their longest text, so nothing below
+     them moves. Without this, at the bottom of a page a shorter text shortens the page, the browser scrolls up, and the
+     program knob slides away under the finger: it then picks another program, and the page jumps back and forth. */
+  function reserve(box, list){
+    if (!box || !list || !list.length) return;
+    var lastW = 0;
+    function measure(){
+      var w = box.getBoundingClientRect().width;
+      if (!w || Math.abs(w - lastW) < 1) return;
+      lastW = w;
+      var probe = box.cloneNode(false);
+      probe.removeAttribute('id'); probe.removeAttribute('aria-live'); probe.setAttribute('aria-hidden', 'true');
+      probe.style.cssText = 'position:absolute;left:0;top:0;visibility:hidden;pointer-events:none;min-height:0;animation:none;width:' + w + 'px';
+      box.parentNode.appendChild(probe);
+      var max = 0;
+      list.forEach(function(html){ probe.innerHTML = html; max = Math.max(max, probe.getBoundingClientRect().height); });
+      probe.remove();
+      box.style.minHeight = Math.ceil(max) + 'px';
+    }
+    measure();
+    var t = null;
+    window.addEventListener('resize', function(){ clearTimeout(t); t = setTimeout(measure, 120); });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ lastW = 0; measure(); });
   }
 
   /* section menu: a button top-left opens a panel from the side with every section */
   function svg(name){ return '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + ICONS[name] + '</svg>'; }
   function samePage(href){ var a = new URL(href, location.href), b = new URL(location.href); return a.origin === b.origin && a.pathname.replace(/index\.html$/, '') === b.pathname.replace(/index\.html$/, ''); }
+  var menu = null;   // {open, close, isOpen, d, panel} once the menu exists; the swipes use it
+  // Browsers that animate between pages themselves (cross-document View Transitions): no need to fade out by hand first
+  var pageVT = !reduce && 'PageSwapEvent' in window;
+  if (pageVT) root.classList.add('page-vt');
+  // a page transition that the browser skips (Back, a reload, a page left before it was drawn) is fine: say nothing
+  function quiet(e){
+    var vt = e && e.viewTransition; if (!vt) return;
+    [vt.ready, vt.finished, vt.updateCallbackDone].forEach(function(p){ if (p && p.catch) p.catch(function(){}); });
+  }
+  window.addEventListener('pageswap', quiet);
+  window.addEventListener('pagereveal', quiet);
   function initMenu(){
     var btn = document.getElementById('menubtn'); if (!btn) return;
     var d = document.createElement('div');
     d.className = 'drawer'; d.id = 'drawer';
     d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-label', 'Розділи');
     d.innerHTML = '<div class="drawer-scrim" data-close></div><div class="drawer-panel">' +
-      '<div class="drawer-head"><div><div class="drawer-brand">D-SIM’YA</div><div class="drawer-sub">Домашні помічники</div></div>' +
+      '<div class="drawer-head"><div><div class="drawer-brand">D-SIM’YA</div><div class="drawer-sub">Помічник для життя в Німеччині</div></div>' +
       '<button class="drawer-close" type="button" data-close aria-label="Закрити меню">' + svg('close') + '</button></div><nav aria-label="Розділи">' +
       SECTIONS.map(function(g){
-        return '<div class="drawer-group">' + g[0] + '</div><ul>' + g[1].map(function(it){
+        return (g[0] ? '<div class="drawer-group">' + g[0] + '</div>' : '') + '<ul>' + g[1].map(function(it){
           var href = new URL(it[0], SITE).href;
           return '<li><a href="' + href + '"' + (samePage(href) ? ' aria-current="page"' : '') + '><span class="ic">' + svg(it[3]) + '</span><span><b>' + it[1] + '</b><small>' + it[2] + '</small></span></a></li>';
         }).join('') + '</ul>';
@@ -142,8 +195,9 @@
       var go = function(){ if (history.state && history.state.menu) location.replace(a.href); else location.href = a.href; };
       d.classList.remove('open'); root.classList.remove('menu-open');
       if (reduce){ go(); return; }
+      if (pageVT){ setTimeout(go, 90); return; }   // the browser cross-fades to the next page; just let the panel start closing
       document.body.classList.add('page-out');
-      setTimeout(go, 230);
+      setTimeout(go, 200);
     });
     document.addEventListener('keydown', function(e){
       if (!isOpen()) return;
@@ -157,6 +211,109 @@
       document.body.classList.remove('page-out');
       if (!(history.state && history.state.menu)) close(true);
     });
+    menu = { open: open, close: close, isOpen: isOpen, d: d, panel: panel };
+  }
+
+  /* ---------- swipes ----------
+     · from the left edge to the right: the menu follows the finger and opens; on the open menu, to the left: it closes
+     · sideways on a page with tabs: the next or previous tab, the page and the tab marker follow the finger
+     A swipe only starts when the finger clearly moves sideways, so scrolling up and down stays as it was. Nothing starts on
+     fields, sliders, the program knob, strips that scroll sideways themselves, or anything marked data-noswipe. */
+  var EDGE = 24;
+  function scrollsSideways(el){
+    for (; el && el !== document.body; el = el.parentElement){
+      if (el.scrollWidth > el.clientWidth + 2){
+        var o = getComputedStyle(el).overflowX;
+        if (o === 'auto' || o === 'scroll') return true;
+      }
+    }
+    return false;
+  }
+  function blocked(el){
+    return !el || !el.closest || !!el.closest('input, textarea, select, [contenteditable="true"], [data-noswipe], #dial, .knobhit, canvas, .drawer-panel a, dialog') ||
+      document.body.classList.contains('playing') || scrollsSideways(el);
+  }
+  function initSwipes(){
+    if (!('ontouchstart' in window) && !(navigator.maxTouchPoints > 0)) return;
+    var tabs = document.querySelector('.tabs[role="tablist"]');
+    var g = null;
+    function tabList(){ return tabs ? Array.prototype.slice.call(tabs.querySelectorAll('[role="tab"]')).filter(function(b){ return !b.hidden && !b.disabled; }) : []; }
+    function currentView(){
+      var sel = tabs && tabs.querySelector('[aria-selected="true"]'), id = sel && sel.getAttribute('aria-controls');
+      return id ? document.getElementById(id) : null;
+    }
+    function panelW(){ return menu ? menu.panel.getBoundingClientRect().width || 300 : 300; }
+    function setDrawer(p){   // 0 closed … 1 open, while the finger is down
+      menu.panel.style.transform = 'translateX(' + ((p - 1) * 102) + '%)';
+      menu.d.querySelector('.drawer-scrim').style.opacity = String(p);
+    }
+    function clearDrawer(){ menu.d.classList.remove('dragging'); menu.panel.style.removeProperty('transform'); menu.d.querySelector('.drawer-scrim').style.removeProperty('opacity'); }
+
+    document.addEventListener('touchstart', function(e){
+      g = null;
+      if (e.touches.length !== 1) return;
+      var t = e.touches[0], kind = null;
+      if (menu && menu.isOpen()) kind = 'close';
+      else if (menu && t.clientX <= EDGE) kind = 'open';
+      else if (tabs && !blocked(e.target) && e.target.closest('main, .view')) kind = 'tabs';
+      if (kind) g = { kind: kind, x: t.clientX, y: t.clientY, t: Date.now(), dx: 0, lock: null };
+    }, { passive: true });
+
+    document.addEventListener('touchmove', function(e){
+      if (!g || e.touches.length !== 1) return;
+      var t = e.touches[0], dx = t.clientX - g.x, dy = t.clientY - g.y;
+      if (!g.lock){
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+        g.lock = Math.abs(dx) > Math.abs(dy) * 1.3 ? 'x' : 'y';
+        if (g.lock === 'y'){ g = null; return; }
+        if (g.kind === 'open'){ menu.d.classList.add('dragging'); }
+        if (g.kind === 'close'){ menu.d.classList.add('dragging'); }
+        if (g.kind === 'tabs'){ g.view = currentView(); g.list = tabList(); g.i = g.list.indexOf(tabs.querySelector('[aria-selected="true"]')); tabs.classList.add('dragging'); }
+      }
+      if (e.cancelable) e.preventDefault();   // sideways: the page must not scroll at the same time
+      g.dx = dx;
+      if (g.kind === 'open') setDrawer(Math.max(0, Math.min(1, dx / panelW())));
+      else if (g.kind === 'close') setDrawer(Math.max(0, Math.min(1, 1 + dx / panelW())));
+      else if (g.kind === 'tabs' && g.view){
+        var to = g.list[g.i + (dx < 0 ? 1 : -1)];
+        // follow the finger, slower past the first or the last tab
+        var shift = to ? dx * 0.42 : dx * 0.14;
+        g.view.style.transform = 'translateX(' + Math.max(-90, Math.min(90, shift)) + 'px)';
+        g.view.style.opacity = String(1 - Math.min(0.35, Math.abs(shift) / 260));
+        var thumb = tabs.querySelector('.tthumb'), from = g.list[g.i];
+        if (thumb && from && to){
+          var k = Math.min(1, Math.abs(dx) / (window.innerWidth * 0.55));
+          thumb.style.width = (from.offsetWidth + (to.offsetWidth - from.offsetWidth) * k) + 'px';
+          thumb.style.transform = 'translateX(' + (from.offsetLeft + (to.offsetLeft - from.offsetLeft) * k) + 'px)';
+        }
+      }
+    }, { passive: false });
+
+    function end(){
+      if (!g || g.lock !== 'x'){ g = null; return; }
+      var dt = Math.max(1, Date.now() - g.t), v = g.dx / dt, k = g;   // v in px per ms; a quick flick counts too
+      g = null;
+      if (k.kind === 'open' || k.kind === 'close'){
+        var p = k.kind === 'open' ? k.dx / panelW() : 1 + k.dx / panelW();
+        var want = v > 0.35 ? true : v < -0.35 ? false : p > 0.4;
+        clearDrawer();
+        if (want && k.kind === 'open') menu.open();
+        else if (!want && k.kind === 'close') menu.close();
+        return;
+      }
+      tabs.classList.remove('dragging');
+      var to = k.list[k.i + (k.dx < 0 ? 1 : -1)];
+      if (to && (Math.abs(k.dx) > Math.min(90, window.innerWidth * 0.22) || Math.abs(v) > 0.4)) { to.click(); return; }
+      // not far enough: everything springs back
+      if (k.view){
+        k.view.classList.add('snap');
+        k.view.style.removeProperty('transform'); k.view.style.removeProperty('opacity');
+        setTimeout(function(){ k.view.classList.remove('snap'); }, 320);
+      }
+      tabsThumb(false);
+    }
+    document.addEventListener('touchend', end);
+    document.addEventListener('touchcancel', end);
   }
 
   /* explanation boxes fade their new text in */
@@ -189,8 +346,9 @@
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ tabsThumb(true); });
     initMenu();
     initExplain();
+    initSwipes();
   }
 
-  window.UI = { setTheme: setTheme, sync: sync, tabsThumb: tabsThumb, switchView: switchView, reduce: reduce };
+  window.UI = { setTheme: setTheme, sync: sync, tabsThumb: tabsThumb, switchView: switchView, reserve: reserve, reduce: reduce };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

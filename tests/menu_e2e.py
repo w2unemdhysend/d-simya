@@ -11,7 +11,8 @@ import asyncio, functools, http.server, os, sys, threading
 from playwright.async_api import async_playwright
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PAGES = {'': 'Пралка', 'sushka/': 'Сушарка', 'scan/': 'Сканер', 'smittia/': 'Сміття', 'prospekty/': 'Проспекти', 'transport/': 'Транспорт', 'pogoda/': 'Погода'}
+# in menu order: home first, the appliance instructions last
+PAGES = {'': 'Головна', 'transport/': 'Транспорт', 'pogoda/': 'Погода', 'smittia/': 'Сміття', 'prospekty/': 'Проспекти', 'scan/': 'Сканер', 'pralka/': 'Пралка', 'sushka/': 'Сушарка'}
 fails = []
 
 def check(name, ok, detail=''):
@@ -80,10 +81,10 @@ async def main():
         await pg.wait_for_url('**/scan/'); await pg.wait_for_timeout(400)
         check('menu link opens the section', await pg.text_content('h1') == 'Сканер')
         await pg.go_back(); await pg.wait_for_timeout(600)
-        state = await pg.evaluate("({h1: document.querySelector('h1').textContent, open: " + OPEN + ", menu: !!(history.state && history.state.menu)})")
-        check('Back from the section returns to the page, menu closed', state['h1'] == 'Пралка' and not state['open'] and not state['menu'], str(state))
+        state = await pg.evaluate("({home: !!document.getElementById('hello'), open: " + OPEN + ", menu: !!(history.state && history.state.menu)})")
+        check('Back from the section returns to the home screen, menu closed', state['home'] and not state['open'] and not state['menu'], str(state))
         await pg.go_back(); await pg.wait_for_timeout(300)
-        # the page visited before the washer page was the last one in the loop above: no duplicate washer entry
+        # the page visited before the home screen was the last one in the loop above: no duplicate home entry
         check('no extra history entries left behind', pg.url == base + list(PAGES)[-1], pg.url)
         await browser.close()
 
