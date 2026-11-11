@@ -5,7 +5,7 @@
 Covers: greeting by Xanten time, today's date; weather for the household's place; the next waste pickup (tomorrow:
 highlighted, "put the bins out tonight"; later: weekday and date; no district yet: asks to choose); three departures
 from the chosen stop with live marks; this week's flyers with seen count and holidays; the D-Ticket tile per platform
-(through Telegram openLink); every card and tile leads to its section; instructions last; 340 px and dark theme.
+(through Telegram openLink); every card and tile leads to its section; instructions and the bot last; 340 px and dark theme.
 Exits 1 if a check fails.
 """
 import asyncio, functools, http.server, json, os, sys, threading, datetime, urllib.parse
@@ -93,7 +93,7 @@ async def main():
         fly = await pg.evaluate(TEXT, '#c-fly')
         check('flyers: KW 46, until Saturday 14 November, 2 seen', 'KW 46' in fly and 'Акції до суботи, 14 листопада' in fly and 'Переглянуто 2 проспекти' in fly, fly)
         links = await pg.evaluate("() => [...document.querySelectorAll('main a')].map(a => a.getAttribute('href'))")
-        check('cards and tiles lead to every section, instructions last', links[:5] == ['pogoda/', 'smittia/', 'transport/', 'prospekty/', 'spysok/'] and links[6] == 'scan/' and links[-2:] == ['pralka/', 'sushka/'], str(links))
+        check('cards and tiles lead to every section; help, then instructions, the bot last', links[:5] == ['pogoda/', 'smittia/', 'transport/', 'prospekty/', 'spysok/'] and links[6:] == ['scan/', 'ekstreno/', 'rozmovnyk/', 'pralka/', 'sushka/', 'bot/'], str(links))
         check('D-Ticket on a computer: Google Play in a new tab', links[5].startswith('https://play.google.com/store/apps/details?id=mentz.com.vrr_cibo_app') and await pg.get_attribute('#t-dticket', 'target') == '_blank')
         check('shopping list outside Telegram: says it works through the bot', 'через бота' in await pg.evaluate(TEXT, '#c-list'))
         check('no DWD warning: no warning line', await pg.locator('.dwd').count() == 0)

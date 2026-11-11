@@ -14,7 +14,7 @@
 
 const EFA = 'https://openservice.vrr.de/static03/';
 const METEO = 'https://api.open-meteo.com/v1/forecast';
-const STOP_ID = /^de:\d{5}:\d{1,7}$/;
+export const STOP_ID = /^de:\d{5}:\d{1,7}$/;
 const memo = new Map();   // per Worker instance; the Cloudflare cache below is shared
 const CACHE_V = 2;         // raise when the shape of an answer changes, so a new version never serves old answers
 
@@ -147,7 +147,7 @@ async function lookAlikes(out) {
   return out;
 }
 
-async function departures(stop, limit = 40) {
+export async function departures(stop, limit = 40) {
   const u = new URL(EFA + 'XML_DM_REQUEST');
   Object.entries({ outputFormat: 'rapidJSON', coordOutputFormat: 'WGS84[dd.ddddd]', type_dm: 'stop', name_dm: stop, mode: 'direct',
     useRealtime: '1', limit: String(limit), depType: 'stopEvents', includeCompleteStopSeq: '0', useProxFootSearch: '0' })
@@ -203,7 +203,7 @@ export function plain(html) {
 }
 
 /* ---------------- weather ---------------- */
-async function weather(lat, lon) {
+export async function weather(lat, lon) {
   const u = new URL(METEO);
   Object.entries({ latitude: lat, longitude: lon, timezone: 'Europe/Berlin', wind_speed_unit: 'kmh', forecast_days: '7', forecast_hours: '24',
     current: 'temperature_2m,apparent_temperature,relative_humidity_2m,is_day,precipitation,weather_code,wind_speed_10m,wind_gusts_10m',

@@ -94,7 +94,8 @@ async def main():
                 await pg.click('#themebtn')
                 mid = await mid_fade(pg)
                 seen = await watch
-                await pg.wait_for_timeout(3500)
+                try: await pg.wait_for_function("!document.documentElement.classList.contains('theme-vt') && !document.getAnimations().length", timeout=15000)
+                except Exception: pass
                 after = await bg_at(pg)
                 lo, hi = sorted([before, after])
                 tag = f'{name}, {start} → {"dark" if start == "light" else "light"}'
@@ -123,7 +124,10 @@ async def main():
             mid = await mid_fade(pg)
             icon = await pg.evaluate("document.getAnimations().some(a => a.transitionProperty === 'transform' && a.effect.target.closest('.themebtn'))")
             tabs = await pg.evaluate("document.getAnimations().filter(a => a.transitionProperty === 'color' && a.effect.target.closest('.tabs')).map(a => a.effect.getComputedTiming().duration)")
-            await pg.wait_for_timeout(3500); after = await bg_at(pg)
+            # the fade runs 10x slower here: wait for its end itself, not for a fixed time (a slow machine needs longer)
+            try: await pg.wait_for_function("!document.documentElement.classList.contains('theme-fade') && !document.getAnimations().length", timeout=15000)
+            except Exception: pass
+            after = await bg_at(pg)
             lo, hi = sorted([before, after])
             check(f'no View Transitions, {start}: one colour fade, halfway between the themes', lo + 0.12 * (hi - lo) < mid < hi - 0.12 * (hi - lo), f'{before:.0f} → {mid:.0f} → {after:.0f}')
             check(f'no View Transitions, {start}: the tabs fade with the page, not on their own time', len(tabs) > 0 and all(abs(d - 420) < 1 for d in tabs), str(tabs))

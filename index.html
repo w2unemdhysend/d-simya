@@ -129,7 +129,7 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-top:14px}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 @media (min-width:480px){h1{font-size:36px}}
 </style>
-<link rel="stylesheet" href="assets/ui.css?v=15">
+<link rel="stylesheet" href="assets/ui.css?v=16">
 </head>
 <body>
 <div class="wrap">
@@ -164,16 +164,20 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-top:14px}
       <a class="tile dt" id="t-dticket" href="https://play.google.com/store/apps/details?id=mentz.com.vrr_cibo_app" target="_blank" rel="noopener" style="--i:5">
         <span class="ic" aria-hidden="true">D</span><span><b>Мій D-Ticket</b><small id="dt-sub">Відкрити VRR App</small></span></a>
       <a class="tile" href="scan/" style="--i:6"><span class="ic" data-icon="scan"></span><span><b>Сканер</b><small>Фото документа в PDF і переклад</small></span></a>
+      <a class="tile" href="ekstreno/" style="--i:7"><span class="ic" data-icon="sos"></span><span><b>Екстрено</b><small>112, черговий лікар, аптека</small></span></a>
+      <a class="tile" href="rozmovnyk/" style="--i:8"><span class="ic" data-icon="talk"></span><span><b>Розмовник</b><small>Фрази для лікаря й установ</small></span></a>
     </div>
     <div class="group">Інструкції</div>
     <div class="grid2">
-      <a class="tile quiet" href="pralka/" style="--i:7"><span class="ic" data-icon="wash"></span><span><b>Пралка</b><small>Beko</small></span></a>
-      <a class="tile quiet" href="sushka/" style="--i:8"><span class="ic" data-icon="dry"></span><span><b>Сушарка</b><small>Gorenje</small></span></a>
+      <a class="tile quiet" href="pralka/" style="--i:9"><span class="ic" data-icon="wash"></span><span><b>Пралка</b><small>Beko</small></span></a>
+      <a class="tile quiet" href="sushka/" style="--i:10"><span class="ic" data-icon="dry"></span><span><b>Сушарка</b><small>Gorenje</small></span></a>
     </div>
+    <div class="group">Telegram</div>
+    <a class="tile quiet" href="bot/" style="--i:11"><span class="ic" data-icon="bell"></span><span><b>Бот</b><small>Ранкове зведення, команди в чаті, сповіщення</small></span></a>
   </main>
   <p class="foot">D-SIM’YA — помічник для життя в Німеччині. Свайп від лівого краю відкриває розділи.</p>
 </div>
-<script src="assets/ui.js?v=15"></script>
+<script src="assets/ui.js?v=16"></script>
 <script type="module">
 import { WORKER_URL, PLACES, homePlace, getWeather, getWarnings, warnWhen, wxIcon, wxText, advice, deg } from './pogoda/wx.js';
 import { BINS, binsOn, berlinDay, prefsOf } from './smittia/due.js';
@@ -195,6 +199,9 @@ const ICON = {
   wash: '<rect x="4" y="3" width="16" height="18" rx="2.5"/><circle cx="12" cy="13" r="4.5"/><path d="M7.5 6.5h2"/>',
   dry: '<rect x="4" y="3" width="16" height="18" rx="2.5"/><circle cx="12" cy="13" r="4.5"/><path d="M10.2 11.8c.6.6 1.2.6 1.8 0s1.2-.6 1.8 0M10.2 14.6c.6.6 1.2.6 1.8 0s1.2-.6 1.8 0"/>',
   next: '<path d="M9 6l6 6-6 6"/>',
+  sos: '<path d="M12 3.5l8.5 15h-17z"/><path d="M12 10v4M12 16.6h.01"/>',
+  talk: '<path d="M4.5 5.5h15v10h-8l-4.5 3.5v-3.5h-2.5z"/><path d="M8.5 9.5h7M8.5 12.2h4.5"/>',
+  bell: '<path d="M6.5 16.5v-5.5a5.5 5.5 0 0 1 11 0v5.5l1.5 1.500h-14z"/><path d="M10.2 20.5a2 2 0 0 0 3.6 0"/>',
   cart: '<path d="M3 4h2.2l2.2 10.2a1.5 1.5 0 0 0 1.5 1.2h8.3a1.5 1.5 0 0 0 1.5-1.1L20.5 8H6.2"/><circle cx="9.5" cy="19.5" r="1.3"/><circle cx="17" cy="19.5" r="1.3"/>',
 };
 document.querySelectorAll('[data-icon]').forEach((el) => {

@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>(function(){try{var s=null;try{s=localStorage.getItem('dsimya-theme')}catch(e){}var w=window.Telegram&&Telegram.WebApp;var tg=w&&w.platform&&w.platform!=='unknown';var t=s||(tg?(w.colorScheme==='dark'?'dark':'light'):(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));document.documentElement.setAttribute('data-theme',t)}catch(e){}})();addEventListener('unhandledrejection',function(e){var r=e.reason;if(r&&/Transition was (aborted|skipped)/.test(r.message||''))e.preventDefault()});</script>
+<title>Розмовник</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@600;700&display=swap">
+<link rel="stylesheet" href="../assets/page.css?v=1">
+<style>
+/* Layout: one column. A search field and situation chips on top, then the phrases of the chosen situation: German
+   large (it is what gets said or shown), Ukrainian under it, a button to hear it. Tapping a phrase shows it across
+   the whole screen, to hold the phone up to the person when saying it is too hard. */
+.find{width:100%;min-height:48px;border-radius:14px;border:1px solid var(--line);background:var(--surface);padding:0 14px;font-size:17px}
+.sits{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:2px 16px 4px}
+.sits::-webkit-scrollbar{display:none}
+.list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.ph{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:6px 6px 6px 14px}
+.ph .txt{flex:1;min-width:0;border:0;background:transparent;text-align:left;padding:8px 0;cursor:pointer}
+.ph .de{display:block;font-weight:600;font-size:17.5px;line-height:1.3}
+.ph .uk{display:block;color:var(--muted);font-size:15px;line-height:1.35;margin-top:2px}
+.ph .sit{display:block;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+.say{flex:none;width:48px;height:48px;border-radius:50%;border:1px solid var(--line);background:var(--bg);display:grid;place-items:center;cursor:pointer}
+.say svg{width:22px;height:22px}
+.say.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.empty{margin:0;color:var(--muted);font-size:15.5px}
+.title{margin:6px 2px 0;font-size:14px;color:var(--muted)}
+.title b{color:var(--ink);font-weight:600}
+.bigview{position:fixed;inset:0;z-index:40;background:var(--bg);display:grid;grid-template-rows:1fr auto;padding:max(20px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom))}
+.bigview .words{align-self:center;font-weight:600;font-size:clamp(26px, 8vw, 44px);line-height:1.2;overflow-wrap:anywhere}
+.bigview .uk{margin-top:16px;font-weight:400;font-size:17px;color:var(--muted)}
+.bigview .bar{display:flex;gap:10px}
+.bigview button{flex:1;min-height:54px;border-radius:14px;border:1px solid var(--line);background:var(--surface);font-weight:600;font-size:17px;cursor:pointer}
+.bigview button.main{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+</style>
+<link rel="stylesheet" href="../assets/ui.css?v=16">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="toprow"><button class="menubtn" id="menubtn" type="button" aria-expanded="false" aria-controls="drawer" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Розділи</span></button><button class="themebtn" id="themebtn" type="button" aria-label="Увімкнути темну тему"><svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M5.3 18.7L7 17M17 7l1.7-1.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.6A8.2 8.2 0 0 1 9.4 4a8.2 8.2 0 1 0 10.6 10.6z" fill="currentColor"/></svg></button></div>
+    <div class="eyebrow">Німецька · працює без інтернету</div>
+    <h1>Розмовник</h1>
+    <p class="lede">Готові фрази для лікаря, установ, магазину й телефону. Натисни фразу, щоб показати її великим шрифтом.</p>
+  </header>
+  <main>
+    <input class="find" id="find" type="search" placeholder="Пошук: «рецепт», «Termin»…" aria-label="Пошук фрази" enterkeyhint="search" autocomplete="off">
+    <div class="sits" id="sits" role="radiogroup" aria-label="Ситуація"></div>
+    <p class="title" id="title"></p>
+    <ul class="list" id="list"></ul>
+    <p class="empty" id="empty" hidden>Такої фрази тут немає. Спробуй інше слово, українською чи німецькою.</p>
+  </main>
+  <p class="foot" id="foot">Усі фрази у ввічливій формі на «Sie»: так звертаються до лікарів, працівників установ і незнайомих людей.</p>
+</div>
+<div class="bigview" id="big" role="dialog" aria-modal="true" aria-label="Фраза великим шрифтом" hidden>
+  <div class="words"><div id="big-de" lang="de"></div><div class="uk" id="big-uk"></div></div>
+  <div class="bar"><button type="button" id="big-say" class="main">Прослухати</button><button type="button" id="big-close">Закрити</button></div>
+</div>
+<script src="../assets/ui.js?v=16"></script>
+<script type="module">
+import { SITUATIONS } from './phrases.js';
+
+const $ = (s, r) => (r || document).querySelector(s);
+const tgApp = window.Telegram && window.Telegram.WebApp;
+const tg = tgApp && tgApp.platform && tgApp.platform !== 'unknown' ? tgApp : null;
+if (tg) { try { tg.ready(); tg.expand(); } catch (e) {} }
+const haptic = () => { try { if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged(); } catch (e) {} };
+const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;'})[c]);
+const SPEAKER = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 9.5v5h3.2l4.3 3.5v-12L7.700 9.500z"/><path d="M15.500 9a4.200 4.200 0 0 1 0 6M18 6.500a7.800 7.800 0 0 1 0 11"/></svg>';
+
+/* ---------- speaking: the phone's own German voice, if it has one ---------- */
+const synth = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window ? window.speechSynthesis : null;
+let voice = null;
+function pickVoice() { if (synth) voice = synth.getVoices().find((v) => /^de(-|_)DE/i.test(v.lang)) || synth.getVoices().find((v) => /^de/i.test(v.lang)) || null; }
+if (synth) { pickVoice(); try { synth.addEventListener('voiceschanged', pickVoice); } catch (e) {} }
+function speak(text, btn) {
+  if (!synth) return;
+  synth.cancel();
+  const u = new SpeechSynthesisUtterance(text.replace(/…/g, ' ').replace(/\s*\/\s*/g, ', '));
+  u.lang = 'de-DE'; u.rate = 0.9; if (voice) u.voice = voice;
+  const off = () => btn && btn.classList.remove('on');
+  u.onend = off; u.onerror = off;
+  document.querySelectorAll('.say.on').forEach((b) => b.classList.remove('on'));
+  if (btn) btn.classList.add('on');
+  synth.speak(u);
+}
+if (!synth) $('#foot').textContent += ' Цей телефон не вміє озвучувати текст у застосунку: показуй фразу великим шрифтом.';
+
+/* ---------- the list ---------- */
+const ALL = SITUATIONS.flatMap((s) => s.list.map(([de, uk], i) => ({ de, uk, sit: s, key: s.id + ':' + i })));
+const norm = (t) => t.toLowerCase().replace(/[’'ʼ]/g, '').replace(/ä/g, 'a').replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ß/g, 'ss');
+let sit = SITUATIONS.some((s) => s.id === localStorage.getItem('rozmovnyk-sit')) ? localStorage.getItem('rozmovnyk-sit') : SITUATIONS[0].id, q = '';
+function render() {
+  $('#sits').innerHTML = SITUATIONS.map((s) => `<button class="chip" type="button" role="radio" data-sit="${s.id}" aria-checked="${!q && s.id === sit}">${esc(s.name)}</button>`).join('');
+  const n = norm(q), found = q ? ALL.filter((p) => norm(p.de).includes(n) || norm(p.uk).includes(n)) : ALL.filter((p) => p.sit.id === sit);
+  const cur = SITUATIONS.find((s) => s.id === sit);
+  $('#title').innerHTML = q ? `Знайдено: ${found.length}` : `<b>${esc(cur.name)}</b> · <span lang="de">${esc(cur.de)}</span>`;
+  $('#list').innerHTML = found.map((p) => `<li class="ph"><button class="txt" type="button" data-key="${p.key}">` +
+    (q ? `<span class="sit">${esc(p.sit.name)}</span>` : '') + `<span class="de" lang="de">${esc(p.de)}</span><span class="uk">${esc(p.uk)}</span></button>` +
+    (synth ? `<button class="say" type="button" data-say="${p.key}" aria-label="Прослухати: ${esc(p.de)}">${SPEAKER}</button>` : '') + '</li>').join('');
+  $('#empty').hidden = found.length > 0;
+}
+render();
+$('#sits').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-sit]'); if (!b) return;
+  sit = b.dataset.sit; q = ''; $('#find').value = '';
+  try { localStorage.setItem('rozmovnyk-sit', sit); } catch (err) {}
+  render(); haptic();
+});
+$('#find').addEventListener('input', (e) => { q = e.target.value.trim(); render(); });
+
+/* ---------- a phrase across the whole screen ---------- */
+let shown = null, opener = null;
+function openBig(p, from) {
+  shown = p; opener = from;
+  $('#big-de').textContent = p.de; $('#big-uk').textContent = p.uk;
+  $('#big-say').hidden = !synth;
+  $('#big').hidden = false; $('#big-close').focus();
+}
+function closeBig() { if (synth) synth.cancel(); $('#big').hidden = true; if (opener) opener.focus(); shown = null; }
+$('#list').addEventListener('click', (e) => {
+  const say = e.target.closest('[data-say]');
+  if (say) { speak(ALL.find((p) => p.key === say.dataset.say).de, say); haptic(); return; }
+  const b = e.target.closest('[data-key]');
+  if (b) { openBig(ALL.find((p) => p.key === b.dataset.key), b); haptic(); }
+});
+$('#big-close').addEventListener('click', closeBig);
+$('#big-say').addEventListener('click', () => shown && speak(shown.de));
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#big').hidden) closeBig(); });
+</script>
+</body>
+</html>

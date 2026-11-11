@@ -1,0 +1,56 @@
+/* Base styles shared by the newer pages (Бот, Екстрено, Розмовник): colours, type, cards, chips, switches.
+   The older pages carry their own copy inline; ui.css adds the menu, theme button and transitions on top. */
+:root{
+  padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom);
+  --bg:#E7ECEF; --surface:#F6F8F9; --ink:#12181C; --muted:#53616A; --line:#C7D0D5; --accent:#9A5800;
+  --accent-soft:#F7E3BF; --on:#2E7D32; --danger:#B3261E; --danger-soft:#F9DEDC;
+  --f-display:"Unbounded","Arial Black",system-ui,sans-serif;
+  --f-body:"Onest","Segoe UI",Roboto,system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --bg:#0F1417; --surface:#182026; --ink:#E5EBEE; --muted:#98A6AE; --line:#2A343B; --accent:#FFB424;
+    --accent-soft:#3A2909; --on:#66BB6A; --danger:#FF8A80; --danger-soft:#3B1512; color-scheme:dark; }
+}
+:root[data-theme="dark"]{ --bg:#0F1417; --surface:#182026; --ink:#E5EBEE; --muted:#98A6AE; --line:#2A343B; --accent:#FFB424;
+  --accent-soft:#3A2909; --on:#66BB6A; --danger:#FF8A80; --danger-soft:#3B1512; color-scheme:dark; }
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.5 var(--f-body);overflow-x:clip;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:0 40px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+[hidden]{display:none!important}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2.5px solid var(--accent);outline-offset:2px}
+a{color:inherit}
+.wrap{max-width:560px;margin:0 auto}
+.top{padding-block:16px 10px}
+.eyebrow{font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--f-display);font-weight:700;font-size:32px;line-height:1.05;margin:6px 0 8px;letter-spacing:-.01em}
+.lede{margin:0;color:var(--muted);font-size:16px;max-width:44ch}
+h2{font-family:var(--f-display);font-weight:600;font-size:18px;line-height:1.2;margin:0}
+h3.group{margin:8px 2px -4px;font:600 12px/1.4 var(--f-body);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-top:10px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;min-width:0}
+.note{margin:4px 0 0;color:var(--muted);font-size:15px;line-height:1.4}
+.foot{margin-top:20px;font-size:13px;color:var(--muted)}
+
+.row{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.switch{flex:none;position:relative;width:60px;height:36px;border-radius:999px;border:0;background:var(--line);cursor:pointer;padding:0;transition:background-color .25s ease}
+.switch::after{content:"";position:absolute;top:4px;left:4px;width:28px;height:28px;border-radius:50%;background:#FFFFFF;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .25s cubic-bezier(.3,.9,.3,1)}
+.switch[aria-checked="true"]{background:var(--on)}
+.switch[aria-checked="true"]::after{transform:translateX(24px)}
+.switch:disabled{opacity:.45;cursor:default}
+.switch.busy::after{animation:pg-pulse .8s ease-in-out infinite alternate}
+@keyframes pg-pulse{from{opacity:1}to{opacity:.4}}
+.state{margin:10px 0 0;font-size:15px;font-weight:600}
+.state:empty{display:none}
+.state.on{color:var(--on)}
+.state.err{color:var(--danger)}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.chip{min-height:44px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-weight:600;font-size:15px;cursor:pointer;
+  display:inline-flex;align-items:center;gap:6px;white-space:nowrap;transition:background-color .2s ease, color .2s ease}
+.chip[aria-pressed="true"],.chip[aria-checked="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip:active{transform:scale(.97)}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+@media (min-width:480px){h1{font-size:38px}}

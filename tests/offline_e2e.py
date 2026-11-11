@@ -33,13 +33,13 @@ def static_checks():
     versions = set()
     for p in pages:
         html = open(os.path.join(ROOT, p)).read()
-        versions |= set(re.findall(r'assets/(ui\.(?:css|js)\?v=\d+)', html))
+        versions |= set(re.findall(r'assets/((?:ui|page)\.(?:css|js)\?v=\d+)', html))
         d = os.path.dirname(p)
         check(f'sw.js keeps the page {d or "home"}', (d + '/' if d else './') in core)
         for mod in re.findall(r"from '(\.{1,2}/[^']+)'", html) + re.findall(r"fetch\('(\.{0,2}/?[\w/.-]+\.(?:json|ttf))'", html):
             rel = os.path.normpath(os.path.join(d, mod)).replace('\\', '/')
             check(f'sw.js keeps {rel} (used by {p})', rel in core, rel)
-    check('pages use one asset version, and sw.js keeps that one', len(versions) == 2 and all('assets/' + v in core for v in versions), f'{versions} vs {[c for c in core if "?v=" in c]}')
+    check('pages use one asset version, and sw.js keeps that one', len(versions) == 3 and all('assets/' + v in core for v in versions), f'{versions} vs {[c for c in core if "?v=" in c]}')
     check('sw.js never keeps the list, translations or searches', not re.search(r'/list|translate|transit/stops', sw.split('const DATA')[1].split('\n')[0]))
 
 async def main():

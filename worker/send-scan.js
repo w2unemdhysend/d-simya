@@ -11,6 +11,9 @@
  *   POST /reminders        reminders for the signed-in user: action=on|off|status, kind=
  *                            smittia (default, evening before a waste pickup; district, bins, rhythm; action=prefs updates them)
  *                            prospekty (Monday flyers) · wetter (DWD weather warnings; place, level 1–3) · wort (word of the day)
+ *                            ranok (morning digest; time, place, waste choices, stop) · zboi (messages about failures)
+ *   POST /commands         chat commands on|off|status: points the bot's webhook at this Worker (see brief.js)
+ *   POST /tg               Telegram's webhook: /bus /wetter /muell /wort /help in a private chat
  *   POST /list             the family shopping list (Durable Object), see list.js
  *   POST /translate        text of one scanned page (recognised on the phone) → its translation,
  *                          by Gemma 4 on Workers AI (free daily allowance)
@@ -20,7 +23,8 @@
  *                          public timetable (VRR) and weather (Open-Meteo) data for the pages, see transit.js
  *   cron, every 30 minutes, each job checks the time in Xanten and sends at most once:
  *                          18:00 daily: which bins go out tomorrow · Mondays 08:00: new flyers and closed days ·
- *                          09:00 daily: the word of the day · any time: new DWD warnings for subscribers' places
+ *                          09:00 daily: the word of the day · any time: new DWD warnings for subscribers' places ·
+ *                          06:00–09:00: each person's morning digest · failures of services and jobs (health.js)
  *
  * Settings (Cloudflare → Worker → Settings):
  *   BOT_TOKEN       secret, the token from @BotFather            (required)
@@ -44,6 +48,8 @@ import { isTransit, transit } from './transit.js';
 import { PLACES, fetchWarnings, warnConfirmText, sendWarnings } from './warn.js';
 import { listRoute } from './list.js';
 import { WORD_BUTTON, wordConfirmText, sendWordOfDay } from './word.js';
+import { HOME_BUTTON, profileOf, briefConfirmText, sendBriefs, webhook, commands } from './brief.js';
+import { ALERTS, runJobs, watch } from './health.js';
 export { ShoppingList } from './list.js';   // the Durable Object class must be exported by the main module
 
 const MAX_BYTES = 45 * 1024 * 1024;        // Bot API upload limit is 50 MB
@@ -72,7 +78,14 @@ export default {
     if (!env.BOT_TOKEN) return reply(500, { ok: false, error: 'BOT_TOKEN is not set' });
     const hand = path.match(/^\/handoff(?:\/([0-9a-f-]{36})(?:\/(\d{1,2}))?)?\/?$/);
     if (hand) return handoff(request, env, hand[1], hand[2], reply, cors);
+    if (path === '/tg') return webhook(request, env, tgSend);
     if (path === '/reminders') return reminders(request, env, reply);
+    if (path === '/commands') {
+      if (request.method !== 'POST') return reply(405, { ok: false, error: 'POST only' });
+      const signed = await readSigned(request, env, reply);
+      if (signed instanceof Response) return signed;
+      return commands(request, env, signed, reply, tgSend);
+    }
     if (path === '/list') {
       if (request.method !== 'POST') return reply(405, { ok: false, error: 'POST only' });
       const signed = await readSigned(request, env, reply);
@@ -109,10 +122,17 @@ export default {
 
   // One cron, every 30 minutes. Each job checks the Xanten time itself (18:00 waste, Monday 08:00 flyers, 09:00 word
   // of the day) and keeps a mark in KV for the day, so it sends once, winter or summer time; warnings go out as they come.
+  // A job that throws does not stop the others; failures go to the people who asked to hear about them.
   async scheduled(controller, env, ctx) {
     const now = new Date(controller.scheduledTime);
-    ctx.waitUntil(Promise.all([sendReminders(env, now), sendFlyerReminders(env, now),
-      sendWarnings(env, now, tgSend, WEATHER_BUTTON), sendWordOfDay(env, now, broadcast)]));
+    ctx.waitUntil((async () => {
+      const failed = await runJobs([
+        ['нагадування про сміття', () => sendReminders(env, now)], ['проспекти', () => sendFlyerReminders(env, now)],
+        ['попередження DWD', () => sendWarnings(env, now, tgSend, WEATHER_BUTTON)], ['слово дня', () => sendWordOfDay(env, now, broadcast)],
+        ['ранкове зведення', () => sendBriefs(env, now, tgSend)],
+      ]);
+      try { await watch(env, now, failed, (text) => broadcast(env, ALERTS, text, HOME_BUTTON)); } catch (e) { console.log('watch failed', String(e && e.stack || e)); }
+    })());
   },
 };
 
@@ -122,7 +142,7 @@ const PAGE_URL = 'https://w2unemdhysend.github.io/d-simya/smittia/';
 const WASTE_BUTTON = { text: 'Розклад', url: PAGE_URL };
 const FLYERS = { prefix: 'fsub:', sent: 'fsent:', button: { text: 'Проспекти', url: 'https://w2unemdhysend.github.io/d-simya/prospekty/' } };
 const WEATHER_BUTTON = { text: 'Погода', url: 'https://w2unemdhysend.github.io/d-simya/pogoda/' };
-const KINDS = { smittia: 'sub:', prospekty: FLYERS.prefix, wetter: 'wsub:', wort: 'dsub:' };
+const KINDS = { smittia: 'sub:', prospekty: FLYERS.prefix, wetter: 'wsub:', wort: 'dsub:', ranok: 'bsub:', zboi: ALERTS };
 
 // switching on in progress, per kind and person (one confirmation even when a page sends the same tap several times)
 const CONFIRMING = new Set();
@@ -141,7 +161,9 @@ async function reminders(request, env, reply) {
   const f = signed.form;
   const prefs = waste ? prefsOf(cal, { district: f.get('district'), rhythm: f.get('rhythm'), bins: f.has('bins') ? String(f.get('bins')).split(',') : undefined })
     : kind === 'wetter' ? { place: PLACES[f.get('place')] ? String(f.get('place')) : 'Xanten', level: [1, 2, 3].includes(Number(f.get('level'))) ? Number(f.get('level')) : 2 }
+    : kind === 'ranok' ? profileOf(f)   // also kept as the person's profile: the chat commands answer for the same place, bins and stop
     : null;
+  const saveProfile = () => (kind === 'ranok' ? env.SCANS.put('prof:' + signed.user.id, JSON.stringify(prefs)) : null);
   const record = () => JSON.stringify({ id: signed.user.id, name: String(signed.user.first_name || '').slice(0, 40), ...prefs });
   if (action === 'on') {
     // Already on (a second tap, a repeated request, another device): keep the new choices, say nothing new in the chat.
@@ -151,7 +173,7 @@ async function reminders(request, env, reply) {
     if (CONFIRMING.has(mark)) return already();
     CONFIRMING.add(mark);
     try {
-      if ((await env.SCANS.get(key)) !== null) { await env.SCANS.put(key, record()); return already(); }
+      if ((await env.SCANS.get(key)) !== null) { await env.SCANS.put(key, record()); await saveProfile(); return already(); }
       if ((await env.SCANS.get(mark)) !== null) return already();
       await env.SCANS.put(mark, '1', { expirationTtl: 60 });
       return await switchOn(mark);
@@ -162,6 +184,8 @@ async function reminders(request, env, reply) {
     let text, button;
     if (flyers) { text = flyerConfirmText(new Date()); button = FLYERS.button; }
     else if (kind === 'wort') { text = wordConfirmText(new Date()); button = WORD_BUTTON; }
+    else if (kind === 'ranok') { text = briefConfirmText(prefs); button = HOME_BUTTON; }
+    else if (kind === 'zboi') { text = 'Сповіщення про збої увімкнено. Я напишу, якщо розклад VRR, погода чи попередження DWD перестануть відповідати, якщо зламається одне з моїх завдань або закінчуватиметься календар сміття.'; button = HOME_BUTTON; }
     else if (kind === 'wetter') {
       let list = [];
       try { list = (await fetchWarnings(...PLACES[prefs.place].map((n) => n.toFixed(2)))).warnings; } catch { /* the confirmation goes out anyway */ }
@@ -170,11 +194,13 @@ async function reminders(request, env, reply) {
     const res = await tgSend(env, signed.user.id, text, button);
     if (res.status === 403) { await env.SCANS.delete(mark); return reply(200, { ok: false, on: false, error: 'bot_blocked' }); }
     await env.SCANS.put(key, record());
+    await saveProfile();
     return reply(200, { ok: true, on: true, confirmed: res.ok });
   }
   if (action === 'prefs' && prefs) {   // district, bins, place or level changed: quietly update a running subscription
     const on = (await env.SCANS.get(key)) !== null;
     if (on) await env.SCANS.put(key, record());
+    await saveProfile();
     return reply(200, { ok: true, on });
   }
   if (action === 'off') await Promise.all([env.SCANS.delete(key), env.SCANS.delete(`conf:${kind}:${signed.user.id}`)]);
@@ -182,6 +208,7 @@ async function reminders(request, env, reply) {
   const rec = await env.SCANS.get(key);
   let saved = null;
   if (rec && kind === 'wetter') { try { const r = JSON.parse(rec); saved = { place: r.place, level: r.level }; } catch { /* old record */ } }
+  if (rec && kind === 'ranok') { try { saved = { time: JSON.parse(rec).time }; } catch { /* broken record */ } }
   return reply(200, { ok: true, on: rec !== null, ...(saved || {}) });
 }
 
@@ -255,6 +282,10 @@ async function sendReminders(env, now) {
   const day = berlinDay(now, 1);
   if (await env.SCANS.get('sent:' + day)) return { sent: 0, why: 'already sent' };
   await env.SCANS.put('sent:' + day, '1', { expirationTtl: 3 * 86400 });
+  // the first evening after the calendar's last day: say once that the reminders pause until the new calendar is in
+  if (berlinDay(now) === cal.until) {
+    return { ...(await broadcast(env, SUB, `Календар вивозу сміття на ${cal.until.slice(0, 4)} рік закінчився. Нагадування продовжаться, щойно місто опублікує календар на наступний рік і його буде додано в застосунок.`, WASTE_BUTTON)), day, end: true };
+  }
   // each household gets the bins of its own district (records from before districts existed: LEGACY)
   const text = (rec) => { const bins = binsOn(cal, day, rec); return bins.length ? reminderText(day, bins) : null; };
   return { ...(await broadcast(env, SUB, text, WASTE_BUTTON)), day };

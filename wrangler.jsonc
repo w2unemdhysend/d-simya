@@ -14,7 +14,8 @@
   "durable_objects": { "bindings": [{ "name": "LISTS", "class_name": "ShoppingList" }] },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ShoppingList"] }],
   // One cron every 30 minutes runs every job; each job checks the time in Xanten itself and sends at most once:
-  // waste at 18:00, flyers on Mondays at 08:00, the word of the day at 09:00, DWD warnings whenever there are new ones.
+  // waste at 18:00, flyers on Mondays at 08:00, the word of the day at 09:00, DWD warnings whenever there are new ones,
+  // each person's morning digest at their half hour (06:00–09:00), and checks that the services the app needs still answer.
   // (The free plan allows 5 crons per account, shared by all Workers: this one uses a single one.)
   "triggers": { "crons": ["*/30 * * * *"] }
 }

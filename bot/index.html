@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>(function(){try{var s=null;try{s=localStorage.getItem('dsimya-theme')}catch(e){}var w=window.Telegram&&Telegram.WebApp;var tg=w&&w.platform&&w.platform!=='unknown';var t=s||(tg?(w.colorScheme==='dark'?'dark':'light'):(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));document.documentElement.setAttribute('data-theme',t)}catch(e){}})();addEventListener('unhandledrejection',function(e){var r=e.reason;if(r&&/Transition was (aborted|skipped)/.test(r.message||''))e.preventDefault()});</script>
+<title>Бот</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@600;700&display=swap">
+<link rel="stylesheet" href="../assets/page.css?v=1">
+<style>
+/* Layout: one column of cards, one per thing the bot does; each has its switch on the right and its state below. */
+.what{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:6px;font-size:15px}
+.what li{display:grid;grid-template-columns:5.6em minmax(0,1fr);gap:10px;align-items:baseline}
+.what span{color:var(--muted)}
+.what a{text-underline-offset:3px}
+.cmds{margin:10px 0 0;padding:0;list-style:none;display:grid;gap:4px;font-size:15px}
+.cmds code{font:600 15px/1.3 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;margin-right:8px}
+.others{list-style:none;margin:8px 0 0;padding:0}
+.others li{border-top:1px solid var(--line)}
+.others li:first-child{border-top:0}
+.others a{display:flex;align-items:center;gap:10px;min-height:52px;padding:6px 0;text-decoration:none}
+.others b{font-weight:600;font-size:16px;display:block;line-height:1.25}
+.others small{color:var(--muted);font-size:13.5px;display:block}
+.others .txt{flex:1;min-width:0}
+.others .st{flex:none;font-size:13px;font-weight:600;color:var(--muted)}
+.others .st.on{color:var(--on)}
+.others svg{flex:none;width:18px;height:18px;color:var(--muted)}
+.time-lab{margin:14px 0 0;font-size:14px;color:var(--muted)}
+</style>
+<link rel="stylesheet" href="../assets/ui.css?v=16">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="toprow"><button class="menubtn" id="menubtn" type="button" aria-expanded="false" aria-controls="drawer" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Розділи</span></button><button class="themebtn" id="themebtn" type="button" aria-label="Увімкнути темну тему"><svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M5.3 18.7L7 17M17 7l1.7-1.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.6A8.2 8.2 0 0 1 9.4 4a8.2 8.2 0 1 0 10.6 10.6z" fill="currentColor"/></svg></button></div>
+    <div class="eyebrow">Telegram · @whysendbot</div>
+    <h1>Бот</h1>
+    <p class="lede">Що бот надсилає сам і на що відповідає в чаті.</p>
+  </header>
+  <main>
+    <section class="card" aria-labelledby="h-brief">
+      <div class="row">
+        <div><h2 id="h-brief">Ранкове зведення</h2><p class="note">Одне повідомлення вранці: погода, попередження DWD, сміття, відправлення з твоєї зупинки, слово дня.</p></div>
+        <button class="switch" id="sw-brief" type="button" role="switch" aria-checked="false" aria-labelledby="h-brief" disabled></button>
+      </div>
+      <p class="time-lab" id="time-lab">О котрій надсилати</p>
+      <div class="chips" id="times" role="radiogroup" aria-labelledby="time-lab"></div>
+      <ul class="what" id="what"></ul>
+      <p class="state" id="st-brief" aria-live="polite"></p>
+    </section>
+    <section class="card" aria-labelledby="h-cmd">
+      <div class="row">
+        <div><h2 id="h-cmd">Команди в чаті</h2><p class="note">Напиши боту команду й отримай відповідь одразу, не відкриваючи застосунок.</p></div>
+        <button class="switch" id="sw-cmd" type="button" role="switch" aria-checked="false" aria-labelledby="h-cmd" disabled></button>
+      </div>
+      <ul class="cmds">
+        <li><code>/bus</code>найближчі відправлення з твоєї зупинки</li>
+        <li><code>/wetter</code>погода й попередження DWD</li>
+        <li><code>/muell</code>коли вивозять сміття</li>
+        <li><code>/wort</code>німецьке слово дня</li>
+      </ul>
+      <p class="state" id="st-cmd" aria-live="polite"></p>
+    </section>
+    <section class="card" aria-labelledby="h-alert">
+      <div class="row">
+        <div><h2 id="h-alert">Сповіщення про збої</h2><p class="note">Бот напише, якщо розклад VRR, погода чи попередження DWD перестануть відповідати або закінчуватиметься календар сміття. Для того, хто доглядає за застосунком.</p></div>
+        <button class="switch" id="sw-alert" type="button" role="switch" aria-checked="false" aria-labelledby="h-alert" disabled></button>
+      </div>
+      <p class="state" id="st-alert" aria-live="polite"></p>
+    </section>
+    <h3 class="group">Інші нагадування</h3>
+    <section class="card" aria-label="Інші нагадування">
+      <ul class="others" id="others"></ul>
+    </section>
+  </main>
+  <p class="foot">Бот пише тільки тобі в особистий чат. Усе вимикається тут або в розділі, якого стосується.</p>
+</div>
+<script src="../assets/ui.js?v=16"></script>
+<script type="module">
+import { WORKER_URL, PLACES } from '../pogoda/wx.js';
+import { BINS } from '../smittia/due.js';
+
+const $ = (s, r) => (r || document).querySelector(s);
+const tgApp = window.Telegram && window.Telegram.WebApp;
+const tg = tgApp && tgApp.platform && tgApp.platform !== 'unknown' ? tgApp : null;
+if (tg) { try { tg.ready(); tg.expand(); } catch (e) {} }
+const signed = !!(tg && tg.initData);
+const haptic = (k) => { try { if (!tg || !tg.HapticFeedback) return; k ? tg.HapticFeedback.notificationOccurred(k) : tg.HapticFeedback.selectionChanged(); } catch (e) {} };
+const load = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } };
+const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;'})[c]);
+const NEXT = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
+const TIMES = ['06:00', '06:30', '07:00', '07:30', '08:00', '08:30', '09:00'];
+const NOTG = 'Вмикається, коли D-SIM’YA відкрито через бота в Telegram.';
+
+/* ---------- what the digest and the commands know: chosen in the other sections ---------- */
+const waste = load('smittia-prefs'), stops = load('transport-stops');
+const place = waste && PLACES[waste.place] ? waste.place : 'Xanten';
+const stop = stops && Array.isArray(stops.list) ? stops.list.find((s) => s.id === stops.active) || stops.list[0] : null;
+const short = (n) => String(n).replace(/,\s*/, ' ');
+let time = TIMES.includes(load('bot-time')) ? load('bot-time') : '07:00';
+function profile() {
+  const f = { place, time };
+  if (waste && waste.district) { f.district = waste.district; f.rhythm = waste.rhythm || 'unknown'; if (Array.isArray(waste.bins)) f.bins = waste.bins.join(','); }
+  if (stop) { f.stop = stop.id; f.stopName = short(stop.name); }
+  return f;
+}
+$('#what').innerHTML =
+  `<li><span>Погода</span><div>${esc(place)}${waste && waste.place ? '' : ' · <a href="../smittia/">вибрати своє місце</a>'}</div></li>` +
+  `<li><span>Сміття</span><div>${waste && waste.district ? `район ${esc(waste.district)}: ${(waste.bins || []).filter((b) => BINS[b]).map((b) => BINS[b].uk.toLowerCase()).join(', ')}` : 'не вибрано · <a href="../smittia/">вибрати в «Сміття»</a>'}</div></li>` +
+  `<li><span>Зупинка</span><div>${stop ? esc(short(stop.name)) : 'не вибрано · <a href="../transport/">вибрати в «Транспорт»</a>'}</div></li>`;
+function renderTimes() {
+  $('#times').innerHTML = TIMES.map((t) => `<button class="chip" type="button" role="radio" data-time="${t}" aria-checked="${t === time}">${t}</button>`).join('');
+}
+renderTimes();
+
+/* ---------- one switch: reads its state, turns on and off, says what happened ---------- */
+async function call(path, fields) {
+  const fd = new FormData(); fd.append('initData', tg.initData);
+  for (const [k, v] of Object.entries(fields)) fd.append(k, v);
+  const r = await fetch(WORKER_URL.replace(/\/*$/, '/') + path, { method: 'POST', body: fd });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok && !d.error) throw new Error('http ' + r.status);
+  return d;
+}
+const ERR = { bot_blocked: 'Бот не може тобі написати: відкрий чат із ботом і натисни «Start».', other_webhook: 'Бот уже підключено до іншого сервісу, тому команди тут не вмикаються.',
+  not_yours: 'Вимкнути може той, хто вмикав.' };
+function makeSwitch({ sw, st, path = 'reminders', fields, onText, after }) {
+  const show = (on, text, cls) => { sw.setAttribute('aria-checked', String(!!on)); st.textContent = text || ''; st.className = 'state' + (cls ? ' ' + cls : ''); };
+  if (!signed) { st.textContent = NOTG; return { show, on: () => false }; }
+  const run = async (action, quiet) => {
+    sw.classList.add('busy'); sw.disabled = true;
+    try {
+      const d = await call(path, { ...fields(), action });
+      if (d.error && ERR[d.error]) { show(d.on, ERR[d.error], 'err'); haptic('error'); }
+      else if (!d.ok) throw new Error(d.error || 'failed');
+      else { show(d.on, d.on ? (action === 'on' && !d.already ? onText : 'Увімкнено') : (quiet ? '' : 'Вимкнено'), d.on ? 'on' : ''); if (!quiet) haptic(d.on ? 'success' : undefined); }
+      if (after) after(d, action);
+    } catch (e) { show(sw.getAttribute('aria-checked') === 'true', 'Не вдалося. Перевір інтернет і спробуй ще раз.', 'err'); if (!quiet) haptic('error'); }
+    sw.classList.remove('busy'); sw.disabled = false;
+  };
+  sw.addEventListener('click', () => run(sw.getAttribute('aria-checked') === 'true' ? 'off' : 'on'));
+  return { show, run, on: () => sw.getAttribute('aria-checked') === 'true' };
+}
+
+const brief = makeSwitch({ sw: $('#sw-brief'), st: $('#st-brief'), fields: () => ({ kind: 'ranok', ...profile() }),
+  onText: 'Увімкнено. Бот щойно надіслав підтвердження в чат.',
+  after: (d, action) => { if (action === 'status' && d.on && TIMES.includes(d.time)) { time = d.time; renderTimes(); } } });
+const cmd = makeSwitch({ sw: $('#sw-cmd'), st: $('#st-cmd'), path: 'commands', fields: () => ({}), onText: 'Увімкнено. Список команд уже в чаті з ботом.' });
+const alertSw = makeSwitch({ sw: $('#sw-alert'), st: $('#st-alert'), fields: () => ({ kind: 'zboi' }), onText: 'Увімкнено. Бот щойно надіслав підтвердження в чат.' });
+
+$('#times').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-time]'); if (!b || b.dataset.time === time) return;
+  time = b.dataset.time; try { localStorage.setItem('bot-time', JSON.stringify(time)); } catch (err) {}
+  renderTimes(); haptic();
+  if (signed) call('reminders', { kind: 'ranok', action: 'prefs', ...profile() })
+    .then((d) => { if (d.on) brief.show(true, `Увімкнено. Надсилатиму о ${time}.`, 'on'); }).catch(() => {});
+});
+
+/* ---------- the reminders that live in their own sections ---------- */
+const OTHERS = [['smittia', '../smittia/', 'Сміття', 'о 18:00 напередодні вивозу'], ['prospekty', '../prospekty/', 'Проспекти', 'щопонеділка о 8:00'],
+  ['wetter', '../pogoda/', 'Попередження про негоду', 'коли DWD оголошує'], ['wort', '../igry/?tab=art', 'Слово дня', 'щодня о 9:00']];
+$('#others').innerHTML = OTHERS.map(([k, href, name, when]) =>
+  `<li><a href="${href}"><span class="txt"><b>${name}</b><small>${when}</small></span><span class="st" data-kind="${k}"></span>${NEXT}</a></li>`).join('');
+
+if (signed) {
+  (async () => {
+    await brief.run('status', true);
+    // the choices as they are now: kept for the commands, and for the digest if it is on
+    call('reminders', { kind: 'ranok', action: 'prefs', ...profile() }).catch(() => {});
+  })();
+  cmd.run('status', true); alertSw.run('status', true);
+  for (const [k] of OTHERS) {
+    call('reminders', { kind: k, action: 'status' }).then((d) => {
+      const el = $(`.st[data-kind="${k}"]`); el.textContent = d.on ? 'увімкнено' : 'вимкнено'; el.classList.toggle('on', !!d.on);
+    }).catch(() => {});
+  }
+}
+</script>
+</body>
+</html>
