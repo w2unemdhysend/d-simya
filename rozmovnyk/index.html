@@ -12,7 +12,8 @@
 <link rel="stylesheet" href="../assets/page.css?v=1">
 <style>
 /* Layout: one column. A search field and situation chips on top, then the phrases of the chosen situation: German
-   large (it is what gets said or shown), Ukrainian under it, a button to hear it. Tapping a phrase shows it across
+   large (it is what gets said or shown), Ukrainian under it, a button to hear it (a recorded MP3 per phrase: Android's
+   WebView, where Telegram runs on Android phones, has no speech synthesis of its own). Tapping a phrase shows it across
    the whole screen, to hold the phone up to the person when saying it is too hard. */
 .find{width:100%;min-height:48px;border-radius:14px;border:1px solid var(--line);background:var(--surface);padding:0 14px;font-size:17px}
 .sits{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:2px 16px 4px}
@@ -27,6 +28,7 @@
 .say svg{width:22px;height:22px}
 .say.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .empty{margin:0;color:var(--muted);font-size:15.5px}
+.sayerr{margin:0;color:var(--danger);font-size:15px;font-weight:600}
 .title{margin:6px 2px 0;font-size:14px;color:var(--muted)}
 .title b{color:var(--ink);font-weight:600}
 .bigview{position:fixed;inset:0;z-index:40;background:var(--bg);display:grid;grid-template-rows:1fr auto;padding:max(20px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom))}
@@ -52,8 +54,9 @@
     <p class="title" id="title"></p>
     <ul class="list" id="list"></ul>
     <p class="empty" id="empty" hidden>Такої фрази тут немає. Спробуй інше слово, українською чи німецькою.</p>
+    <p class="sayerr" id="sayerr" role="status" hidden>Цю фразу ще не завантажено. Відкрий розмовник один раз з інтернетом, і озвучення працюватиме й без нього.</p>
   </main>
-  <p class="foot" id="foot">Усі фрази у ввічливій формі на «Sie»: так звертаються до лікарів, працівників установ і незнайомих людей.</p>
+  <p class="foot" id="foot">Усі фрази у ввічливій формі на «Sie»: так звертаються до лікарів, працівників установ і незнайомих людей. Озвучення: синтезований голос Thorsten (Piper), трохи повільніше за звичайне мовлення.</p>
 </div>
 <div class="bigview" id="big" role="dialog" aria-modal="true" aria-label="Фраза великим шрифтом" hidden>
   <div class="words"><div id="big-de" lang="de"></div><div class="uk" id="big-uk"></div></div>
@@ -62,6 +65,7 @@
 <script src="../assets/ui.js?v=16"></script>
 <script type="module">
 import { SITUATIONS } from './phrases.js';
+import { AUDIO } from './audio.js';
 
 const $ = (s, r) => (r || document).querySelector(s);
 const tgApp = window.Telegram && window.Telegram.WebApp;
@@ -71,23 +75,49 @@ const haptic = () => { try { if (tg && tg.HapticFeedback) tg.HapticFeedback.sele
 const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;'})[c]);
 const SPEAKER = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 9.5v5h3.2l4.3 3.5v-12L7.700 9.500z"/><path d="M15.500 9a4.200 4.200 0 0 1 0 6M18 6.500a7.800 7.800 0 0 1 0 11"/></svg>';
 
-/* ---------- speaking: the phone's own German voice, if it has one ---------- */
+/* ---------- speaking: a recorded MP3 per phrase (tools/tts.py); the phone's own voice only for a phrase without one ---------- */
+const DIR = new URL('./audio/', import.meta.url);
 const synth = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window ? window.speechSynthesis : null;
 let voice = null;
 function pickVoice() { if (synth) voice = synth.getVoices().find((v) => /^de(-|_)DE/i.test(v.lang)) || synth.getVoices().find((v) => /^de/i.test(v.lang)) || null; }
 if (synth) { pickVoice(); try { synth.addEventListener('voiceschanged', pickVoice); } catch (e) {} }
+const canSay = (de) => !!AUDIO[de] || !!synth;
+// The clips of the phrases on screen are fetched ahead (small: about 9 KB each), so a tap plays at once and, through the
+// offline copy the service worker keeps, also without internet later
+const ready = new Map();   // file → object URL (null while loading)
+function prefetch(list) {
+  if (navigator.connection && navigator.connection.saveData) return;
+  for (const p of list) {
+    const f = AUDIO[p.de]; if (!f || ready.has(f)) continue;
+    ready.set(f, null);
+    fetch(new URL(f, DIR)).then((r) => (r.ok ? r.blob() : null)).then((b) => { if (b) ready.set(f, URL.createObjectURL(b)); else ready.delete(f); }).catch(() => ready.delete(f));
+  }
+}
+let player = null;
+function stop() {
+  if (player) { try { player.pause(); } catch (e) {} player = null; }
+  if (synth) synth.cancel();
+  document.querySelectorAll('.say.on, #big-say.on').forEach((b) => b.classList.remove('on'));
+}
 function speak(text, btn) {
+  stop(); $('#sayerr').hidden = true;
+  const on = () => btn && btn.classList.add('on'), off = () => btn && btn.classList.remove('on');
+  const f = AUDIO[text];
+  if (f) {
+    const a = new Audio(ready.get(f) || new URL(f, DIR).href);   // made inside the tap, so phones allow it to play
+    player = a; on();
+    const fail = () => { off(); if (player === a) player = null; if (!navigator.onLine || !ready.get(f)) $('#sayerr').hidden = false; };
+    a.onended = () => { off(); if (player === a) player = null; };
+    a.onerror = fail;
+    const pr = a.play(); if (pr && pr.catch) pr.catch((e) => { if (!e || e.name !== 'AbortError') fail(); });
+    return;
+  }
   if (!synth) return;
-  synth.cancel();
   const u = new SpeechSynthesisUtterance(text.replace(/…/g, ' ').replace(/\s*\/\s*/g, ', '));
   u.lang = 'de-DE'; u.rate = 0.9; if (voice) u.voice = voice;
-  const off = () => btn && btn.classList.remove('on');
-  u.onend = off; u.onerror = off;
-  document.querySelectorAll('.say.on').forEach((b) => b.classList.remove('on'));
-  if (btn) btn.classList.add('on');
+  u.onend = off; u.onerror = off; on();
   synth.speak(u);
 }
-if (!synth) $('#foot').textContent += ' Цей телефон не вміє озвучувати текст у застосунку: показуй фразу великим шрифтом.';
 
 /* ---------- the list ---------- */
 const ALL = SITUATIONS.flatMap((s) => s.list.map(([de, uk], i) => ({ de, uk, sit: s, key: s.id + ':' + i })));
@@ -100,8 +130,9 @@ function render() {
   $('#title').innerHTML = q ? `Знайдено: ${found.length}` : `<b>${esc(cur.name)}</b> · <span lang="de">${esc(cur.de)}</span>`;
   $('#list').innerHTML = found.map((p) => `<li class="ph"><button class="txt" type="button" data-key="${p.key}">` +
     (q ? `<span class="sit">${esc(p.sit.name)}</span>` : '') + `<span class="de" lang="de">${esc(p.de)}</span><span class="uk">${esc(p.uk)}</span></button>` +
-    (synth ? `<button class="say" type="button" data-say="${p.key}" aria-label="Прослухати: ${esc(p.de)}">${SPEAKER}</button>` : '') + '</li>').join('');
+    (canSay(p.de) ? `<button class="say" type="button" data-say="${p.key}" aria-label="Прослухати: ${esc(p.de)}">${SPEAKER}</button>` : '') + '</li>').join('');
   $('#empty').hidden = found.length > 0;
+  prefetch(found.slice(0, 16));
 }
 render();
 $('#sits').addEventListener('click', (e) => {
@@ -117,10 +148,10 @@ let shown = null, opener = null;
 function openBig(p, from) {
   shown = p; opener = from;
   $('#big-de').textContent = p.de; $('#big-uk').textContent = p.uk;
-  $('#big-say').hidden = !synth;
+  $('#big-say').hidden = !canSay(p.de);
   $('#big').hidden = false; $('#big-close').focus();
 }
-function closeBig() { if (synth) synth.cancel(); $('#big').hidden = true; if (opener) opener.focus(); shown = null; }
+function closeBig() { stop(); $('#big').hidden = true; if (opener) opener.focus(); shown = null; }
 $('#list').addEventListener('click', (e) => {
   const say = e.target.closest('[data-say]');
   if (say) { speak(ALL.find((p) => p.key === say.dataset.say).de, say); haptic(); return; }
@@ -128,7 +159,7 @@ $('#list').addEventListener('click', (e) => {
   if (b) { openBig(ALL.find((p) => p.key === b.dataset.key), b); haptic(); }
 });
 $('#big-close').addEventListener('click', closeBig);
-$('#big-say').addEventListener('click', () => shown && speak(shown.de));
+$('#big-say').addEventListener('click', () => shown && speak(shown.de, $('#big-say')));
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#big').hidden) closeBig(); });
 </script>
 </body>

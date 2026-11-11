@@ -6,7 +6,8 @@ Covers. Бот: outside Telegram the switches explain themselves; inside, states
 place, bins, stop and time chosen in the other sections, a new time is saved quietly, the commands switch says why it
 cannot be switched on over someone else's webhook, the other reminders show their state. Екстрено: the numbers and
 their phone links, the address sentence stays on the phone, links to maps and the night pharmacy. Розмовник:
-situations, search in both languages, a phrase across the screen, speaking with a German voice. 340 px, no sideways
+situations, search in both languages, a phrase across the screen, the recorded clips (also where Android's
+WebView has no speech synthesis), fetched ahead. 340 px, no sideways
 scrolling. Exits 1 if a check fails.
 """
 import asyncio, functools, http.server, json, os, re, sys, threading
@@ -61,6 +62,12 @@ async def page(browser, base, path, tg='', worker=None, store=None, width=340, s
           Object.defineProperty(window, 'speechSynthesis', {value: {getVoices: () => [{lang: 'en-US', name: 'E'}, {lang: 'de-DE', name: 'Anna'}], addEventListener() {}, cancel() {},
             speak(u) { window.__said.push([u.text, u.lang, u.voice && u.voice.name]); setTimeout(() => u.onend && u.onend(), 50); }}});"""
     else: init += "try { delete window.speechSynthesis; Object.defineProperty(window, 'speechSynthesis', {get: () => undefined}); delete window.SpeechSynthesisUtterance; } catch (e) {}"
+    # audio is not really played in the test: remember what would be
+    # remember which file a fetched-ahead copy (blob:) came from, so a check can name the clip
+    init += """window.__played = []; window.__blobs = {};
+      const rb = Response.prototype.blob; Response.prototype.blob = function () { const u = this.url; return rb.call(this).then((b) => { b.__src = u; return b; }); };
+      const oc = URL.createObjectURL; URL.createObjectURL = function (b) { const r = oc.call(URL, b); if (b && b.__src) window.__blobs[r] = b.__src; return r; };
+      HTMLMediaElement.prototype.play = function () { window.__played.push(window.__blobs[this.src] || this.src); const a = this; setTimeout(() => a.onended && a.onended(), 300); return Promise.resolve(); };"""
     await ctx.add_init_script(init)
     pg = await ctx.new_page(); pg.on('pageerror', lambda e: fails.append(f'page error: {e}'))
     await pg.goto(base + path); await pg.wait_for_timeout(500)
@@ -69,6 +76,7 @@ async def page(browser, base, path, tg='', worker=None, store=None, width=340, s
 HOME = {'smittia-prefs': {'district': '2', 'place': 'Lüttingen', 'bins': ['rest', 'papier', 'gelb'], 'rhythm': '14'},
         'transport-stops': {'list': [{'id': 'de:05170:37032', 'name': 'Xanten, Bahnhof'}], 'active': 'de:05170:37032'}}
 fits = "document.documentElement.scrollWidth <= innerWidth"
+AUDIO = json.loads(__import__('subprocess').check_output(['node', '--input-type=module', '-e', "import('./rozmovnyk/audio.js').then(m => console.log(JSON.stringify(m.AUDIO)))"], cwd=ROOT))
 
 async def main():
     base = serve()
@@ -140,7 +148,8 @@ async def main():
         first = await pg.text_content('.ph .de >> nth=0')
         check('phrasebook: "У лікаря" shows its phrases, German with Ukrainian', first == 'Ich hätte gern einen Termin.' and 'записатися на прийом' in await pg.text_content('.ph .uk >> nth=0') and await pg.locator('.ph').count() >= 10, first)
         await pg.click('.ph .say >> nth=0'); await pg.wait_for_timeout(150)
-        check('phrasebook: speaks the German phrase with a German voice', await pg.evaluate('window.__said') == [['Ich hätte gern einen Termin.', 'de-DE', 'Anna']], str(await pg.evaluate('window.__said')))
+        played = await pg.evaluate('window.__played')
+        check('phrasebook: plays the recorded clip of the phrase, not the phone\'s own voice', len(played) == 1 and played[0].endswith(AUDIO['Ich hätte gern einen Termin.'].split('/')[-1]) and await pg.evaluate('window.__said') == [], str(played))
         await pg.fill('#find', 'рецепт'); await pg.wait_for_timeout(100)
         found = await pg.locator('.ph .de').all_text_contents()
         check('phrasebook: search in Ukrainian finds phrases from several situations', 'Ich brauche ein neues Rezept.' in found and 'Ich möchte dieses Rezept einlösen.' in found and 'Знайдено: ' in await pg.text_content('#title'), str(found))
@@ -159,10 +168,24 @@ async def main():
         if OUT: await pg.screenshot(path=os.path.join(OUT, 'rozmovnyk.png'), full_page=True)
         await ctx.close()
 
-        ctx, pg, w = await page(browser, base, 'rozmovnyk/')
-        check('phrasebook on a phone without a voice: no speaker buttons, a note instead', await pg.locator('.ph .say').count() == 0 and 'не вміє озвучувати' in await pg.text_content('#foot'))
+        # Telegram on Android: its WebView has no speech synthesis at all; the recorded clips are played instead
+        ctx, pg, w = await page(browser, base, 'rozmovnyk/', tg=TG)
+        audio_req = []
+        pg.on('request', lambda r: audio_req.append(r.url) if '/rozmovnyk/audio/' in r.url else None)
+        await pg.click('#sits [data-sit="arzt"]'); await pg.wait_for_timeout(600)
+        check('Android (no speech synthesis): every phrase still has a speaker button', await pg.locator('.ph .say').count() == await pg.locator('.ph').count() > 0)
+        check('the clips of the phrases on screen are fetched ahead', len(audio_req) >= 10 and all(u.endswith('.mp3') for u in audio_req), str(len(audio_req)))
+        await pg.click('.ph .say >> nth=2'); await pg.wait_for_timeout(150)
+        played = await pg.evaluate('window.__played')
+        check('a tap plays the clip of that phrase (the copy fetched ahead)', len(played) == 1 and played[0].endswith('/rozmovnyk/audio/' + AUDIO['Hier ist meine Versichertenkarte.']), str(played))
+        check('… and the button shows it is playing', await pg.locator('.ph .say.on').count() == 1)
         await pg.click('.ph .txt >> nth=0'); await pg.wait_for_timeout(100)
-        check('… the big view still works, without "Прослухати"', await pg.is_visible('#big') and await pg.is_hidden('#big-say'))
+        check('the big view has "Прослухати" too', await pg.is_visible('#big') and await pg.is_visible('#big-say'))
+        await pg.click('#big-say'); await pg.wait_for_timeout(100)
+        check('… and it plays the clip', len(await pg.evaluate('window.__played')) == 2)
+        for f in sorted(set(AUDIO.values()))[:5]:
+            r = await pg.request.get(base + 'rozmovnyk/audio/' + f)
+            check(f'clip {f} is served as audio', r.status == 200 and len(await r.body()) > 3000)
         await ctx.close()
         await browser.close()
     print('ALL PASS' if not fails else f'{len(fails)} FAILED: {fails}')

@@ -6,14 +6,15 @@
    · weather, warnings, departures from our Worker: the network first; without it the last answer (each page shows
      "оновлено о …", so an old answer is never mistaken for a new one)
    · fonts: kept once, used from then on
+   · the phrasebook's spoken clips: kept once fetched
    Nothing else is kept: not the shopping list, not translations, not searches.
    When the asset version (?v=) changes, update it here too (tests/offline_e2e.py checks that they match). */
 
-const VERSION = '2026-11-12.3';
-const CORE_CACHE = 'dsimya-core-' + VERSION, DATA_CACHE = 'dsimya-data', STATIC_CACHE = 'dsimya-static';
+const VERSION = '2026-11-12.4';
+const CORE_CACHE = 'dsimya-core-' + VERSION, DATA_CACHE = 'dsimya-data', STATIC_CACHE = 'dsimya-static', AUDIO_CACHE = 'dsimya-audio';
 const CORE = [
   './', 'pralka/', 'sushka/', 'scan/', 'smittia/', 'prospekty/', 'spysok/', 'transport/', 'pogoda/', 'igry/', 'bot/', 'ekstreno/', 'rozmovnyk/', 'marshrut/',
-  'assets/ui.css?v=16', 'assets/ui.js?v=16', 'assets/page.css?v=1', 'rozmovnyk/phrases.js', 'assets/fonts/noto-sans.ttf',
+  'assets/ui.css?v=16', 'assets/ui.js?v=16', 'assets/page.css?v=1', 'rozmovnyk/phrases.js', 'rozmovnyk/audio.js', 'assets/fonts/noto-sans.ttf',
   'smittia/kalender.json', 'smittia/due.js', 'smittia/wohin.js', 'prospekty/week.js', 'pogoda/wx.js', 'igry/words.js',
 ];
 const DATA = /^\/(weather|warnings|transit\/departures)$/;
@@ -35,6 +36,8 @@ self.addEventListener('fetch', (e) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin === self.location.origin) {
+    // the phrasebook's clips: kept once played or fetched ahead; the name changes when a clip changes, so never stale
+    if (url.pathname.includes('/rozmovnyk/audio/') && url.pathname.endsWith('.mp3')) return e.respondWith(audio(url.href));
     if (req.mode === 'navigate' || req.destination === 'document') e.respondWith(networkFirst(req, CORE_CACHE, 4000, true));
     else e.respondWith(staleWhileRevalidate(req, CORE_CACHE));
   } else if (url.hostname.endsWith('.workers.dev') && DATA.test(url.pathname)) {
@@ -71,8 +74,20 @@ async function networkFirst(req, name, wait, page) {
 async function staleWhileRevalidate(req, name) {
   const cache = await caches.open(name);
   const kept = await cache.match(req);
-  const net = fetch(req).then((res) => { if (res && res.ok) cache.put(req, res.clone()); return res; }).catch(() => kept);
+  const net = fetch(req).then((res) => { if (res && res.status === 200) cache.put(req, res.clone()); return res; }).catch(() => kept);
   return kept || net;
+}
+
+// A clip, whole: a player asks for parts of a file (Range), and a part cannot be kept, so the whole file is fetched once
+async function audio(href) {
+  const cache = await caches.open(AUDIO_CACHE);
+  const kept = await cache.match(href);
+  if (kept) return kept;
+  try {
+    const res = await fetch(href);
+    if (res.status === 200) await cache.put(href, res.clone());
+    return res;
+  } catch (err) { return new Response('', { status: 504 }); }
 }
 
 async function cacheFirst(req, name) {

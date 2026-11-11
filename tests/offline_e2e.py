@@ -80,6 +80,13 @@ async def main():
         await pg.goto(base + 'smittia/')
         check('offline: the waste calendar works (its data file is kept)', 'Сміття' == await pg.text_content('h1') and not await pg.locator('text=Не вдалося').count())
         await ctx.set_offline(False); await pg.wait_for_timeout(300)
+        # the phrasebook: clips fetched ahead while online play later without internet
+        await pg.goto(base + 'rozmovnyk/'); await pg.wait_for_timeout(1500)
+        first = await pg.evaluate("import('./audio.js').then(m => m.AUDIO['Können Sie das bitte wiederholen?'])")
+        await ctx.set_offline(True)
+        got = await pg.evaluate(f"fetch('audio/{first}').then(r => r.status + ' ' + r.headers.get('content-type')).catch(e => 'failed ' + e)")
+        check('offline: a phrasebook clip fetched before plays without internet', got.startswith('200'), got)
+        await ctx.set_offline(False); await pg.wait_for_timeout(300)
         check('back online: the label goes away', await pg.is_hidden('.offline'))
         await ctx.close(); await browser.close()
     print('ALL PASS' if not fails else f'{len(fails)} FAILED: {fails}')
