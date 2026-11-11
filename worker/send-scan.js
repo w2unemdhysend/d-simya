@@ -9,7 +9,8 @@
  *   GET  /handoff/<id>/<i> page i as JPEG
  *   DELETE /handoff/<id>   the browser removes the pages once it has them
  *   POST /reminders        reminders for the signed-in user: action=on|off|status,
- *                          kind=smittia (default, evening before a waste pickup) or prospekty (Monday flyers)
+ *                          kind=smittia (default, evening before a waste pickup) or prospekty (Monday flyers);
+ *                          for smittia also district, bins (comma list) and rhythm; action=prefs updates them
  *   POST /translate        text of one scanned page (recognised on the phone) → its translation,
  *                          by Gemma 4 on Workers AI (free daily allowance)
  *   GET  /translate/check  translates a fixed sentence (?page=1: a fixed letter): shows the model answers;
@@ -32,7 +33,7 @@
  */
 
 import cal from '../smittia/kalender.json' with { type: 'json' };
-import { BINS, binsOn, berlinDay } from '../smittia/due.js';
+import { BINS, binsOn, berlinDay, prefsOf } from '../smittia/due.js';
 import { flyerWeek, closures, rangeText, dayText, weekdayOf } from '../prospekty/week.js';
 
 const MAX_BYTES = 45 * 1024 * 1024;        // Bot API upload limit is 50 MB
@@ -112,16 +113,25 @@ async function reminders(request, env, reply) {
   if (kind !== 'smittia' && kind !== 'prospekty') return reply(400, { ok: false, error: 'kind: smittia or prospekty' });
   const flyers = kind === 'prospekty';
   const key = (flyers ? FLYERS.prefix : SUB) + signed.user.id, action = signed.form.get('action');
+  // the household's district, bins and grey-bin rhythm, as chosen on the Сміття page (only the district, never the street)
+  const f = signed.form, prefs = flyers ? null : prefsOf(cal, {
+    district: f.get('district'), rhythm: f.get('rhythm'), bins: f.has('bins') ? String(f.get('bins')).split(',') : undefined });
+  const record = () => JSON.stringify({ id: signed.user.id, name: String(signed.user.first_name || '').slice(0, 40), ...prefs });
   if (action === 'on') {
     // Confirm in the chat right away: it proves the bot may write to this person (they must have started it)
     const res = flyers ? await tgSend(env, signed.user.id, flyerConfirmText(new Date()), FLYERS.button)
-      : await tgSend(env, signed.user.id, confirmText(new Date()));
+      : await tgSend(env, signed.user.id, confirmText(new Date(), prefs));
     if (res.status === 403) return reply(200, { ok: false, on: false, error: 'bot_blocked' });
-    await env.SCANS.put(key, JSON.stringify({ id: signed.user.id, name: String(signed.user.first_name || '').slice(0, 40) }));
+    await env.SCANS.put(key, record());
     return reply(200, { ok: true, on: true, confirmed: res.ok });
   }
+  if (action === 'prefs' && !flyers) {   // the household changed district or bins: quietly update a running subscription
+    const on = (await env.SCANS.get(key)) !== null;
+    if (on) await env.SCANS.put(key, record());
+    return reply(200, { ok: true, on });
+  }
   if (action === 'off') await env.SCANS.delete(key);
-  else if (action !== 'status') return reply(400, { ok: false, error: 'action: on, off or status' });
+  else if (action !== 'status') return reply(400, { ok: false, error: 'action: on, off, status or prefs' });
   return reply(200, { ok: true, on: (await env.SCANS.get(key)) !== null });
 }
 
@@ -132,9 +142,9 @@ function tgSend(env, chatId, text, button = WASTE_BUTTON) {
   });
 }
 
-function confirmText(now) {
+function confirmText(now, prefs) {
   for (let i = 1; i <= 60; i++) {
-    const day = berlinDay(now, i), bins = binsOn(cal, day);
+    const day = berlinDay(now, i), bins = binsOn(cal, day, prefs);
     if (!bins.length) continue;
     const date = new Date(day + 'T12:00:00Z').toLocaleDateString('uk-UA', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
     return `Нагадування про сміття увімкнено. Я напишу о 18:00 напередодні кожного вивозу.\n\nНайближчий вивіз: ${date}, ${bins.map(({ bin }) => `${BINS[bin].dot} ${BINS[bin].uk}`).join(', ')}.`;
@@ -170,13 +180,17 @@ async function sendFlyerReminders(env, now) {
   await env.SCANS.put(FLYERS.sent + day, '1', { expirationTtl: 3 * 86400 });
   return broadcast(env, FLYERS.prefix, flyerText(day), FLYERS.button);
 }
-// One message to everyone under a KV prefix; people who blocked the bot are removed
+// One message to everyone under a KV prefix; people who blocked the bot are removed.
+// text: the same text for all, or a function of the stored record giving each person's text (null: nothing to send)
 async function broadcast(env, prefix, text, button) {
   let sent = 0, cursor;
   do {
     const page = await env.SCANS.list({ prefix, cursor });
     for (const { name } of page.keys) {
-      const res = await tgSend(env, Number(name.slice(prefix.length)), text, button);
+      let t = text;
+      if (typeof text === 'function') { let rec = null; try { rec = JSON.parse(await env.SCANS.get(name)); } catch { /* old or broken record */ } t = text(rec); }
+      if (!t) continue;
+      const res = await tgSend(env, Number(name.slice(prefix.length)), t, button);
       if (res.ok) sent++;
       else if (res.status === 403) await env.SCANS.delete(name);
     }
@@ -188,12 +202,12 @@ async function broadcast(env, prefix, text, button) {
 async function sendReminders(env, now) {
   const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Berlin', hour: '2-digit', hourCycle: 'h23' }).format(now));
   if (hour !== 18 || !env.SCANS || !env.BOT_TOKEN) return { sent: 0, why: 'not 18:00 in Xanten' };
-  const day = berlinDay(now, 1), bins = binsOn(cal, day);
-  if (!bins.length) return { sent: 0, why: 'nothing tomorrow' };
+  const day = berlinDay(now, 1);
   if (await env.SCANS.get('sent:' + day)) return { sent: 0, why: 'already sent' };
   await env.SCANS.put('sent:' + day, '1', { expirationTtl: 3 * 86400 });
-
-  return { ...(await broadcast(env, SUB, reminderText(day, bins), WASTE_BUTTON)), day };
+  // each household gets the bins of its own district (records from before districts existed: LEGACY)
+  const text = (rec) => { const bins = binsOn(cal, day, rec); return bins.length ? reminderText(day, bins) : null; };
+  return { ...(await broadcast(env, SUB, text, WASTE_BUTTON)), day };
 }
 
 /* ---------------- translation of scanned pages ---------------- */

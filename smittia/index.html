@@ -43,7 +43,7 @@ a{color:inherit}
 h1{font-family:var(--f-display);font-weight:700;font-size:32px;line-height:1.05;margin:6px 0 8px;letter-spacing:-.01em}
 .lede{margin:0;color:var(--muted);font-size:16px;max-width:42ch}
 h2{font-family:var(--f-display);font-weight:600;font-size:17px;line-height:1.2;margin:0}
-main{display:grid;gap:16px;padding-top:8px}
+main{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;padding-top:8px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px}
 .note{margin:4px 0 0;color:var(--muted);font-size:15px}
 
@@ -75,6 +75,29 @@ main{display:grid;gap:16px;padding-top:8px}
 .day .bin{font-weight:500;font-size:16px;gap:10px}
 .day .bin .dot{width:20px;height:20px;border-radius:6px}
 
+/* where: the household's district (street search, places, bins, grey-bin rhythm) */
+.where .sum{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.where .sum h2{font-size:19px;margin-top:2px;overflow-wrap:anywhere}
+.ghost{flex:none;min-height:44px;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:transparent;font-weight:600;font-size:15px;cursor:pointer}
+.wform{display:grid;gap:16px;margin-top:4px}
+.wform fieldset{border:0;margin:0;padding:0;min-width:0}
+.wform legend,.fld>span{display:block;font-weight:600;font-size:15px;padding:0;margin-bottom:8px}
+.srow{display:flex;gap:8px}
+.srow input{flex:1;min-width:0;width:0;min-height:48px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;padding:0 12px}
+.btn{min-height:48px;border-radius:12px;border:1px solid var(--line);background:var(--surface);font-weight:600;font-size:16px;padding:0 16px;cursor:pointer}
+.btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink);width:100%}
+.btn:disabled{opacity:.5;cursor:default}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{min-height:44px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-weight:600;font-size:15px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:background-color .2s ease, color .2s ease}
+.chip[aria-checked="true"],.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip .dot{width:14px;height:14px;border-radius:4px;box-shadow:inset 0 0 0 1px rgba(127,127,127,.45)}
+.dlabel{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin:10px 0 6px}
+.dlabel:first-of-type{margin-top:0}
+.found{background:var(--accent-soft);border-radius:12px;padding:12px 14px;font-size:16px;display:grid;gap:10px}
+.found p{margin:0}
+.found .pick{display:flex;gap:8px;flex-wrap:wrap}
+.werr{color:var(--danger);font-weight:600;font-size:15px;margin:0}
+
 .rhythm{background:var(--accent-soft);border-color:transparent}
 .rhythm p{margin:6px 0 0;font-size:16px}
 
@@ -99,12 +122,34 @@ main{display:grid;gap:16px;padding-top:8px}
 <div class="wrap">
   <header class="top">
     <div class="toprow"><button class="menubtn" id="menubtn" type="button" aria-expanded="false" aria-controls="drawer" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Розділи</span></button><button class="themebtn" id="themebtn" type="button" aria-label="Увімкнути темну тему"><svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M5.3 18.7L7 17M17 7l1.7-1.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.6A8.2 8.2 0 0 1 9.4 4a8.2 8.2 0 1 0 10.6 10.6z" fill="currentColor"/></svg></button></div>
-    <div class="eyebrow">Xanten · район 2</div>
+    <div class="eyebrow" id="eyebrow">Xanten</div>
     <h1>Сміття</h1>
     <p class="lede">Коли вивозять баки біля будинку і що куди викидати.</p>
   </header>
 
   <main>
+    <section class="card where" id="where" aria-labelledby="h-where">
+      <div class="sum" id="where-sum" hidden>
+        <div><div class="eyebrow">Ваш район</div><h2 id="h-where">…</h2><p class="note" id="where-note"></p></div>
+        <button class="ghost" id="where-edit" type="button" aria-expanded="false" aria-controls="where-form">Змінити</button>
+      </div>
+      <form class="wform" id="where-form" novalidate>
+        <div id="where-intro"><h2>Де ви живете?</h2>
+          <p class="note">У Ксантені два райони вивозу, і дати в них різні. Введи свою вулицю, і застосунок підкаже район. Вулиця зберігається тільки в тебе: на цьому пристрої й у твоєму Telegram.</p></div>
+        <label class="fld"><span>Вулиця в Ксантені</span>
+          <div class="srow"><input id="street" type="text" autocomplete="off" enterkeyhint="search" spellcheck="false" lang="de" placeholder="наприклад, Kalkarer Straße"><button class="btn" id="find" type="submit">Знайти</button></div></label>
+        <div id="found" aria-live="polite"></div>
+        <fieldset><legend>Або вибери місцевість</legend><div id="places" role="radiogroup" aria-label="Місцевість"></div></fieldset>
+        <fieldset><legend>Які баки у вас є</legend><div class="chips" id="binsel"></div></fieldset>
+        <fieldset><legend>Сірий бак у вас вивозять</legend><div class="chips" id="rhythmsel" role="radiogroup" aria-label="Як часто вивозять сірий бак">
+          <button class="chip" type="button" role="radio" data-rhythm="14">кожні 2 тижні</button>
+          <button class="chip" type="button" role="radio" data-rhythm="4">кожні 4 тижні</button>
+          <button class="chip" type="button" role="radio" data-rhythm="unknown">не знаю</button></div></fieldset>
+        <p class="werr" id="where-err" hidden></p>
+        <button class="btn primary" id="where-save" type="button">Зберегти</button>
+      </form>
+    </section>
+
     <section class="card next" id="next" aria-live="polite" aria-label="Наступний вивіз">
       <div class="when">…</div>
     </section>
@@ -122,7 +167,7 @@ main{display:grid;gap:16px;padding-top:8px}
 
     <section class="card rhythm" id="rhythm" hidden aria-label="Як часто вивозять сірий бак"></section>
 
-    <section aria-labelledby="h-days">
+    <section aria-labelledby="h-days" id="days-sec">
       <h2 id="h-days">Наступні вивози</h2>
       <ol class="days" id="days"></ol>
     </section>
@@ -137,7 +182,10 @@ main{display:grid;gap:16px;padding-top:8px}
           <div class="body"><p>Тільки упаковка: пластикові пляшки з-під шампуню й засобів, стаканчики від йогурту, плівка, пакети з-під молока й соку, бляшанки, кришки, фольга. Упаковка має бути порожня, мити не треба.</p>
           <p class="no">Не можна: речі, які не були упаковкою (іграшки, тазики, зубні щітки), скло, папір. Жовті мішки дають безкоштовно в Bürgerservice-Büro в ратуші.</p></div></details>
         <details><summary><span class="dot" style="background:#4A5258"></span>Сірий бак · Restmüll<svg class="chev" viewBox="0 0 20 20" aria-hidden="true"><path d="M5 8l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
-          <div class="body"><p>Те, що не переробляють: недоїдки й очистки (біо-бака у вас немає), підгузки й гігієна, пил із пилососа, брудний папір, кераміка й порцеляна, холодний попіл.</p></div></details>
+          <div class="body"><p>Те, що не переробляють: <span id="rest-food">недоїдки й очистки (біо-бака у вас немає), </span>підгузки й гігієна, пил із пилососа, брудний папір, кераміка й порцеляна, холодний попіл.</p></div></details>
+        <details id="bio-guide" hidden><summary><span class="dot" style="background:#7A4A2E"></span>Коричневий бак · Biotonne<svg class="chev" viewBox="0 0 20 20" aria-hidden="true"><path d="M5 8l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
+          <div class="body"><p>Очистки овочів і фруктів, кавова гуща разом із фільтром, чайні пакетики, яєчна шкаралупа, квіти, листя й дрібні гілки.</p>
+          <p class="no">Не можна: пластик і пластикові пакети, підгузки, попіл, пил із пилососа.</p></div></details>
         <details><summary><span class="dot" style="background:#5E8C61"></span>Скло · Altglas<svg class="chev" viewBox="0 0 20 20" aria-hidden="true"><path d="M5 8l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
           <div class="body"><p>Пляшки й банки без кришок у вуличні контейнери за кольором: біле, зелене, коричневе. Синє й інше кольорове скло кидай у зелений.</p>
           <p class="no">Не можна: віконне скло, дзеркала, чашки й тарілки, лампочки. Кидай удень у будні, а не пізно ввечері й не в неділю: це шумно, і сусіди скаржаться.</p></div></details>
@@ -161,27 +209,51 @@ main{display:grid;gap:16px;padding-top:8px}
 
 <script src="../assets/ui.js?v=10"></script>
 <script type="module">
-import { BINS, binsOn, berlinDay } from './due.js';
+import { BINS, binsOn, berlinDay, prefsOf, districtOf } from './due.js';
 
 // Same Worker as the scanner (worker/send-scan.js)
 const WORKER_URL = 'https://d-simya.whysends.workers.dev';
 const $ = (s) => document.querySelector(s);
 const tgApp = window.Telegram && window.Telegram.WebApp;
 const tg = tgApp && tgApp.platform && tgApp.platform !== 'unknown' ? tgApp : null;
-const haptic = () => { try { tg && tg.HapticFeedback.notificationOccurred('success'); } catch (e) {} };
+const haptic = (k) => { try { if (!tg || !tg.HapticFeedback) return; k ? tg.HapticFeedback.notificationOccurred(k) : tg.HapticFeedback.selectionChanged(); } catch (e) {} };
 if (tg) { try { tg.ready(); tg.expand(); } catch (e) {} }
+const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;'})[c]);
+
+// The household's choice: {district, place, street, bins, rhythm}. Kept on this device and, inside Telegram,
+// in the user's Telegram cloud storage, so phone and computer agree. The street never leaves the user's own storage.
+const KEY = 'smittia-prefs';
+const cloud = tg && tg.CloudStorage && tg.isVersionAtLeast && tg.isVersionAtLeast('6.9') ? tg.CloudStorage : null;
+const loadLocal = () => { try { return JSON.parse(localStorage.getItem(KEY)); } catch (e) { return null; } };
+function saveAll(p) {
+  try { localStorage.setItem(KEY, JSON.stringify(p)); } catch (e) {}
+  if (cloud) try { cloud.setItem('smittia', JSON.stringify(p)); } catch (e) {}
+}
+const cloudGet = () => new Promise((res) => { if (!cloud) return res(null); try { cloud.getItem('smittia', (err, v) => { try { res(err || !v ? null : JSON.parse(v)); } catch (e) { res(null); } }); } catch (e) { res(null); } });
 
 const label = (day) => new Date(day + 'T12:00:00Z').toLocaleDateString('uk-UA', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
 const short = (day) => new Date(day + 'T12:00:00Z').toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', timeZone: 'UTC' });
 const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
 const weekday = (day) => new Date(day + 'T12:00:00Z').toLocaleDateString('uk-UA', { weekday: 'long', timeZone: 'UTC' });
+// "у пʼятницю, 20 листопада": the weekday after "у" takes the accusative
+const ACC = { 'середа': 'середу', 'пʼятниця': 'пʼятницю', 'субота': 'суботу', 'неділя': 'неділю' };
+const onDay = (day) => { const w = weekday(day).replace("'", 'ʼ'); return `у ${ACC[w] || w}, ${short(day)}`; };
 const binItem = ({ bin, only14 }) => `<li class="bin"><span class="dot" style="background:${BINS[bin].color}"></span><span>${BINS[bin].uk}<small>${BINS[bin].de}${only14 ? ' · лише двотижневі баки' : ''}</small></span></li>`;
 
-function render(cal) {
+let cal = null, prefs = null, draft = null;
+const placesText = (d) => cal.districts[d].places.join(', ');
+
+/* ---------- the schedule for the chosen district ---------- */
+function renderSchedule() {
+  const has = !!prefs;
+  ['#next', '#days-sec', '.remind'].forEach((s) => { $(s).hidden = !has; });
+  $('#rhythm').hidden = true;
+  if (!has) return;
+  const p = prefsOf(cal, prefs), d = cal.dates[p.district];
   const today = berlinDay(new Date()), tomorrow = berlinDay(new Date(), 1);
   const upcoming = [];
   for (let i = 0; i < 70 && berlinDay(new Date(), i) <= cal.until; i++) {
-    const day = berlinDay(new Date(), i), bins = binsOn(cal, day);
+    const day = berlinDay(new Date(), i), bins = binsOn(cal, day, p);
     if (bins.length) upcoming.push({ day, bins });
   }
   const next = upcoming[0];
@@ -193,32 +265,166 @@ function render(cal) {
     `<li class="day"><div class="d">${short(day)}<small>${weekday(day)}</small></div><ul class="bins">${bins.map(binItem).join('')}</ul></li>`).join('')
     || '<li class="empty">Більше дат у календарі цього року немає.</li>';
 
-  if (cal.home.restRhythm === 'unknown') {
-    const test = cal.dates.rest14.find((d) => d >= today && !cal.dates.rest4.includes(d));
+  if (p.rhythm === 'unknown' && p.bins.includes('rest')) {
+    const test = d.rest14.find((x) => x >= today && !d.rest4.includes(x));
     if (test) {
-      $('#rhythm').innerHTML = `<h2>Як часто вивозять ваш сірий бак?</h2><p>${short(test)} забирають лише ті сірі баки, які вивозять кожні 2 тижні. Якщо ваш того дня спорожнять, він двотижневий. Якщо ні, його вивозять раз на 4 тижні.</p>`;
+      $('#rhythm').innerHTML = `<h2>Як часто вивозять ваш сірий бак?</h2><p>${short(test)} забирають лише ті сірі баки, які вивозять кожні 2 тижні. Якщо ваш того дня спорожнять, він двотижневий. Якщо ні, його вивозять раз на 4 тижні. Потім вибери це в «Змінити».</p>`;
       $('#rhythm').hidden = false;
     }
   }
-  const s = cal.schadstoff, sd = s.dates.find((d) => d >= today);
+  $('#rest-food').hidden = p.bins.includes('bio');
+  $('#bio-guide').hidden = !p.bins.includes('bio');
+  $('#eyebrow').textContent = `Xanten · район ${p.district}`;
+  $('#foot').innerHTML = `Дати з <a href="${cal.source}" target="_blank" rel="noopener">календаря вивозу міста Ксантен</a> (Schönmackers), район ${p.district}: ${placesText(p.district)}. Є до ${short(cal.until)} ${cal.until.slice(0, 4)} року.`;
+}
+function renderSchadstoff() {
+  const s = cal.schadstoff, sd = s.dates.find((d) => d >= berlinDay(new Date()));
   $('#schadstoff').textContent = sd
     ? `Фарби, лаки, розчинники й побутову хімію збирає Schadstoffmobil: наступного разу ${label(sd)}, ${s.time}, ${s.place}.`
     : 'Фарби, лаки, розчинники й побутову хімію збирає Schadstoffmobil. Дати на наступний рік зʼявляться разом із новим календарем.';
-  $('#foot').innerHTML = `Дати з <a href="${cal.source}" target="_blank" rel="noopener">календаря вивозу міста Ксантен</a> (Schönmackers), район ${cal.district}: ${cal.districtName}. Є до ${short(cal.until)} ${cal.until.slice(0, 4)} року.`;
 }
 
-/* reminder switch: the Worker keeps who wants the evening message */
+/* ---------- where: summary and the form ---------- */
+const BIN_NAMES = { rest: 'сірий', papier: 'синій', gelb: 'жовтий', bio: 'коричневий' };
+const RHYTHM_TEXT = { '14': 'сірий кожні 2 тижні', '4': 'сірий кожні 4 тижні', unknown: '' };
+function renderWhere(open) {
+  const has = !!prefs, form = $('#where-form');
+  $('#where-sum').hidden = !has;
+  if (has) {
+    const p = prefsOf(cal, prefs);
+    $('#h-where').textContent = prefs.street || prefs.place || `Район ${p.district}`;
+    $('#where-note').textContent = `Район ${p.district}: ${placesText(p.district)}. Баки: ${p.bins.map((b) => BIN_NAMES[b]).join(', ') || 'жодного'}` +
+      (p.bins.includes('rest') && RHYTHM_TEXT[p.rhythm] ? ` (${RHYTHM_TEXT[p.rhythm]})` : '') + '.';
+  }
+  form.hidden = has && !open;
+  $('#where-intro').hidden = has;
+  $('#where-edit').textContent = open ? 'Скасувати' : 'Змінити';
+  $('#where-edit').setAttribute('aria-expanded', String(!!open));
+  if (!form.hidden) renderDraft();
+}
+function renderDraft() {
+  $('#places').innerHTML = Object.entries(cal.districts).map(([d, info]) =>
+    `<div class="dlabel">Район ${d}</div><div class="chips">` + info.places.map((n) =>
+      `<button class="chip" type="button" role="radio" data-place="${esc(n)}" data-district="${d}" aria-checked="${draft.place === n}">${esc(n)}${n === 'Xanten' ? ' (місто)' : ''}</button>`).join('') + '</div>').join('');
+  $('#binsel').innerHTML = Object.entries(BINS).map(([b, info]) =>
+    `<button class="chip" type="button" data-bin="${b}" aria-pressed="${draft.bins.includes(b)}"><span class="dot" style="background:${info.color}"></span>${info.uk.replace(' бак', '')}</button>`).join('');
+  document.querySelectorAll('[data-rhythm]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.rhythm === draft.rhythm)));
+  $('#where-save').disabled = !draft.district;
+}
+function openForm() {
+  draft = prefs ? { ...prefs, bins: [...prefsOf(cal, prefs).bins] } : { district: null, place: null, street: '', bins: Object.keys(BINS), rhythm: 'unknown' };
+  $('#street').value = draft.street || '';
+  $('#found').innerHTML = ''; $('#where-err').hidden = true;
+  renderWhere(true);
+}
+function choose(d, place, street) {
+  draft.district = d; draft.place = place;
+  if (street !== undefined) draft.street = street;
+  renderDraft(); haptic();
+}
+
+/* ---------- street → district. OpenStreetMap labels the whole Xanten–Beek–Lüttingen area "Beek, Lüttingen",
+   so there the nearest place centre decides; the other villages carry their own name. One request per search
+   (Nominatim allows no search-as-you-type). ---------- */
+const CORE = ['Xanten', 'Beek', 'Lüttingen'];
+const km = (a, b) => Math.hypot((a[0] - b[0]) * 111.2, (a[1] - b[1]) * 111.2 * Math.cos(a[0] * Math.PI / 180));
+async function findStreet(q) {
+  const url = 'https://nominatim.openstreetmap.org/search?' + new URLSearchParams({ street: q, city: 'Xanten', country: 'Deutschland', format: 'jsonv2', addressdetails: '1', limit: '10', 'accept-language': 'de' });
+  const r = await fetch(url);
+  if (!r.ok) throw new Error('search');
+  const hits = (await r.json()).filter((x) => x.address && (x.address.town === 'Xanten' || x.address.city === 'Xanten'));
+  if (!hits.length) return null;
+  const votes = new Map(); let byDistance = false;
+  for (const x of hits) {
+    const a = x.address, pt = [Number(x.lat), Number(x.lon)];
+    let place = [a.hamlet, a.village, a.suburb, a.quarter, a.neighbourhood].find((n) => districtOf(cal, n) && !CORE.includes(n));
+    if (!place) {
+      byDistance = true;
+      const near = CORE.map((n) => [km(pt, cal.centers[n]), n]).sort((u, v) => u[0] - v[0]);
+      place = near[0][1];
+      const other = near.find(([, n]) => districtOf(cal, n) !== districtOf(cal, place));
+      if (other && other[0] < near[0][0] * 1.35 && !votes.has(districtOf(cal, other[1]))) votes.set(districtOf(cal, other[1]), other[1]);   // close to the border
+    }
+    const d = districtOf(cal, place);
+    if (!votes.has(d)) votes.set(d, place);
+  }
+  return { road: hits[0].address.road || q, votes, byDistance };
+}
+// the first coming pickup that differs between the districts: watching it tells which one is yours
+function checkHint() {
+  const today = berlinDay(new Date()); let best = null;
+  for (const bin of ['papier', 'gelb', 'rest14']) {
+    const a = cal.dates['1'][bin].find((x) => x >= today), b = cal.dates['2'][bin].find((x) => x >= today);
+    if (!a || !b || a === b) continue;
+    const first = a < b ? a : b;
+    if (!best || first < best.first) best = { bin: bin === 'rest14' ? 'rest' : bin, a, b, first };
+  }
+  return best ? `Як перевірити: ${BINS[best.bin].uk.toLowerCase()} у районі 1 вивозять ${onDay(best.a)}, а в районі 2 ${onDay(best.b)}. Подивись, коли спорожнять ваш.` : '';
+}
+function showFound(res, q) {
+  const box = $('#found');
+  if (!res) { box.innerHTML = `<div class="found"><p>Не знайшов «${esc(q)}» у Ксантені. Перевір написання (наприклад, «Straße» замість «Str.») або вибери місцевість нижче.</p></div>`; return; }
+  const entries = [...res.votes.entries()].sort();
+  const btn = ([d, place]) => `<button class="chip" type="button" data-pick="${d}" data-place="${esc(place)}" aria-pressed="${draft.district === d}">Район ${d} · ${esc(place)}</button>`;
+  let text;
+  if (entries.length > 1) text = `«${esc(res.road)}» лежить на межі районів або проходить через обидва, тож район залежить від будинку. Вибери свій.`;
+  else if (res.byDistance) text = `«${esc(res.road)}» найближча до ${esc(entries[0][1] === 'Xanten' ? 'центру Ксантена' : 'центру ' + entries[0][1])}, тож найімовірніше це район ${entries[0][0]}. Межі між Xanten, Beek і Lüttingen у відкритих картах немає, тому краще перевір.`;
+  else text = `«${esc(res.road)}»: ${esc(entries[0][1])}, район ${entries[0][0]}.`;
+  const sure = entries.length === 1 && !res.byDistance;
+  const alt = sure ? [] : Object.keys(cal.districts).filter((d) => !res.votes.has(d)).map((d) => [d, cal.districts[d].places[0]]);
+  box.innerHTML = `<div class="found"><p>${text}</p>${sure ? '' : `<p>${esc(checkHint())}</p>`}<div class="pick">${entries.concat(alt).map(btn).join('')}</div></div>`;
+}
+
+$('#where-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const q = $('#street').value.trim(); if (!q) { $('#street').focus(); return; }
+  const b = $('#find'); b.disabled = true; b.textContent = 'Шукаю…';
+  try {
+    const res = await findStreet(q);
+    if (res) {
+      const one = res.votes.size === 1 ? [...res.votes.entries()][0] : null;
+      if (one) choose(one[0], one[1], res.road); else draft.street = res.road;
+    }
+    showFound(res, q);
+  } catch (err) {
+    $('#found').innerHTML = '<div class="found"><p>Пошук зараз не відповідає. Перевір інтернет або вибери місцевість нижче.</p></div>';
+  } finally { b.disabled = false; b.textContent = 'Знайти'; }
+});
+$('#where-form').addEventListener('click', (e) => {
+  const pick = e.target.closest('[data-pick]');
+  if (pick) { choose(pick.dataset.pick, pick.dataset.place); document.querySelectorAll('[data-pick]').forEach((x) => x.setAttribute('aria-pressed', String(x === pick))); return; }
+  const place = e.target.closest('#places [data-place]');
+  if (place) { choose(place.dataset.district, place.dataset.place, $('#street').value.trim() && draft.street ? draft.street : ''); return; }
+  const bin = e.target.closest('[data-bin]');
+  if (bin) { const k = bin.dataset.bin; draft.bins = draft.bins.includes(k) ? draft.bins.filter((x) => x !== k) : draft.bins.concat(k); renderDraft(); haptic(); return; }
+  const rh = e.target.closest('[data-rhythm]');
+  if (rh) { draft.rhythm = rh.dataset.rhythm; renderDraft(); haptic(); }
+});
+$('#where-edit').addEventListener('click', () => { if ($('#where-form').hidden) openForm(); else renderWhere(false); });
+$('#where-save').addEventListener('click', () => {
+  if (!draft.district) return;
+  if (!draft.bins.length) { $('#where-err').textContent = 'Вибери хоча б один бак.'; $('#where-err').hidden = false; return; }
+  prefs = { district: draft.district, place: draft.place, street: draft.street || '', bins: prefsOf(cal, draft).bins, rhythm: draft.rhythm };
+  saveAll(prefs); haptic('success');
+  renderWhere(false); renderSchedule();
+  if (sw.getAttribute('aria-checked') === 'true') call('prefs').catch(() => {});   // reminders follow the new district
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+/* ---------- reminder switch: the Worker keeps who wants the evening message, with their district ---------- */
 const sw = $('#sw'), state = $('#sw-state');
 function show(on, text, cls) { sw.setAttribute('aria-checked', String(on)); state.textContent = text; state.className = 'state' + (cls ? ' ' + cls : ''); }
 async function call(action) {
   const fd = new FormData(); fd.append('initData', tg.initData); fd.append('action', action);
+  if (prefs) { const p = prefsOf(cal, prefs); fd.append('district', p.district); fd.append('bins', p.bins.join(',')); fd.append('rhythm', p.rhythm); }
   const r = await fetch(WORKER_URL.replace(/\/*$/, '/') + 'reminders', { method: 'POST', body: fd });
   const d = await r.json(); if (!d.ok) throw new Error(d.error); return d;
 }
 const failText = (e) => e && e.message === 'bot_blocked'
   ? 'Бот не може тобі написати. Відкрий чат із ботом, натисни «Почати» (Start) і спробуй ще раз.'
   : 'Не вдалося. Перевір інтернет і спробуй ще раз.';
-if (tg && tg.initData) {
+function initSwitch() {
+  if (!(tg && tg.initData)) { show(false, 'Увімкнути можна, якщо відкрити цю сторінку через бота в Telegram.'); return; }
   sw.classList.add('busy');
   call('status').then((d) => { sw.disabled = false; show(d.on, d.on ? 'Увімкнено' : ''); }, () => show(false, 'Не вдалося перевірити нагадування. Спробуй пізніше.', 'err'))
     .finally(() => sw.classList.remove('busy'));
@@ -227,15 +433,21 @@ if (tg && tg.initData) {
     sw.disabled = true; sw.classList.add('busy');
     call(want ? 'on' : 'off').then((d) => {
       show(d.on, d.on ? (d.confirmed ? 'Увімкнено. Бот щойно надіслав підтвердження в чат.' : 'Увімкнено. Перше нагадування прийде ввечері перед найближчим вивозом.') : 'Вимкнено', d.on ? 'on' : '');
-      if (d.on) haptic();
+      if (d.on) haptic('success');
     }, (e) => show(!want, failText(e), 'err'))
       .finally(() => { sw.disabled = false; sw.classList.remove('busy'); });
   });
-} else {
-  show(false, 'Увімкнути можна, якщо відкрити цю сторінку через бота в Telegram.');
 }
 
-fetch('kalender.json').then((r) => r.json()).then(render).catch(() => { $('#next').innerHTML = '<div class="when">Не вдалося завантажити дати</div><p class="note">Перевір інтернет і відкрий сторінку ще раз.</p>'; });
+fetch('kalender.json').then((r) => r.json()).then(async (c) => {
+  cal = c;
+  prefs = loadLocal();
+  if (!prefs) { prefs = await cloudGet(); if (prefs) saveAll(prefs); }   // chosen on another device
+  if (prefs && !cal.dates[prefs.district]) prefs = null;
+  renderSchadstoff();
+  if (prefs) renderWhere(false); else openForm();
+  renderSchedule(); initSwitch();
+}).catch(() => { $('#next').hidden = false; $('#next').innerHTML = '<div class="when">Не вдалося завантажити дати</div><p class="note">Перевір інтернет і відкрий сторінку ще раз.</p>'; });
 </script>
 </body>
 </html>

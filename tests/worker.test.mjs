@@ -142,6 +142,35 @@ t('cron: 01.12 all grey bins, no note', msgs.length === 1 && msgs[0].text.includ
 msgs = await cron('2026-06-01T16:00:00Z');
 t('cron 18:00 (summer time) works too', msgs.length === 1 && msgs[0].text.includes('2 червня'), msgs[0] && msgs[0].text);
 
+// households in different districts: each gets the bins of its own district
+async function remindP(fields) {
+  const fd = new FormData(); fd.append('initData', sign(base)); Object.entries(fields).forEach(([k, v]) => fd.append(k, v));
+  const res = await worker.fetch(new Request('https://w.example/reminders', { method: 'POST', body: fd }), env);
+  return { status: res.status, body: await res.json().catch(() => null) };
+}
+messages.length = 0;
+for (const k of [...kv.keys()]) if (k.startsWith('sub:')) kv.delete(k);
+r = await remindP({ action: 'on', district: '1', bins: 'papier,gelb,bogus', rhythm: '14' });
+let rec = JSON.parse(kv.get('sub:4242'));
+t('district 1 household: saved with its bins, unknown ones dropped, no street', r.body.on && rec.district === '1' && rec.bins.join() === 'papier,gelb' && rec.rhythm === '14' && !('street' in rec), JSON.stringify(rec));
+t('its confirmation names its own next pickup', messages[0] && /Найближчий вивіз: .*(Синій|Жовтий)/.test(messages[0].text) && !messages[0].text.includes('Сірий'), messages[0] && messages[0].text);
+kv.set('sub:555', JSON.stringify({ id: 555 }));   // switched on before districts existed
+kv.delete('sent:2026-12-01');
+msgs = await cron('2026-11-30T17:00:00Z');
+{ const a = msgs.find((m) => m.chat_id === 4242), b = msgs.find((m) => m.chat_id === 555);
+  t('evening before 1.12: district 1 gets its blue bin, the old subscription its grey bins as before', a && a.text.includes('Синій бак') && !a.text.includes('Сірий') && b && b.text.includes('Сірий бак (Restmüll)'),
+    msgs.map((m) => m.chat_id + ': ' + m.text.split('\n')[1]).join(' | ')); }
+messages.length = 0;
+r = await remindP({ action: 'prefs', district: '2', bins: 'rest,papier', rhythm: '4' });
+rec = JSON.parse(kv.get('sub:4242'));
+t('prefs: a running subscription is updated quietly', r.body.on === true && rec.district === '2' && rec.rhythm === '4' && messages.length === 0, JSON.stringify(rec));
+r = await remindP({ action: 'prefs', district: '7', bins: '', rhythm: 'x' });
+rec = JSON.parse(kv.get('sub:4242'));
+t('prefs: nonsense falls back to safe values', rec.district === '2' && rec.bins.length === 0 && rec.rhythm === 'unknown', JSON.stringify(rec));
+await remind('off');
+r = await remindP({ action: 'prefs', district: '1' });
+t('prefs without a subscription stores nothing', r.body.on === false && !kv.has('sub:4242'));
+
 // Monday flyer reminders: their own list, their own Monday-morning cron
 async function remindF(action, initData = sign(base)) {
   const fd = new FormData(); fd.append('initData', initData); fd.append('action', action); fd.append('kind', 'prospekty');
