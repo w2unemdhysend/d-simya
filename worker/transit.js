@@ -1,7 +1,9 @@
 // Departures and weather for the Транспорт and Погода pages. No sign-in: these are public data,
 // so the Worker only checks the input, trims the answer and keeps it a short while.
 //
-//   GET /transit/stops?q=<text>          stops whose name matches (VRR OpenService, stop finder)
+//   GET /transit/stops?q=<text>          stops whose name matches (VRR OpenService, stop finder); when the text is
+//                                        a street or an address without a stop of that name, also the stops nearest to it
+//   GET /transit/stops?lat=<..>&lon=<..> the stops nearest to the phone
 //   GET /transit/departures?stop=<id>    next departures from a stop, with live times and notices
 //   GET /weather?lat=<..>&lon=<..>       now, next 24 hours and 7 days (Open-Meteo)
 //
@@ -21,9 +23,16 @@ export async function transit(request, env, ctx, reply, cors) {
   const url = new URL(request.url), p = url.searchParams;
   try {
     if (url.pathname === '/transit/stops') {
+      if (p.has('lat') || p.has('lon')) {
+        const lat = Number(p.get('lat')), lon = Number(p.get('lon'));
+        if (!(lat >= 47 && lat <= 55.2 && lon >= 5.8 && lon <= 15.1)) return reply(400, { ok: false, error: 'lat and lon in Germany' });
+        // about 100 m is enough to find the nearest stop; the spot is neither kept nor written to the log
+        return await cached('', 0, ctx, cors, url.origin, async () => ({ stops: [], near: await nearby([lat.toFixed(3), lon.toFixed(3)], '', 'here'), nearFirst: true }));
+      }
       const q = String(p.get('q') || '').replace(/[\u0000-\u001f<>]/g, ' ').replace(/\s+/g, ' ').trim();
       if (q.length < 2 || q.length > 60) return reply(400, { ok: false, error: 'q: 2 to 60 characters' });
-      return await cached(`stops:${q.toLowerCase()}`, 86400, ctx, cors, url.origin, () => stops(q));
+      // a text with a number is probably someone's address: answered, never kept
+      return await cached(`stops:${q.toLowerCase()}`, /\d/.test(q) ? 0 : 86400, ctx, cors, url.origin, () => stops(q));
     }
     if (url.pathname === '/transit/departures') {
       const stop = String(p.get('stop') || '');
@@ -42,11 +51,12 @@ export async function transit(request, env, ctx, reply, cors) {
   }
 }
 
-// Answers are kept in memory and in the Cloudflare cache for ttl seconds; errors are never kept
+// Answers are kept in memory and in the Cloudflare cache for ttl seconds (0: not kept anywhere); errors are never kept
 async function cached(key, ttl, ctx, cors, origin, make) {
-  const now = Date.now(), m = memo.get(key);
+  const now = Date.now(), m = ttl ? memo.get(key) : null;
   const out = (body) => new Response(body, { headers: { ...cors, 'Content-Type': 'application/json; charset=utf-8',
-    'Cache-Control': `public, max-age=${Math.min(ttl, 60)}` } });
+    'Cache-Control': ttl ? `public, max-age=${Math.min(ttl, 60)}` : 'no-store' } });
+  if (!ttl) return out(JSON.stringify({ ok: true, ...(await make()) }));
   if (m && m.until > now) return out(m.body);
   const cache = globalThis.caches && caches.default, ckey = new Request(origin + '/__cache/' + encodeURIComponent(key));
   if (cache) {
@@ -77,20 +87,49 @@ async function getJson(url) {
 const MODE = { 0: 'train', 1: 'train', 13: 'train', 14: 'train', 15: 'train', 16: 'train', 2: 'tram', 3: 'tram', 4: 'tram', 8: 'tram', 9: 'ferry' };
 const modeOf = (cls) => MODE[cls] || 'bus';
 
+const PLACE_TYPES = ['street', 'singlehouse', 'address'];
+const stopOf = (l) => ({
+  id: l.id, name: clip(l.disassembledName || l.name, 80), place: clip(l.parent && l.parent.name, 60),
+  full: clip(l.parent && l.parent.name && !String(l.name).includes(',') ? `${l.parent.name}, ${l.name}` : l.name, 120),
+  modes: [...new Set((l.productClasses || []).map(modeOf))],
+  coord: Array.isArray(l.coord) && l.coord.length === 2 ? l.coord.map((n) => Math.round(n * 1e4) / 1e4) : null,
+});
+
 async function stops(q) {
   const u = new URL(EFA + 'XML_STOPFINDER_REQUEST');
+  // 14 = stops (2) + streets (4) + addresses (8)
   Object.entries({ outputFormat: 'rapidJSON', coordOutputFormat: 'WGS84[dd.ddddd]', type_sf: 'any', name_sf: q,
-    anyObjFilter_sf: '2', anyMaxSizeHitList: '12', locationServerActive: '1' }).forEach(([k, v]) => u.searchParams.set(k, v));
+    anyObjFilter_sf: '14', anyMaxSizeHitList: '16', locationServerActive: '1' }).forEach(([k, v]) => u.searchParams.set(k, v));
+  const d = await getJson(u);
+  const all = (d.locations || []).sort((a, b) => (b.matchQuality || 0) - (a.matchQuality || 0));
+  const list = all.filter((l) => l.type === 'stop' && STOP_ID.test(l.id || '')).slice(0, 8);
+  const out = await lookAlikes(list.map(stopOf));
+  // A street or an address that matches better than any stop name (there is no stop called that): the stops nearest to it.
+  // With a house number it is always an address search.
+  const place = all.find((l) => PLACE_TYPES.includes(l.type) && Array.isArray(l.coord));
+  const best = list.length ? Math.max(...list.map((l) => l.matchQuality || 0)) : -1;
+  let near = null;
+  if (place && (place.type !== 'street' || (place.matchQuality || 0) > best)) {
+    near = await nearby(place.coord.map((n) => n.toFixed(5)), clip(place.name, 120), place.type === 'street' ? 'street' : 'address');
+  }
+  return { stops: out, near, nearFirst: !!near && (!out.length || place.type !== 'street' || (place.matchQuality || 0) > best) };
+}
+
+// Stops within 3 km of a point, nearest first, with the distance in metres (as VRR measures it, in a straight line)
+async function nearby([lat, lon], name, kind) {
+  const u = new URL(EFA + 'XML_COORD_REQUEST');
+  Object.entries({ outputFormat: 'rapidJSON', coordOutputFormat: 'WGS84[dd.ddddd]', inclFilter: '1', type_1: 'STOP', radius_1: '3000', max: '8',
+    coord: `${lon}:${lat}:WGS84[dd.ddddd]` }).forEach(([k, v]) => u.searchParams.set(k, v));
   const d = await getJson(u);
   const list = (d.locations || []).filter((l) => l.type === 'stop' && STOP_ID.test(l.id || ''))
-    .sort((a, b) => (b.matchQuality || 0) - (a.matchQuality || 0)).slice(0, 8);
-  const out = list.map((l) => ({
-    id: l.id, name: clip(l.disassembledName || l.name, 80), place: clip(l.parent && l.parent.name, 60), full: clip(l.name, 120),
-    modes: [...new Set((l.productClasses || []).map(modeOf))],
-    coord: Array.isArray(l.coord) && l.coord.length === 2 ? l.coord.map((n) => Math.round(n * 1e4) / 1e4) : null,
-  }));
-  // The finder also matches old names: "Lüttingen Schule" can be a stop now called Hagelkreuzstraße, and two stops on
-  // either side of a road share one name. For such look-alikes ask the stop itself: its real name and where buses go from it.
+    .map((l) => ({ ...stopOf(l), dist: Math.round(Number(l.properties && l.properties.distance) || 0) }))
+    .sort((a, b) => a.dist - b.dist).slice(0, 6);
+  return { name, kind, stops: await lookAlikes(list) };
+}
+
+// The finder also matches old names: "Lüttingen Schule" can be a stop now called Hagelkreuzstraße, and two stops on
+// either side of a road share one name. For such look-alikes ask the stop itself: its real name and where buses go from it.
+async function lookAlikes(out) {
   const same = out.filter((s) => out.filter((x) => x.full === s.full).length > 1).slice(0, 6);
   await Promise.all(same.map(async (s) => {
     try {
@@ -100,7 +139,7 @@ async function stops(q) {
       s.towards = [...new Set(dm.deps.map((x) => x.dest))].slice(0, 2);
     } catch (e) {}
   }));
-  return { stops: out };
+  return out;
 }
 
 async function departures(stop, limit = 40) {

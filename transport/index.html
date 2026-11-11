@@ -151,6 +151,12 @@ details[open] > summary .chev{transform:rotate(180deg)}
 .results b{font-weight:600;overflow-wrap:anywhere}
 .results small{color:var(--muted);font-size:14px;line-height:1.35}
 .results .mine{color:var(--on);font-weight:600}
+.results .top{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.results .dist{flex:none;font-size:14px;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
+.results .first{display:inline-block;margin-top:2px;justify-self:start;font-size:12.5px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:6px;padding:1px 7px}
+#results h3{margin:14px 0 0;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;overflow-wrap:anywhere}
+#results h3:first-child{margin-top:12px}
+#results .tip{margin:6px 0 0;font-size:14px;color:var(--muted)}
 .ferr{color:var(--danger);font-weight:600;font-size:15px;margin:10px 0 0}
 .linkbtn{border:0;background:transparent;padding:0;min-height:44px;font-size:15px;color:var(--muted);text-decoration:underline;text-underline-offset:3px;cursor:pointer;margin-top:6px}
 
@@ -194,10 +200,11 @@ details[open] > summary .chev{transform:rotate(180deg)}
       <div class="stops" id="stops" role="group" aria-label="Мої зупинки"></div>
       <div class="finder" id="finder" hidden>
         <form class="srow" id="fform" role="search"><input id="q" type="search" autocomplete="off" enterkeyhint="search" spellcheck="false" lang="de"
-          placeholder="наприклад, Xanten Lüttingen" aria-label="Назва зупинки"><button class="btn" id="fgo" type="submit">Знайти</button></form>
+          placeholder="зупинка або вулиця" aria-label="Зупинка або вулиця з номером будинку"><button class="btn" id="fgo" type="submit">Знайти</button></form>
+        <button class="ghost wide" id="nearme" type="button" hidden><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></svg>Найближчі до мене</button>
         <p class="ferr" id="ferr" hidden></p>
-        <ul class="results" id="results"></ul>
-        <p class="small" id="fnote">Пиши місто і зупинку: «Wesel Bahnhof», «Xanten Dom».</p>
+        <div id="results"></div>
+        <p class="small" id="fnote">Пиши місто й зупинку або вулицю з номером будинку: «Xanten Dom», «Xanten Poststraße 5». Якщо зупинки з такою назвою немає, покажу найближчі. Адреса ніде не зберігається.</p>
       </div>
       <div class="dep-head">
         <div><h2 id="dep-title">…</h2><p class="meta" id="dep-meta"></p></div>
@@ -303,30 +310,68 @@ $('#remove').addEventListener('click', () => {
   save(); renderStops(); load(true); haptic();
 });
 
-/* ---------- finding a stop ---------- */
+/* ---------- finding a stop: by its name, by a street or address (nearest stops), or near the phone ---------- */
 const MODE_UK = { train: 'потяг', tram: 'трамвай', bus: 'автобус', ferry: 'пором' };
-$('#fform').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const q = $('#q').value.trim(), err = $('#ferr');
-  err.hidden = true;
-  if (q.length < 2) { err.textContent = 'Напиши хоча б дві літери.'; err.hidden = false; return; }
-  $('#fgo').disabled = true; $('#fgo').textContent = 'Шукаю…';
+// distance as VRR gives it (a straight line); on foot roughly 80 m a minute
+const distText = (m) => (m < 1000 ? `${Math.max(10, Math.round(m / 10) * 10)} м` : `${(m / 1000).toLocaleString('uk-UA', { maximumFractionDigits: 1 })} км`);
+const walk = (m) => `≈ ${Math.max(1, Math.round(m * 1.25 / 80))} хв пішки`;
+function stopItem(s, first) {
+  const has = mine.list.some((x) => x.id === s.id);
+  const bits = [s.dist === undefined ? s.place : '', s.modes.map((m) => MODE_UK[m] || m).join(', ')].filter(Boolean);
+  if (s.dist !== undefined) bits.push(walk(s.dist));
+  if (s.towards && s.towards.length) bits.push('у бік ' + s.towards.join(', '));
+  if (s.aka) bits.push('у пошуку також «' + s.aka + '»');
+  return `<li><button type="button" data-add="${esc(s.id)}" data-name="${esc(s.full)}"><span class="top"><b lang="de">${esc(s.name)}</b>` +
+    (s.dist !== undefined ? `<span class="dist">${esc(distText(s.dist))}</span>` : '') + '</span>' +
+    (first ? '<span class="first">Найближча</span>' : '') + `<small>${esc(bits.join(' · '))}</small>` +
+    (has ? '<small class="mine">Уже в моїх зупинках</small>' : '') + '</button></li>';
+}
+function showResults(d) {
+  const err = $('#ferr'), near = d.near, named = d.stops || [];
+  const where = near ? (near.kind === 'here' ? 'Найближчі до тебе' : `Найближчі до «${near.name.replace(/^([^,]+),\s*/, '')}»`) : '';
+  const nearHtml = near ? `<h3>${esc(where)}</h3>` + (near.stops.length
+    ? `<ul class="results">${near.stops.map((s, i) => stopItem(s, i === 0)).join('')}</ul>` +
+      (near.kind === 'street' ? '<p class="tip">Вулиця довга? Додай номер будинку, тоді зупинки будуть точно біля нього.</p>' : '')
+    : '<p class="tip">У радіусі 3 км зупинок не знайдено.</p>') : '';
+  const namedHtml = named.length ? (near ? '<h3>Зупинки з такою назвою</h3>' : '') + `<ul class="results">${named.map((s) => stopItem(s, false)).join('')}</ul>` : '';
+  $('#results').innerHTML = d.nearFirst ? nearHtml + namedHtml : namedHtml + nearHtml;
+  err.hidden = !!(named.length || near);
+  if (err.hidden === false) err.textContent = 'Нічого не знайдено. Спробуй інакше, наприклад «Xanten Markt» або вулицю з номером будинку.';
+}
+async function search(query, btn, busy, idle) {
+  const err = $('#ferr');
+  err.hidden = true; btn.disabled = true; btn.textContent = busy;
   try {
-    const r = await fetch(api('transit/stops?q=' + encodeURIComponent(q)));
+    const r = await fetch(api('transit/stops?' + query));
     const d = await r.json();
     if (!d.ok) throw new Error(d.error);
-    $('#results').innerHTML = d.stops.length ? d.stops.map((s) => {
-      const has = mine.list.some((x) => x.id === s.id);
-      const bits = [s.place, s.modes.map((m) => MODE_UK[m] || m).join(', ')].filter(Boolean);
-      if (s.towards && s.towards.length) bits.push('у бік ' + s.towards.join(', '));
-      if (s.aka) bits.push('у пошуку також «' + s.aka + '»');
-      return `<li><button type="button" data-add="${esc(s.id)}" data-name="${esc(s.full)}"><b lang="de">${esc(s.name)}</b><small>${esc(bits.join(' · '))}</small>` +
-        (has ? '<small class="mine">Уже в моїх зупинках</small>' : '') + '</button></li>';
-    }).join('') : '';
-    if (!d.stops.length) { err.textContent = 'Нічого не знайдено. Спробуй інакше, наприклад «Xanten Markt».'; err.hidden = false; }
+    showResults(d);
   } catch (e2) {
+    $('#results').innerHTML = '';
     err.textContent = 'Не вдалося знайти. Перевір інтернет і спробуй ще раз.'; err.hidden = false;
-  } finally { $('#fgo').disabled = false; $('#fgo').textContent = 'Знайти'; }
+  } finally { btn.disabled = false; btn.innerHTML = idle; }
+}
+$('#fform').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const q = $('#q').value.trim(), err = $('#ferr');
+  if (q.length < 2) { err.textContent = 'Напиши хоча б дві літери.'; err.hidden = false; return; }
+  search('q=' + encodeURIComponent(q), $('#fgo'), 'Шукаю…', 'Знайти');
+});
+// Nearest stops to the phone: the spot is rounded to about 100 m and only used for this one search
+const nearBtn = $('#nearme'), nearIdle = nearBtn.innerHTML;
+nearBtn.hidden = !('geolocation' in navigator);
+nearBtn.addEventListener('click', () => {
+  const err = $('#ferr');
+  nearBtn.disabled = true; nearBtn.textContent = 'Визначаю, де ти…'; err.hidden = true;
+  navigator.geolocation.getCurrentPosition((pos) => {
+    const lat = pos.coords.latitude.toFixed(3), lon = pos.coords.longitude.toFixed(3);
+    search(`lat=${lat}&lon=${lon}`, nearBtn, 'Шукаю зупинки…', nearIdle);
+  }, (e2) => {
+    nearBtn.disabled = false; nearBtn.innerHTML = nearIdle;
+    err.textContent = e2 && e2.code === 1 ? 'Немає дозволу на місцезнаходження. Дозволь його для Telegram у налаштуваннях телефону або напиши вулицю.'
+      : 'Не вдалося визначити місце. Напиши вулицю з номером будинку.';
+    err.hidden = false;
+  }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
 });
 $('#results').addEventListener('click', (e) => {
   const b = e.target.closest('[data-add]'); if (!b) return;

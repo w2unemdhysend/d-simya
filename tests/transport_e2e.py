@@ -16,6 +16,7 @@ from playwright.async_api import async_playwright
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FX = lambda n: json.load(open(os.path.join(ROOT, 'tests', 'fixtures', n)))
 DEP, STOPS, WX = FX('departures.json'), FX('stops.json'), FX('weather.json')
+NEAR_ADDR, NEAR_STREET, NEAR_HERE = FX('near-address.json'), FX('near-street.json'), FX('near-here.json')
 OUT = os.environ.get('SHOTS', '')
 fails = []
 
@@ -59,6 +60,10 @@ class Worker:
             d = departures(); d['stop'] = {'id': q['stop'][0], 'name': DEP['stop']['name'] if q['stop'][0] == DEP['stop']['id'] else 'Xanten, Hagelkreuzstraße'}
             return await route.fulfill(json=d)
         if u.path == '/transit/stops':
+            if 'lat' in q: return await route.fulfill(json=NEAR_HERE)
+            text = q.get('q', [''])[0]
+            if any(ch.isdigit() for ch in text): return await route.fulfill(json=NEAR_ADDR)
+            if text == 'Xanten Sonsbecker Straße': return await route.fulfill(json=NEAR_STREET)
             return await route.fulfill(json=STOPS)
         if u.path == '/weather':
             return await route.fulfill(json=WX)
@@ -66,8 +71,10 @@ class Worker:
             return await route.fulfill(json={'ok': True, 'text': 'У середу, 11 листопада, з 16:30 до 19:30 центр Гельдерна закрито через ходу святого Мартина.'})
         await route.fulfill(status=404, json={'ok': False})
 
-async def page(browser, url, tg='', width=390, worker=None, prefs=None, scheme='light', stops=None, ua=None):
-    ctx = await browser.new_context(viewport={'width': width, 'height': 860}, color_scheme=scheme, **({'user_agent': ua} if ua else {}))
+async def page(browser, url, tg='', width=390, worker=None, prefs=None, scheme='light', stops=None, ua=None, geo=None):
+    extra = {'user_agent': ua} if ua else {}
+    if geo: extra.update(geolocation=geo, permissions=['geolocation'])
+    ctx = await browser.new_context(viewport={'width': width, 'height': 860}, color_scheme=scheme, **extra)
     await ctx.route('**/telegram.org/**', lambda r: r.fulfill(body=tg, content_type='text/javascript'))
     w = worker or Worker()
     await ctx.route('**/*.workers.dev/**', w)
@@ -168,6 +175,35 @@ async def main():
         check('after reload the chosen stop is still active', await pg.inner_text('#dep-title') == 'Xanten Hagelkreuzstraße')
         await pg.click('#remove'); await pg.wait_for_timeout(200)
         check('remove: back to one stop, no remove link', len(await pg.locator('#stops [data-stop]').all()) == 1 and await pg.is_hidden('#remove'))
+
+        # a street with no stop of that name: the nearest stops, nearest first, with distance and walking time
+        await pg.click('#addstop'); await pg.fill('#q', 'Xanten Sonsbecker Straße'); await pg.press('#q', 'Enter')
+        await pg.wait_for_selector('#results h3')
+        head = await pg.text_content('#results h3')
+        items = await pg.evaluate("() => [...document.querySelectorAll('#results button')].map(b => b.textContent)")
+        check('street: "Найближчі до «Sonsbecker Straße»", nearest first and marked', head == 'Найближчі до «Sonsbecker Straße»' and 'Найближча' in items[0] and 'Einkaufsmärkte' in items[0] and 'Найближча' not in items[1], f'{head} {items[:2]}')
+        check('street: distance and walking time (305 m → 310 м, ≈ 5 хв пішки)', '310 м' in items[0] and '≈ 5 хв пішки' in items[0], items[0])
+        check('street: tip to add a house number', 'Додай номер будинку' in await pg.inner_text('#results'))
+        check('street: no error line', await pg.is_hidden('#ferr'))
+        # an address with a house number
+        await pg.fill('#q', 'Xanten Kalkarer Straße 17'); await pg.press('#q', 'Enter')
+        await pg.wait_for_function("document.querySelector('#results h3').textContent.includes('Kalkarer')")
+        items = await pg.evaluate("() => [...document.querySelectorAll('#results button')].map(b => b.textContent)")
+        check('address: nearest stops, km for the far ones, no house-number tip', 'Marienb. Kirche' in items[0] and '500 м' in items[0] and any('2,6 км' in i for i in items) and 'Додай номер' not in await pg.inner_text('#results'), str(items))
+        await pg.click('#results button >> nth=0'); await pg.wait_for_timeout(300)
+        check('address: tapping the nearest stop adds it and shows its departures', (await pg.evaluate("JSON.parse(localStorage.getItem('transport-stops')).active")) == NEAR_ADDR['near']['stops'][0]['id'] and await pg.is_hidden('#finder'))
+        saved = await pg.evaluate("localStorage.getItem('transport-stops')")
+        check('the address itself is not kept on the device', 'Kalkarer' not in saved and 'Sonsbecker' not in saved, saved)
+        await ctx.close()
+
+        # nearest to the phone: the spot is rounded to three decimals before it is sent
+        ctx, pg, w = await page(browser, url, geo={'latitude': 51.66158, 'longitude': 6.45437})
+        await pg.click('#addstop'); await pg.click('#nearme')
+        await pg.wait_for_selector('#results h3')
+        call = next(c for c in w.calls if c[0] == '/transit/stops' and 'lat' in c[1])
+        check('near me: asks with the spot rounded to ~100 m', call[1]['lat'] == ['51.662'] and call[1]['lon'] == ['6.454'], str(call[1]))
+        check('near me: "Найближчі до тебе", nearest first', await pg.text_content('#results h3') == 'Найближчі до тебе' and 'Rathaus' in await pg.text_content('#results button'))
+        check('near me: the button is back for another try', await pg.is_enabled('#nearme') and 'Найближчі до мене' in await pg.inner_text('#nearme'))
         await ctx.close()
 
         # Android inside Telegram: Play link through openLink, notices translatable, cloud gets the stops

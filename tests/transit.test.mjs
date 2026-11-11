@@ -6,13 +6,21 @@ import worker from '../worker/send-scan.js';
 import { plain } from '../worker/transit.js';
 
 const fx = (n) => JSON.parse(readFileSync(new URL('./fixtures/' + n, import.meta.url)));
-const DM = fx('efa-dm.json'), SF = fx('efa-sf.json'), METEO = fx('meteo.json');
+const DM = fx('efa-dm.json'), SF = fx('efa-sf.json'), METEO = fx('meteo.json'), COORD = fx('efa-coord.json');
+// what the stop finder says for a street and for an address (no stop has that name)
+const STREET = { locations: [{ type: 'street', id: 'streetID:1', name: 'Xanten, Sonsbecker Straße', matchQuality: 250, coord: [51.6531, 6.4402] },
+  { type: 'stop', id: 'de:05170:99001', name: 'Sonsbeck, Markt', disassembledName: 'Markt', matchQuality: 120, productClasses: [5], parent: { name: 'Sonsbeck' } }] };
+const HOUSE = { locations: [{ type: 'singlehouse', id: 'streetID:2:17', name: 'Xanten, Kalkarer Straße 17', matchQuality: 250, coord: [51.699341, 6.374185] }] };
 const calls = [];
 let down = false;
 globalThis.fetch = async (url) => {
   const u = new URL(String(url)); calls.push(u);
   if (down) return new Response('busy', { status: 503 });
-  if (u.hostname === 'openservice.vrr.de' && u.pathname.endsWith('XML_STOPFINDER_REQUEST')) return Response.json(SF);
+  if (u.hostname === 'openservice.vrr.de' && u.pathname.endsWith('XML_STOPFINDER_REQUEST')) {
+    const q = u.searchParams.get('name_sf');
+    return Response.json(/Sonsbecker/.test(q) ? STREET : /\d/.test(q) ? HOUSE : SF);
+  }
+  if (u.hostname === 'openservice.vrr.de' && u.pathname.endsWith('XML_COORD_REQUEST')) return Response.json(COORD);
   if (u.hostname === 'openservice.vrr.de' && u.pathname.endsWith('XML_DM_REQUEST')) {
     // the look-alike check asks each stop for its own name
     const id = u.searchParams.get('name_dm');
@@ -53,6 +61,31 @@ t('stops: modes from product classes', s && s.every((x) => x.modes.includes('bus
 const before = calls.length;
 await get('/transit/stops?q=' + encodeURIComponent('xanten lüttingen'));
 t('stops: same search again comes from the cache', calls.length === before, calls.length - before);
+
+t('stops: a stop name gives no "nearest" list', s && r.body.near === null);
+
+// a street without a stop of that name: the stops nearest to it
+r = await get('/transit/stops?q=' + encodeURIComponent('Xanten Sonsbecker Straße'));
+let cc = calls.filter((u) => u.pathname.endsWith('XML_COORD_REQUEST')).pop();
+t('street: nearest stops come first, the weaker name match after', r.body.near && r.body.near.kind === 'street' && r.body.nearFirst === true && r.body.stops.length === 1, JSON.stringify(r.body).slice(0, 300));
+t('street: stops sorted by distance, with metres', r.body.near.stops.length === 6 && r.body.near.stops.every((x, i, a) => !i || a[i - 1].dist <= x.dist) && r.body.near.stops[0].dist === 233, JSON.stringify(r.body.near.stops.map((x) => x.dist)));
+t('street: asks VRR around the street point, 3 km', cc && cc.searchParams.get('coord') === '6.44020:51.65310:WGS84[dd.ddddd]' && cc.searchParams.get('radius_1') === '3000', String(cc));
+t('street: full stop name has its town', r.body.near.stops[0].full === 'Xanten, Birgittenstr.', r.body.near.stops[0].full);
+let n0 = calls.length;
+await get('/transit/stops?q=' + encodeURIComponent('Xanten Sonsbecker Straße'));
+t('street: a street search may be cached', calls.length === n0);
+// an address with a house number: never kept
+r = await get('/transit/stops?q=' + encodeURIComponent('Xanten Kalkarer Straße 17'));
+t('address: nearest stops for the house', r.body.near && r.body.near.kind === 'address' && r.body.near.name === 'Xanten, Kalkarer Straße 17' && r.body.near.stops.length === 6);
+n0 = calls.length;
+const again = await worker.fetch(new Request('https://w.example/transit/stops?q=' + encodeURIComponent('Xanten Kalkarer Straße 17')), env, ctx);
+t('address: never cached, asked again and marked no-store', calls.length > n0 && again.headers.get('Cache-Control') === 'no-store');
+// near the phone
+r = await get('/transit/stops?lat=51.661583&lon=6.454371');
+cc = calls.filter((u) => u.pathname.endsWith('XML_COORD_REQUEST')).pop();
+t('here: spot rounded to three decimals before it goes to VRR', cc.searchParams.get('coord') === '6.454:51.662:WGS84[dd.ddddd]', cc.searchParams.get('coord'));
+t('here: nearest stops, nothing else', r.status === 200 && r.body.near.kind === 'here' && r.body.stops.length === 0 && r.body.nearFirst === true);
+t('here: outside Germany is refused', (await get('/transit/stops?lat=40.1&lon=6.4')).status === 400 && (await get('/transit/stops?lat=51.6')).status === 400);
 
 // departures
 r = await get('/transit/departures?stop=de:05170:37032');
