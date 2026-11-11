@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>(function(){try{var s=null;try{s=localStorage.getItem('dsimya-theme')}catch(e){}var w=window.Telegram&&Telegram.WebApp;var tg=w&&w.platform&&w.platform!=='unknown';var t=s||(tg?(w.colorScheme==='dark'?'dark':'light'):(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));document.documentElement.setAttribute('data-theme',t)}catch(e){}})();</script>
+<title>Погода</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@600;700&display=swap">
+<style>
+/* Layout: one column. Place chips, the "now" hero with what to expect, the next 24 hours as a strip, then 7 days. */
+:root{
+  padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom);
+  --bg:#E7ECEF; --surface:#F6F8F9; --ink:#12181C; --muted:#53616A; --line:#C7D0D5; --accent:#9A5800;
+  --accent-soft:#F7E3BF; --on:#2E7D32; --danger:#B3261E;
+  --f-display:"Unbounded","Arial Black",system-ui,sans-serif;
+  --f-body:"Onest","Segoe UI",Roboto,system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --bg:#0F1417; --surface:#182026; --ink:#E5EBEE; --muted:#98A6AE; --line:#2A343B; --accent:#FFB424;
+    --accent-soft:#3A2909; --on:#66BB6A; --danger:#FF8A80; color-scheme:dark; }
+}
+:root[data-theme="dark"]{ --bg:#0F1417; --surface:#182026; --ink:#E5EBEE; --muted:#98A6AE; --line:#2A343B; --accent:#FFB424;
+  --accent-soft:#3A2909; --on:#66BB6A; --danger:#FF8A80; color-scheme:dark; }
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.5 var(--f-body);
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:0 40px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+[hidden]{display:none!important}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2.5px solid var(--accent);outline-offset:2px}
+a{color:inherit}
+.wrap{max-width:560px;margin:0 auto}
+.top{padding-block:16px 10px}
+.eyebrow{font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--f-display);font-weight:700;font-size:32px;line-height:1.05;margin:6px 0 8px;letter-spacing:-.01em}
+.lede{margin:0;color:var(--muted);font-size:16px;max-width:44ch}
+h2{font-family:var(--f-display);font-weight:600;font-size:18px;line-height:1.2;margin:0}
+main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-top:10px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;min-width:0}
+.note{margin:4px 0 0;color:var(--muted);font-size:15px}
+h2.lab{font-family:var(--f-body);font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.wxi .sun,.wxi .moon,.wxi .bolt{stroke:var(--accent)}
+
+.places{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:2px 16px 4px}
+.places::-webkit-scrollbar{display:none}
+.chip{flex:none;min-height:44px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-weight:600;font-size:15px;cursor:pointer;
+  display:inline-flex;align-items:center;gap:6px;white-space:nowrap;transition:background-color .2s ease, color .2s ease}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip svg{width:16px;height:16px}
+
+.now .main{display:flex;align-items:center;gap:14px}
+.now .wxi{width:64px;height:64px;flex:none}
+.now .temp{font-family:var(--f-display);font-weight:700;font-size:48px;line-height:1;letter-spacing:-.02em}
+.now .desc{font-weight:600;font-size:18px;margin-top:4px}
+.now .feels{color:var(--muted);font-size:15px}
+.facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:14px 0 0;padding:12px 0 0;border-top:1px solid var(--line)}
+.facts div{font-size:15px;line-height:1.3}
+.facts dt{color:var(--muted);font-size:13px}
+.facts dd{margin:2px 0 0;font-weight:600}
+.tips{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:8px}
+.tips li{display:flex;gap:10px;align-items:flex-start;font-size:16px;line-height:1.4;background:var(--accent-soft);border-radius:12px;padding:10px 12px}
+.tips li.dry{background:var(--bg)}
+.tips svg{flex:none;width:20px;height:20px;margin-top:1px;color:var(--accent)}
+.tips li.dry svg{color:var(--on)}
+
+.hours{display:flex;gap:6px;overflow-x:auto;scrollbar-width:thin;margin:10px -14px 0;padding:0 14px 6px;scroll-snap-type:x proximity}
+.hour{flex:none;width:58px;display:grid;justify-items:center;gap:4px;padding:8px 0;border-radius:12px;border:1px solid var(--line);background:var(--bg);scroll-snap-align:start;font-variant-numeric:tabular-nums}
+.hour .h{font-size:13px;color:var(--muted)}
+.hour .wxi{width:28px;height:28px}
+.hour b{font-weight:600}
+.hour small{font-size:12.5px;color:var(--muted);min-height:1.3em}
+.hour small.wet{color:var(--accent);font-weight:600}
+.hour.first{border-color:var(--ink)}
+
+.days{list-style:none;margin:6px 0 0;padding:0}
+.day{display:grid;grid-template-columns:minmax(76px,auto) 30px minmax(0,1fr);align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)}
+.day:first-child{border-top:0}
+.day .d{font-weight:600;line-height:1.2}
+.day .d small{display:block;font-weight:400;font-size:13px;color:var(--muted)}
+.day .wxi{width:28px;height:28px}
+.day .r{display:grid;gap:4px;min-width:0}
+.day .r .x{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:14px;color:var(--muted)}
+.day .r .x span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.day .r .x .wet{color:var(--accent);font-weight:600;flex:none}
+.range{display:grid;grid-template-columns:3ch minmax(0,1fr) 3ch;align-items:center;gap:8px;font-variant-numeric:tabular-nums;font-weight:600}
+.range span:first-child{color:var(--muted);text-align:right}
+.bar{height:6px;border-radius:999px;background:var(--line);position:relative}
+.bar i{position:absolute;top:0;bottom:0;border-radius:inherit;background:linear-gradient(90deg,var(--muted),var(--accent))}
+.sunline{margin:12px 0 0;padding-top:12px;border-top:1px solid var(--line);display:flex;gap:16px;flex-wrap:wrap;font-size:15px;color:var(--muted)}
+.sunline b{color:var(--ink);font-weight:600}
+.err{color:var(--danger);font-weight:600}
+.btn{min-height:48px;border-radius:12px;border:1px solid var(--ink);background:var(--ink);color:var(--bg);font-weight:600;font-size:16px;padding:0 16px;cursor:pointer;margin-top:10px}
+.skel{color:var(--muted)}
+.foot{margin-top:16px;font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+@media (min-width:480px){h1{font-size:38px}}
+</style>
+<link rel="stylesheet" href="../assets/ui.css?v=11">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="toprow"><button class="menubtn" id="menubtn" type="button" aria-expanded="false" aria-controls="drawer" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Розділи</span></button><button class="themebtn" id="themebtn" type="button" aria-label="Увімкнути темну тему"><svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M5.3 18.7L7 17M17 7l1.7-1.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.6A8.2 8.2 0 0 1 9.4 4a8.2 8.2 0 1 0 10.6 10.6z" fill="currentColor"/></svg></button></div>
+    <div class="eyebrow" id="eyebrow">Xanten</div>
+    <h1>Погода</h1>
+    <p class="lede">Зараз, на добу й на тиждень. І чи брати сьогодні парасольку.</p>
+  </header>
+  <main>
+    <div class="places" id="places" role="group" aria-label="Місце"></div>
+    <section class="card now" id="now" aria-labelledby="h-now" aria-busy="true">
+      <h2 id="h-now" class="lab">Зараз</h2>
+      <p class="skel" id="now-wait">Завантажую погоду…</p>
+      <div id="now-body" hidden></div>
+    </section>
+    <section class="card" id="h24" aria-labelledby="h-hours" hidden>
+      <h2 id="h-hours">Наступні 24 години</h2>
+      <div class="hours" id="hours" tabindex="0" aria-label="Погода по годинах"></div>
+    </section>
+    <section class="card" id="week" aria-labelledby="h-week" hidden>
+      <h2 id="h-week">7 днів</h2>
+      <ol class="days" id="days"></ol>
+    </section>
+  </main>
+  <p class="foot">Дані: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (CC BY 4.0) з моделей DWD та інших метеослужб. Оновлюються кожні 10 хвилин. Місце «Тут» округлюється приблизно до кілометра й ніде не зберігається.</p>
+</div>
+<script src="../assets/ui.js?v=11"></script>
+<script type="module">
+import { PLACES, homePlace, getWeather, wxIcon, wxText, advice, deg } from './wx.js';
+
+const $ = (s, r) => (r || document).querySelector(s);
+const tgApp = window.Telegram && window.Telegram.WebApp;
+const tg = tgApp && tgApp.platform && tgApp.platform !== 'unknown' ? tgApp : null;
+if (tg) { try { tg.ready(); tg.expand(); } catch (e) {} }
+const haptic = () => { try { if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged(); } catch (e) {} };
+const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;'})[c]);
+const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+const TIP = {
+  rain: svg('<path d="M3 12a9 9 0 0 1 18 0z"/><path d="M12 12v6.5a2 2 0 0 1-4 0"/>'),
+  snow: svg('<path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9"/>'),
+  storm: svg('<path d="M13 3L5 13h6l-1 8 8-10h-6z"/>'),
+  ice: svg('<path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9"/>'),
+  wind: svg('<path d="M3 9h11a3 3 0 1 0-3-3M3 15h15a3 3 0 1 1-3 3M3 12h7"/>'),
+  dry: svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>'),
+};
+const PIN = svg('<path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/>');
+document.addEventListener('click', (e) => {
+  const a = e.target.closest('a[target="_blank"]');
+  if (a && tg && tg.openLink) { e.preventDefault(); try { tg.openLink(a.href); } catch (err) { location.href = a.href; } }
+});
+
+/* ---------- which place ---------- */
+const home = homePlace();
+const named = [...new Set([home, 'Xanten', 'Wesel'].filter(Boolean))];
+let choice = (() => { try { const v = localStorage.getItem('pogoda-place'); return PLACES[v] ? v : null; } catch (e) { return null; } })() || named[0];
+let here = null;   // {lat, lon, name} from the phone, only for this visit
+const canLocate = 'geolocation' in navigator;
+function renderPlaces() {
+  $('#places').innerHTML = named.map((n) => `<button class="chip" type="button" data-place="${esc(n)}" aria-pressed="${choice === n}">${esc(n)}${n === home && n !== 'Xanten' ? ' · дім' : ''}</button>`).join('') +
+    (canLocate ? `<button class="chip" type="button" data-place="here" aria-pressed="${choice === 'here'}">${PIN}${esc(here && here.name ? here.name : 'Тут')}</button>` : '');
+}
+$('#places').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-place]'); if (!b) return;
+  const p = b.dataset.place;
+  if (p === 'here') { locate(); return; }
+  if (p === choice) return;
+  choice = p; try { localStorage.setItem('pogoda-place', p); } catch (err) {}
+  renderPlaces(); show(); haptic();
+});
+function locate() {
+  waiting('Визначаю, де ти…');
+  navigator.geolocation.getCurrentPosition(async (pos) => {
+    const lat = Math.round(pos.coords.latitude * 100) / 100, lon = Math.round(pos.coords.longitude * 100) / 100;
+    here = { lat, lon, name: 'Тут' };
+    choice = 'here'; renderPlaces(); show(); haptic();
+    // the town's name for the chip: one OpenStreetMap lookup with the rounded spot
+    try {
+      const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=10&accept-language=de&lat=${lat}&lon=${lon}`);
+      const a = (await r.json()).address || {};
+      const name = a.city || a.town || a.village || a.municipality;
+      if (name && here) { here.name = name; renderPlaces(); $('#eyebrow').textContent = name; }
+    } catch (e) {}
+  }, (err) => {
+    failed(err && err.code === 1 ? 'Немає дозволу на місцезнаходження. Дозволь його для Telegram у налаштуваннях телефону або вибери місце вище.'
+      : 'Не вдалося визначити місце. Вибери місце вище.');
+  }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 600000 });
+}
+
+/* ---------- drawing ---------- */
+const DAY = new Intl.DateTimeFormat('uk-UA', { weekday: 'short', day: 'numeric', month: 'numeric', timeZone: 'UTC' });
+const dayName = (iso, i) => i === 0 ? 'Сьогодні' : i === 1 ? 'Завтра' : DAY.format(new Date(iso + 'T12:00:00Z'));
+const hh = (iso) => iso.slice(11, 16);
+function waiting(text) { $('#now').setAttribute('aria-busy', 'true'); $('#now-wait').textContent = text; $('#now-wait').className = 'skel'; $('#now-wait').hidden = false; }
+function failed(text) {
+  $('#now').setAttribute('aria-busy', 'false');
+  $('#now-wait').innerHTML = esc(text) + '<br><button class="btn" type="button" id="again">Спробувати ще раз</button>'; $('#now-wait').className = 'err'; $('#now-wait').hidden = false;
+  $('#now-body').hidden = true;
+}
+document.addEventListener('click', (e) => { if (e.target.closest('#again')) show(); });
+
+let seq = 0;
+async function show() {
+  const my = ++seq, at = choice === 'here' && here ? [here.lat, here.lon] : PLACES[choice] || PLACES.Xanten;
+  $('#eyebrow').textContent = choice === 'here' ? (here && here.name) || 'Тут' : choice;
+  waiting('Завантажую погоду…');
+  let d;
+  try { d = await getWeather(at[0], at[1]); } catch (e) { if (my === seq) failed('Не вдалося завантажити погоду. Перевір інтернет.'); return; }
+  if (my !== seq) return;
+  const n = d.now, t = d.daily, h = d.hourly;
+  const tips = advice(d);
+  // "today" for rain means what is left of it: the daily figures also count the hours already gone
+  const left = h.time.map((x, i) => i).filter((i) => h.time[i].slice(0, 10) === t.time[0]);
+  const leftP = left.length ? Math.max(...left.map((i) => h.precipitation_probability[i] ?? 0)) : 0;
+  const leftMm = left.reduce((a, i) => a + (h.precipitation[i] || 0), 0);
+  $('#now-body').innerHTML = `<div class="main">${wxIcon(n.weather_code, n.is_day)}<div><div class="temp">${deg(n.temperature_2m)}</div>` +
+    `<div class="desc">${esc(wxText(n.weather_code))}</div><div class="feels">Відчувається як ${deg(n.apparent_temperature)}</div></div></div>` +
+    `<ul class="tips">${tips.map((a) => `<li class="${a.kind}">${TIP[a.kind] || TIP.dry}<span>${esc(a.text)}</span></li>`).join('')}</ul>` +
+    `<dl class="facts"><div><dt>Сьогодні</dt><dd>${deg(t.temperature_2m_min[0])} … ${deg(t.temperature_2m_max[0])}</dd></div>` +
+    `<div><dt>Дощ до кінця дня</dt><dd>${left.length ? `${leftP} %${leftMm >= 0.1 ? `, ${leftMm.toLocaleString('uk-UA', { maximumFractionDigits: 1 })} мм` : ''}` : '—'}</dd></div>` +
+    `<div><dt>Вітер</dt><dd>${Math.round(n.wind_speed_10m)} км/год, пориви ${Math.round(n.wind_gusts_10m)}</dd></div>` +
+    `<div><dt>Вологість</dt><dd>${Math.round(n.relative_humidity_2m)} %</dd></div></dl>` +
+    `<p class="sunline"><span>Схід <b>${hh(t.sunrise[0])}</b></span><span>Захід <b>${hh(t.sunset[0])}</b></span><span>оновлено о ${hh(n.time)}</span></p>`;
+  $('#now-wait').hidden = true; $('#now-body').hidden = false; $('#now').setAttribute('aria-busy', 'false');
+
+  $('#hours').innerHTML = h.time.map((time, i) => {
+    const p = h.precipitation_probability[i] ?? 0;
+    return `<div class="hour${i === 0 ? ' first' : ''}" role="group" aria-label="${i === 0 ? 'Зараз' : hh(time)}: ${deg(h.temperature_2m[i])}, ${esc(wxText(h.weather_code[i]))}${p >= 10 ? `, дощ ${p} %` : ''}">` +
+      `<span class="h">${i === 0 ? 'Зараз' : hh(time)}</span>${wxIcon(h.weather_code[i], h.is_day[i])}<b>${deg(h.temperature_2m[i])}</b>` +
+      `<small class="${p >= 50 ? 'wet' : ''}">${p >= 10 ? p + ' %' : ''}</small></div>`;
+  }).join('');
+  $('#h24').hidden = false;
+
+  const lo = Math.min(...t.temperature_2m_min), hi = Math.max(...t.temperature_2m_max), span = Math.max(1, hi - lo);
+  $('#days').innerHTML = t.time.map((day, i) => {
+    const a = (t.temperature_2m_min[i] - lo) / span * 100, b = (t.temperature_2m_max[i] - lo) / span * 100;
+    const p = i === 0 && left.length ? leftP : t.precipitation_probability_max[i] ?? 0;
+    return `<li class="day"><div class="d">${esc(dayName(day, i))}</div>${wxIcon(t.weather_code[i], 1)}<div class="r">` +
+      `<div class="x"><span>${esc(wxText(t.weather_code[i]))}</span>${p >= 20 ? `<span class="wet">дощ ${p} %</span>` : ''}</div>` +
+      `<div class="range" aria-label="від ${deg(t.temperature_2m_min[i])} до ${deg(t.temperature_2m_max[i])}"><span>${deg(t.temperature_2m_min[i])}</span>` +
+      `<span class="bar" aria-hidden="true"><i style="left:${a.toFixed(1)}%;right:${(100 - b).toFixed(1)}%"></i></span><span>${deg(t.temperature_2m_max[i])}</span></div></div></li>`;
+  }).join('');
+  $('#week').hidden = false;
+}
+renderPlaces(); show();
+setInterval(() => { if (document.visibilityState === 'visible') show(); }, 10 * 60 * 1000);
+</script>
+</body>
+</html>

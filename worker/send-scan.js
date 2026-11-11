@@ -15,6 +15,8 @@
  *                          by Gemma 4 on Workers AI (free daily allowance)
  *   GET  /translate/check  translates a fixed sentence (?page=1: a fixed letter): shows the model answers;
  *                          no sign-in, so only fixed texts, and every answer is cached
+ *   GET  /transit/stops, /transit/departures, /weather
+ *                          public timetable (VRR) and weather (Open-Meteo) data for the pages, see transit.js
  *   cron, daily            at 18:00 Xanten time: tells subscribers which bins go out tomorrow
  *   cron, Mondays          at 08:00 Xanten time: new flyers are out, and which days shops close that week
  *
@@ -35,6 +37,7 @@
 import cal from '../smittia/kalender.json' with { type: 'json' };
 import { BINS, binsOn, berlinDay, prefsOf } from '../smittia/due.js';
 import { flyerWeek, closures, rangeText, dayText, weekdayOf } from '../prospekty/week.js';
+import { isTransit, transit } from './transit.js';
 
 const MAX_BYTES = 45 * 1024 * 1024;        // Bot API upload limit is 50 MB
 const MAX_AGE_SECONDS = 24 * 60 * 60;      // initData older than a day is refused
@@ -43,7 +46,7 @@ const MAX_PAGES = 40;
 const MAX_META = 2 * 1024 * 1024;          // texts and translations sent along with handed-off pages
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const origin = env.ALLOWED_ORIGIN || 'https://w2unemdhysend.github.io';
     const cors = {
       'Access-Control-Allow-Origin': origin,
@@ -57,8 +60,9 @@ export default {
     });
 
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
-    if (!env.BOT_TOKEN) return reply(500, { ok: false, error: 'BOT_TOKEN is not set' });
     const path = new URL(request.url).pathname;
+    if (isTransit(path)) return transit(request, env, ctx, reply, cors);   // public timetable and weather data, no sign-in
+    if (!env.BOT_TOKEN) return reply(500, { ok: false, error: 'BOT_TOKEN is not set' });
     const hand = path.match(/^\/handoff(?:\/([0-9a-f-]{36})(?:\/(\d{1,2}))?)?\/?$/);
     if (hand) return handoff(request, env, hand[1], hand[2], reply, cors);
     if (path === '/reminders') return reminders(request, env, reply);

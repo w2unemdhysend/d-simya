@@ -1,0 +1,172 @@
+// Departures and weather for the Транспорт and Погода pages. No sign-in: these are public data,
+// so the Worker only checks the input, trims the answer and keeps it a short while.
+//
+//   GET /transit/stops?q=<text>          stops whose name matches (VRR OpenService, stop finder)
+//   GET /transit/departures?stop=<id>    next departures from a stop, with live times and notices
+//   GET /weather?lat=<..>&lon=<..>       now, next 24 hours and 7 days (Open-Meteo)
+//
+// VRR OpenService terms: live queries for one person at a time, no bulk download, and the source is named
+// on the page ("Fahrplanauskünfte werden durch den VRR zur Verfügung gestellt. Alle Angaben ohne Gewähr.").
+// Open-Meteo: free for non-commercial use, data under CC BY 4.0, named on the page.
+
+const EFA = 'https://openservice.vrr.de/static03/';
+const METEO = 'https://api.open-meteo.com/v1/forecast';
+const STOP_ID = /^de:\d{5}:\d{1,7}$/;
+const memo = new Map();   // per Worker instance; the Cloudflare cache below is shared
+
+export function isTransit(path) { return path === '/transit/stops' || path === '/transit/departures' || path === '/weather'; }
+
+export async function transit(request, env, ctx, reply, cors) {
+  if (request.method !== 'GET') return reply(405, { ok: false, error: 'GET only' });
+  const url = new URL(request.url), p = url.searchParams;
+  try {
+    if (url.pathname === '/transit/stops') {
+      const q = String(p.get('q') || '').replace(/[\u0000-\u001f<>]/g, ' ').replace(/\s+/g, ' ').trim();
+      if (q.length < 2 || q.length > 60) return reply(400, { ok: false, error: 'q: 2 to 60 characters' });
+      return await cached(`stops:${q.toLowerCase()}`, 86400, ctx, cors, url.origin, () => stops(q));
+    }
+    if (url.pathname === '/transit/departures') {
+      const stop = String(p.get('stop') || '');
+      if (!STOP_ID.test(stop)) return reply(400, { ok: false, error: 'stop: an id like de:05170:37032' });
+      return await cached(`dep:${stop}`, 30, ctx, cors, url.origin, () => departures(stop));
+    }
+    const lat = Number(p.get('lat')), lon = Number(p.get('lon'));
+    if (!(Math.abs(lat) <= 90 && Math.abs(lon) <= 180) || p.get('lat') === null || p.get('lon') === null)
+      return reply(400, { ok: false, error: 'lat and lon' });
+    // two decimals is about a kilometre: enough for the weather, and the exact spot never leaves the Worker
+    const la = lat.toFixed(2), lo = lon.toFixed(2);
+    return await cached(`wx:${la},${lo}`, 600, ctx, cors, url.origin, () => weather(la, lo));
+  } catch (e) {
+    console.log('transit failed', url.pathname, String(e && e.message || e));
+    return reply(502, { ok: false, error: 'upstream' });
+  }
+}
+
+// Answers are kept in memory and in the Cloudflare cache for ttl seconds; errors are never kept
+async function cached(key, ttl, ctx, cors, origin, make) {
+  const now = Date.now(), m = memo.get(key);
+  const out = (body) => new Response(body, { headers: { ...cors, 'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': `public, max-age=${Math.min(ttl, 60)}` } });
+  if (m && m.until > now) return out(m.body);
+  const cache = globalThis.caches && caches.default, ckey = new Request(origin + '/__cache/' + encodeURIComponent(key));
+  if (cache) {
+    try { const hit = await cache.match(ckey); if (hit) { const body = await hit.text(); remember(key, body, ttl, now); return out(body); } } catch (e) {}
+  }
+  const data = await make();
+  const body = JSON.stringify({ ok: true, ...data });
+  remember(key, body, ttl, now);
+  if (cache) {
+    const put = cache.put(ckey, new Response(body, { headers: { 'Content-Type': 'application/json', 'Cache-Control': `public, max-age=${ttl}` } })).catch(() => {});
+    if (ctx && ctx.waitUntil) ctx.waitUntil(put);
+  }
+  return out(body);
+}
+function remember(key, body, ttl, now) {
+  if (memo.size > 300) memo.delete(memo.keys().next().value);
+  memo.set(key, { body, until: now + ttl * 1000 });
+}
+
+async function getJson(url) {
+  const res = await fetch(url, { headers: { 'Accept': 'application/json', 'User-Agent': 'd-simya (Telegram Mini App; github.com/w2unemdhysend/d-simya)' } });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+/* ---------------- VRR ---------------- */
+// EFA product classes → train, tram, bus, ferry (14–16 long distance, 17 rail replacement buses, 19 Bürgerbus)
+const MODE = { 0: 'train', 1: 'train', 13: 'train', 14: 'train', 15: 'train', 16: 'train', 2: 'tram', 3: 'tram', 4: 'tram', 8: 'tram', 9: 'ferry' };
+const modeOf = (cls) => MODE[cls] || 'bus';
+
+async function stops(q) {
+  const u = new URL(EFA + 'XML_STOPFINDER_REQUEST');
+  Object.entries({ outputFormat: 'rapidJSON', coordOutputFormat: 'WGS84[dd.ddddd]', type_sf: 'any', name_sf: q,
+    anyObjFilter_sf: '2', anyMaxSizeHitList: '12', locationServerActive: '1' }).forEach(([k, v]) => u.searchParams.set(k, v));
+  const d = await getJson(u);
+  const list = (d.locations || []).filter((l) => l.type === 'stop' && STOP_ID.test(l.id || ''))
+    .sort((a, b) => (b.matchQuality || 0) - (a.matchQuality || 0)).slice(0, 8);
+  const out = list.map((l) => ({
+    id: l.id, name: clip(l.disassembledName || l.name, 80), place: clip(l.parent && l.parent.name, 60), full: clip(l.name, 120),
+    modes: [...new Set((l.productClasses || []).map(modeOf))],
+    coord: Array.isArray(l.coord) && l.coord.length === 2 ? l.coord.map((n) => Math.round(n * 1e4) / 1e4) : null,
+  }));
+  // The finder also matches old names: "Lüttingen Schule" can be a stop now called Hagelkreuzstraße, and two stops on
+  // either side of a road share one name. For such look-alikes ask the stop itself: its real name and where buses go from it.
+  const same = out.filter((s) => out.filter((x) => x.full === s.full).length > 1).slice(0, 6);
+  await Promise.all(same.map(async (s) => {
+    try {
+      const dm = await departures(s.id, 8);
+      const real = dm.stop.name.replace(/^[^,]+,\s*/, '');
+      if (real && real !== s.name) { s.aka = s.name; s.name = real; s.full = dm.stop.name; }
+      s.towards = [...new Set(dm.deps.map((x) => x.dest))].slice(0, 2);
+    } catch (e) {}
+  }));
+  return { stops: out };
+}
+
+async function departures(stop, limit = 40) {
+  const u = new URL(EFA + 'XML_DM_REQUEST');
+  Object.entries({ outputFormat: 'rapidJSON', coordOutputFormat: 'WGS84[dd.ddddd]', type_dm: 'stop', name_dm: stop, mode: 'direct',
+    useRealtime: '1', limit: String(limit), depType: 'stopEvents', includeCompleteStopSeq: '0', useProxFootSearch: '0' })
+    .forEach(([k, v]) => u.searchParams.set(k, v));
+  const d = await getJson(u);
+  const loc = (d.locations || [])[0] || {};
+  const notices = [], noticeAt = new Map(), hints = [], hintAt = new Map();
+  const noteOf = (i) => {
+    if (!noticeAt.has(i.id)) {
+      const l = (i.infoLinks || [])[0] || {};
+      noticeAt.set(i.id, notices.length);
+      notices.push({ title: clip(l.title || l.subtitle || l.urlText, 160), line: clip(l.urlText || l.smsText, 240),
+        text: clip(plain(l.content), 1500), url: /^https?:\/\/[\w.-]+\.vrr\.de\//.test(l.url || '') ? String(l.url).replace(/^http:/, 'https:') : null,
+        when: clip(i.properties && i.properties.incidentDateTime, 60),
+        notInTimes: /nicht\s+berücksichtigt/i.test(plain(l.additionalText)) });   // "not yet in the timetable above"
+    }
+    return noticeAt.get(i.id);
+  };
+  const hintOf = (h) => {
+    const t = clip(String(h.content || '').trim(), 300);
+    if (!t) return -1;
+    if (!hintAt.has(t)) { hintAt.set(t, hints.length); hints.push(t); }
+    return hintAt.get(t);
+  };
+  const deps = (d.stopEvents || []).map((e) => {
+    const t = e.transportation || {}, prod = t.product || {}, props = (e.location && e.location.properties) || {};
+    const status = e.realtimeStatus || [];
+    return {
+      line: clip(t.disassembledName || t.number || prod.name, 24), kind: clip(prod.name, 30), mode: modeOf(prod.class),
+      dest: clip(t.destination && t.destination.name, 80),
+      plan: e.departureTimePlanned || null, est: e.departureTimeEstimated || null,
+      live: !!e.isRealtimeControlled || status.includes('MONITORED'),
+      gone: !!e.isCancelled || status.includes('TRIP_CANCELLED') || status.includes('CANCELLED'),
+      plat: clip(props.platformName || props.platform, 12), platOld: props.plannedPlatformName && props.plannedPlatformName !== props.platformName ? clip(props.plannedPlatformName, 12) : '',
+      notes: (e.infos || []).map(noteOf), hints: (e.hints || []).filter((h) => h.type !== 'RTSTATUS').map(hintOf).filter((n) => n >= 0),
+    };
+  }).filter((x) => x.plan);
+  return { stop: { id: stop, name: clip(loc.name || loc.disassembledName, 120) }, at: new Date().toISOString(), deps, notices, hints };
+}
+
+const clip = (s, n) => String(s == null ? '' : s).replace(/\s+/g, ' ').trim().slice(0, n);
+const ENT = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', auml: 'ä', ouml: 'ö', uuml: 'ü', Auml: 'Ä', Ouml: 'Ö', Uuml: 'Ü',
+  szlig: 'ß', ndash: '–', mdash: '—', bdquo: '„', ldquo: '“', rdquo: '”', sbquo: '‚', lsquo: '‘', rsquo: '’', euro: '€', hellip: '…', bull: '•', eacute: 'é' };
+// Notice text arrives as HTML: keep the words and line breaks, drop every tag (the page shows it as plain text)
+export function plain(html) {
+  return String(html || '')
+    .replace(/<\s*(br|\/p|\/div|\/li|\/h\d)\b[^>]*>/gi, '\n').replace(/<\s*li\b[^>]*>/gi, '• ')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, e) => e[0] === '#'
+      ? String.fromCodePoint(parseInt(e[1] === 'x' || e[1] === 'X' ? e.slice(2) : e.slice(1), e[1] === 'x' || e[1] === 'X' ? 16 : 10) || 32)
+      : (ENT[e] !== undefined ? ENT[e] : m))
+    .replace(/[ \t ]+/g, ' ').replace(/ *\n */g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+/* ---------------- weather ---------------- */
+async function weather(lat, lon) {
+  const u = new URL(METEO);
+  Object.entries({ latitude: lat, longitude: lon, timezone: 'Europe/Berlin', wind_speed_unit: 'kmh', forecast_days: '7', forecast_hours: '24',
+    current: 'temperature_2m,apparent_temperature,relative_humidity_2m,is_day,precipitation,weather_code,wind_speed_10m,wind_gusts_10m',
+    hourly: 'temperature_2m,precipitation_probability,precipitation,weather_code,is_day,wind_gusts_10m',
+    daily: 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,sunrise,sunset,wind_gusts_10m_max',
+  }).forEach(([k, v]) => u.searchParams.set(k, v));
+  const d = await getJson(u);
+  if (!d.current || !d.hourly || !d.daily) throw new Error('weather: incomplete answer');
+  return { now: d.current, hourly: d.hourly, daily: d.daily, at: new Date().toISOString() };
+}
