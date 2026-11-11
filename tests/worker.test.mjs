@@ -53,7 +53,7 @@ t('preflight', opt.status === 204 && opt.headers.get('Access-Control-Allow-Origi
 // hand-off of pages to the browser
 const kv = new Map(), ttls = [];
 const SCANS = {
-  async put(k, v, o) { if (o && o.expirationTtl !== undefined && !(o.expirationTtl >= 60)) throw new Error('KV needs a TTL of 60 s or more'); if (!k.startsWith('sub:') && !k.startsWith('sent:')) ttls.push(o && o.expirationTtl); kv.set(k, v); },
+  async put(k, v, o) { if (o && o.expirationTtl !== undefined && !(o.expirationTtl >= 60)) throw new Error('KV needs a TTL of 60 s or more'); if (!/^f?(sub|sent):/.test(k)) ttls.push(o && o.expirationTtl); kv.set(k, v); },
   async get(k) { return kv.has(k) ? kv.get(k) : null; },
   async delete(k) { kv.delete(k); },
   async list({ prefix }) { return { keys: [...kv.keys()].filter((k) => k.startsWith(prefix)).map((name) => ({ name })), list_complete: true }; },
@@ -141,6 +141,42 @@ msgs = await cron('2026-11-30T17:00:00Z');
 t('cron: 01.12 all grey bins, no note', msgs.length === 1 && msgs[0].text.includes('⚫ Сірий бак (Restmüll)\n') && !msgs[0].text.includes('лише'), msgs[0] && msgs[0].text);
 msgs = await cron('2026-06-01T16:00:00Z');
 t('cron 18:00 (summer time) works too', msgs.length === 1 && msgs[0].text.includes('2 червня'), msgs[0] && msgs[0].text);
+
+// Monday flyer reminders: their own list, their own Monday-morning cron
+async function remindF(action, initData = sign(base)) {
+  const fd = new FormData(); fd.append('initData', initData); fd.append('action', action); fd.append('kind', 'prospekty');
+  const res = await worker.fetch(new Request('https://w.example/reminders', { method: 'POST', body: fd }), env);
+  return { status: res.status, body: await res.json().catch(() => null) };
+}
+messages.length = 0;
+for (const k of [...kv.keys()]) if (k.startsWith('sub:')) kv.delete(k);
+kv.set('sub:777', JSON.stringify({ id: 777 }));   // waste only
+r = await remindF('on');
+t('flyers: switch on, kept apart from waste reminders', r.body.on === true && kv.has('fsub:4242') && !kv.has('sub:4242'));
+t('flyers: confirmation names the current flyer week and opens the flyers page', messages[0] && messages[0].text.includes('Щопонеділка о 8:00') && /на \d/.test(messages[0].text) &&
+  messages[0].reply_markup.inline_keyboard[0][0].text === 'Проспекти' && messages[0].reply_markup.inline_keyboard[0][0].web_app.url.endsWith('/d-simya/prospekty/'), messages[0] && messages[0].text);
+r = await remindF('status');
+t('flyers: status on; waste status separate', r.body.on === true && (await remind('status')).body.on === false);
+{ const fd = new FormData(); fd.append('initData', sign(base)); fd.append('action', 'on'); fd.append('kind', 'weather');
+  const res = await worker.fetch(new Request('https://w.example/reminders', { method: 'POST', body: fd }), env);
+  t('reminders: unknown kind refused', res.status === 400); }
+msgs = await cron('2026-11-16T07:00:00Z');
+t('Monday 08:00 (winter): flyer subscribers only, with the week', msgs.length === 1 && msgs[0].chat_id === 4242 && msgs[0].text.includes('Нові проспекти на тиждень 16–21 листопада') && !msgs[0].text.includes('Цього тижня'), msgs.map((m) => m.chat_id + ' ' + m.text).join(' | '));
+msgs = await cron('2026-11-16T07:00:00Z');
+t('Monday: never twice', msgs.length === 0);
+msgs = await cron('2026-11-17T07:00:00Z');
+t('Tuesday morning: nothing', msgs.length === 0);
+msgs = await cron('2026-11-16T06:00:00Z');
+t('Monday 07:00 in winter: nothing', msgs.length === 0);
+msgs = await cron('2026-12-21T07:00:00Z');
+t('Christmas week lists the short day and both holidays', msgs.length === 1 && msgs[0].text.includes('четвер, 24 грудня: Святвечір (Heiligabend), більшість магазинів працює до 14:00') &&
+  msgs[0].text.includes('пʼятниця, 25 грудня: Різдво (1. Weihnachtstag), магазини зачинені') && msgs[0].text.includes('субота, 26 грудня'), msgs[0] && msgs[0].text);
+msgs = await cron('2027-03-29T06:00:00Z');
+t('summer time Monday 08:00, Easter Monday named', msgs.length === 1 && msgs[0].text.includes('понеділок, 29 березня: Великодній понеділок (Ostermontag), магазини зачинені'), msgs[0] && msgs[0].text);
+msgs = await cron('2026-11-16T17:00:00Z');
+t('the evening waste cron still goes to waste subscribers only', msgs.every((m) => m.chat_id === 777) && !kv.has('sub:4242'));
+r = await remindF('off');
+t('flyers: switch off', r.body.on === false && !kv.has('fsub:4242'));
 
 // translation (Workers AI is replaced by a recorder)
 const aiCalls = []; let aiReply = { choices: [{ message: { content: 'Будь ласка, перекажіть 125,00 € до 24.11.2026.' } }] };

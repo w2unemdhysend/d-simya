@@ -8,11 +8,13 @@
  *   GET  /handoff/<id>     {n: number of pages}
  *   GET  /handoff/<id>/<i> page i as JPEG
  *   DELETE /handoff/<id>   the browser removes the pages once it has them
- *   POST /reminders        waste-collection reminders: action=on|off|status for the signed-in user
+ *   POST /reminders        reminders for the signed-in user: action=on|off|status,
+ *                          kind=smittia (default, evening before a waste pickup) or prospekty (Monday flyers)
  *   POST /translate        text of one scanned page (recognised on the phone) → its translation,
  *                          by Gemma 4 on Workers AI (free daily allowance)
  *   GET  /translate/check  translates one fixed sentence: shows the model answers (no sign-in, cached 1 h)
  *   cron, daily            at 18:00 Xanten time: tells subscribers which bins go out tomorrow
+ *   cron, Mondays          at 08:00 Xanten time: new flyers are out, and which days shops close that week
  *
  * Settings (Cloudflare → Worker → Settings):
  *   BOT_TOKEN       secret, the token from @BotFather            (required)
@@ -30,6 +32,7 @@
 
 import cal from '../smittia/kalender.json' with { type: 'json' };
 import { BINS, binsOn, berlinDay } from '../smittia/due.js';
+import { flyerWeek, closures, rangeText, dayText, weekdayOf } from '../prospekty/week.js';
 
 const MAX_BYTES = 45 * 1024 * 1024;        // Bot API upload limit is 50 MB
 const MAX_AGE_SECONDS = 24 * 60 * 60;      // initData older than a day is refused
@@ -85,25 +88,33 @@ export default {
     return reply(200, { ok: true });
   },
 
-  // Cron runs at 16:00 and 17:00 UTC; one of them is 18:00 in Xanten, winter or summer time.
+  // Crons: 16:00 and 17:00 UTC daily, 06:00 and 07:00 UTC on Mondays. Each job checks the Xanten hour
+  // itself (18:00 for waste, 08:00 for flyers), so it runs once, winter or summer time.
   async scheduled(controller, env, ctx) {
-    ctx.waitUntil(sendReminders(env, new Date(controller.scheduledTime)));
+    const now = new Date(controller.scheduledTime);
+    ctx.waitUntil(Promise.all([sendReminders(env, now), sendFlyerReminders(env, now)]));
   },
 };
 
-/* ---------------- waste-collection reminders ---------------- */
+/* ---------------- reminders: waste pickups and Monday flyers ---------------- */
 const SUB = 'sub:';
 const PAGE_URL = 'https://w2unemdhysend.github.io/d-simya/smittia/';
+const WASTE_BUTTON = { text: 'Розклад', url: PAGE_URL };
+const FLYERS = { prefix: 'fsub:', sent: 'fsent:', button: { text: 'Проспекти', url: 'https://w2unemdhysend.github.io/d-simya/prospekty/' } };
 
 async function reminders(request, env, reply) {
   if (request.method !== 'POST') return reply(405, { ok: false, error: 'POST only' });
   if (!env.SCANS) return reply(500, { ok: false, error: 'KV binding SCANS is not set' });
   const signed = await readSigned(request, env, reply);
   if (signed instanceof Response) return signed;
-  const key = SUB + signed.user.id, action = signed.form.get('action');
+  const kind = String(signed.form.get('kind') || 'smittia');
+  if (kind !== 'smittia' && kind !== 'prospekty') return reply(400, { ok: false, error: 'kind: smittia or prospekty' });
+  const flyers = kind === 'prospekty';
+  const key = (flyers ? FLYERS.prefix : SUB) + signed.user.id, action = signed.form.get('action');
   if (action === 'on') {
     // Confirm in the chat right away: it proves the bot may write to this person (they must have started it)
-    const res = await tgSend(env, signed.user.id, confirmText(new Date()));
+    const res = flyers ? await tgSend(env, signed.user.id, flyerConfirmText(new Date()), FLYERS.button)
+      : await tgSend(env, signed.user.id, confirmText(new Date()));
     if (res.status === 403) return reply(200, { ok: false, on: false, error: 'bot_blocked' });
     await env.SCANS.put(key, JSON.stringify({ id: signed.user.id, name: String(signed.user.first_name || '').slice(0, 40) }));
     return reply(200, { ok: true, on: true, confirmed: res.ok });
@@ -113,10 +124,10 @@ async function reminders(request, env, reply) {
   return reply(200, { ok: true, on: (await env.SCANS.get(key)) !== null });
 }
 
-function tgSend(env, chatId, text) {
+function tgSend(env, chatId, text, button = WASTE_BUTTON) {
   return fetch(`https://api.telegram.org/bot${env.BOT_TOKEN}/sendMessage`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, text, reply_markup: { inline_keyboard: [[{ text: 'Розклад', web_app: { url: PAGE_URL } }]] } }),
+    body: JSON.stringify({ chat_id: chatId, text, reply_markup: { inline_keyboard: [[{ text: button.text, web_app: { url: button.url } }]] } }),
   });
 }
 
@@ -136,6 +147,43 @@ function reminderText(day, bins) {
   return `Завтра, ${date}, вивозять:\n${lines.join('\n')}\n\nВистав баки сьогодні ввечері або завтра рано вранці.`;
 }
 
+// Days of the flyer week when shops close or close early, as lines of the message
+function closureLines(monday, saturday) {
+  return closures(monday, saturday).map((c) => `• ${dayText(c.day)}: ${c.uk} (${c.de}), ` +
+    (c.kind === 'closed' ? 'магазини зачинені' : 'більшість магазинів працює до 14:00'));
+}
+function flyerConfirmText(now) {
+  const w = flyerWeek(berlinDay(now));
+  return `Нагадування про проспекти увімкнено. Щопонеділка о 8:00 я напишу, що вийшли нові.\n\nЗараз діють проспекти на ${rangeText(w.monday, w.saturday)}.`;
+}
+function flyerText(monday) {
+  const w = flyerWeek(monday), lines = closureLines(w.monday, w.saturday);
+  return `Нові проспекти на тиждень ${rangeText(w.monday, w.saturday)} уже на сайтах магазинів.` +
+    (lines.length ? `\n\nЦього тижня:\n${lines.join('\n')}` : '');
+}
+async function sendFlyerReminders(env, now) {
+  const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Berlin', hour: '2-digit', hourCycle: 'h23' }).format(now));
+  const day = berlinDay(now);
+  if (hour !== 8 || weekdayOf(day) !== 0 || !env.SCANS || !env.BOT_TOKEN) return { sent: 0, why: 'not Monday 08:00 in Xanten' };
+  if (await env.SCANS.get(FLYERS.sent + day)) return { sent: 0, why: 'already sent' };
+  await env.SCANS.put(FLYERS.sent + day, '1', { expirationTtl: 3 * 86400 });
+  return broadcast(env, FLYERS.prefix, flyerText(day), FLYERS.button);
+}
+// One message to everyone under a KV prefix; people who blocked the bot are removed
+async function broadcast(env, prefix, text, button) {
+  let sent = 0, cursor;
+  do {
+    const page = await env.SCANS.list({ prefix, cursor });
+    for (const { name } of page.keys) {
+      const res = await tgSend(env, Number(name.slice(prefix.length)), text, button);
+      if (res.ok) sent++;
+      else if (res.status === 403) await env.SCANS.delete(name);
+    }
+    cursor = page.list_complete ? undefined : page.cursor;
+  } while (cursor);
+  return { sent };
+}
+
 async function sendReminders(env, now) {
   const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Berlin', hour: '2-digit', hourCycle: 'h23' }).format(now));
   if (hour !== 18 || !env.SCANS || !env.BOT_TOKEN) return { sent: 0, why: 'not 18:00 in Xanten' };
@@ -144,18 +192,7 @@ async function sendReminders(env, now) {
   if (await env.SCANS.get('sent:' + day)) return { sent: 0, why: 'already sent' };
   await env.SCANS.put('sent:' + day, '1', { expirationTtl: 3 * 86400 });
 
-  const text = reminderText(day, bins);
-  let sent = 0, cursor;
-  do {
-    const page = await env.SCANS.list({ prefix: SUB, cursor });
-    for (const { name } of page.keys) {
-      const res = await tgSend(env, Number(name.slice(SUB.length)), text);
-      if (res.ok) sent++;
-      else if (res.status === 403) await env.SCANS.delete(name);   // the person blocked the bot: stop writing to them
-    }
-    cursor = page.list_complete ? undefined : page.cursor;
-  } while (cursor);
-  return { sent, day };
+  return { ...(await broadcast(env, SUB, reminderText(day, bins), WASTE_BUTTON)), day };
 }
 
 /* ---------------- translation of scanned pages ---------------- */

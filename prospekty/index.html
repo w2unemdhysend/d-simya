@@ -10,17 +10,21 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@600;700&display=swap">
 <style>
-/* Layout: one column; town switch on top, then one card per chain with its stores in that town and the button to its current flyer */
+/* Layout: one column. The week card on top (which dates, closed days, how many flyers are seen), the town switch,
+   then a card per chain (your stars first) with stores, route, flyer and its discount app; the Monday reminder last. */
 :root{
   padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom);
   --bg:#E7ECEF; --surface:#F6F8F9; --ink:#12181C; --muted:#53616A; --line:#C7D0D5; --accent:#9A5800;
+  --accent-soft:#F7E3BF; --on:#2E7D32; --danger:#B3261E;
   --f-display:"Unbounded","Arial Black",system-ui,sans-serif;
   --f-body:"Onest","Segoe UI",Roboto,system-ui,sans-serif;
 }
 @media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){ --bg:#0F1417; --surface:#182026; --ink:#E5EBEE; --muted:#98A6AE; --line:#2A343B; --accent:#FFB424; color-scheme:dark; }
+  :root:not([data-theme="light"]){ --bg:#0F1417; --surface:#182026; --ink:#E5EBEE; --muted:#98A6AE; --line:#2A343B; --accent:#FFB424;
+    --accent-soft:#3A2909; --on:#66BB6A; --danger:#FF8A80; color-scheme:dark; }
 }
-:root[data-theme="dark"]{ --bg:#0F1417; --surface:#182026; --ink:#E5EBEE; --muted:#98A6AE; --line:#2A343B; --accent:#FFB424; color-scheme:dark; }
+:root[data-theme="dark"]{ --bg:#0F1417; --surface:#182026; --ink:#E5EBEE; --muted:#98A6AE; --line:#2A343B; --accent:#FFB424;
+  --accent-soft:#3A2909; --on:#66BB6A; --danger:#FF8A80; color-scheme:dark; }
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.5 var(--f-body);
@@ -35,27 +39,77 @@ button{font:inherit;color:inherit}
 h1{font-family:var(--f-display);font-weight:700;font-size:32px;line-height:1.05;margin:6px 0 8px;letter-spacing:-.01em}
 .lede{margin:0;color:var(--muted);font-size:16px;max-width:44ch}
 h2{font-family:var(--f-display);font-weight:600;font-size:18px;line-height:1.2;margin:0}
-main{display:grid;gap:12px;padding-top:10px}
+main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-top:10px}
+#list{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px}
+.note{margin:4px 0 0;color:var(--muted);font-size:15px}
+
+/* the week */
+.week h2{font-size:22px;margin-top:2px}
+.wk-line{margin:6px 0 0;font-size:16px}
+.closures{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:6px}
+.closures li{display:flex;gap:10px;align-items:baseline;font-size:15px;line-height:1.35}
+.closures li::before{content:"";flex:none;width:10px;height:10px;border-radius:50%;background:var(--danger);transform:translateY(1px)}
+.closures li.short::before{background:var(--accent)}
+.progress{margin-top:12px;padding-top:12px;border-top:1px solid var(--line);display:grid;gap:8px}
+.progress .ptext{display:flex;align-items:center;gap:6px;font-size:15px;font-weight:600}
+.progress .ptext svg{width:18px;height:18px;color:var(--on)}
+.pbar{height:6px;border-radius:999px;background:var(--line);overflow:hidden}
+.pbar i{display:block;height:100%;width:0;background:var(--ink);border-radius:inherit;transition:width .3s ease}
 
 .town{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:4px}
 .town button{border:0;background:transparent;border-radius:10px;min-height:44px;font-weight:600;font-size:16px;cursor:pointer;transition:background-color .25s ease, color .25s ease}
 .town button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.group{margin:6px 0 -2px;font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 
+/* a chain */
 .chain{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 14px 12px;animation:in .3s ease backwards}
 @keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-.chain .head{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.chain .head{display:flex;align-items:center;gap:8px}
+.chain .title{flex:1;min-width:0;display:flex;align-items:baseline;flex-wrap:wrap;column-gap:10px}
 .chain .kind{font-size:14px;color:var(--muted)}
-.stores{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:6px}
-.store{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:16px;line-height:1.3}
-.store span{min-width:0}
+.seenmark{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:600;color:var(--on);white-space:nowrap}
+.seenmark svg{width:15px;height:15px}
+.star{flex:none;width:44px;height:44px;margin:-10px -8px -10px 0;border:0;background:transparent;border-radius:12px;display:grid;place-items:center;cursor:pointer;color:var(--muted);transition:color .2s ease, transform .15s ease}
+.star:active{transform:scale(.9)}
+.star svg{width:24px;height:24px}
+.star[aria-pressed="true"]{color:var(--accent)}
+.star[aria-pressed="true"] path{fill:currentColor}
+.perk{margin:2px 0 0;font-size:14.5px;color:var(--muted);line-height:1.35}
+.stores{list-style:none;margin:10px 0 0;padding:0;display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+.store{display:flex;align-items:center;gap:8px;font-size:16px;line-height:1.3}
+.store .addr{flex:1;min-width:0;hyphens:auto;overflow-wrap:break-word}
+/* a store with its own flyer (REWE, EDEKA): address and route on one line, the flyer full width below */
+.store.own{display:grid;gap:8px}
+.store.own .srow{display:flex;align-items:center;gap:8px}
+.store.own + .store.own{border-top:1px solid var(--line);padding-top:10px}
+.store.own .go{width:100%}
 .store small{display:block;color:var(--muted);font-size:14px}
-.go{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 16px;border-radius:12px;
-  background:var(--ink);color:var(--bg);font-weight:600;font-size:16px;text-decoration:none;white-space:nowrap;flex:none}
+.route{flex:none;width:44px;height:44px;display:grid;place-items:center;border:1px solid var(--line);border-radius:12px;color:var(--ink)}
+.route svg{width:20px;height:20px}
+.go{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 16px;border-radius:12px;border:1px solid var(--ink);
+  background:var(--ink);color:var(--bg);font-weight:600;font-size:16px;text-decoration:none;white-space:nowrap;flex:none;transition:background-color .2s ease, color .2s ease}
 .go svg{width:18px;height:18px}
-.go.small{min-height:40px;padding:0 12px;font-size:15px;border-radius:10px;background:transparent;color:var(--ink);border:1px solid var(--line)}
+.go.seen{background:transparent;color:var(--ink);border-color:var(--line)}
+.go.seen svg{color:var(--on)}
 .chain > .go{width:100%;margin-top:12px}
-.extra{display:block;margin-top:10px;font-size:15px;color:var(--ink);text-underline-offset:3px}
-.how{margin:4px 0 0;font-size:15px;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.extra{display:inline-flex;align-items:center;min-height:44px;margin-top:4px;font-size:15px;color:var(--ink);text-underline-offset:3px}
+
+/* Monday reminder (same switch as on the waste page) */
+.remind .row{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.switch{flex:none;position:relative;width:60px;height:36px;border-radius:999px;border:0;background:var(--line);cursor:pointer;padding:0;transition:background-color .25s ease}
+.switch::after{content:"";position:absolute;top:4px;left:4px;width:28px;height:28px;border-radius:50%;background:#FFFFFF;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .25s cubic-bezier(.3,.9,.3,1)}
+.switch[aria-checked="true"]{background:var(--on)}
+.switch[aria-checked="true"]::after{transform:translateX(24px)}
+.switch:disabled{opacity:.45;cursor:default}
+.switch.busy::after{animation:pulse .8s ease-in-out infinite alternate}
+@keyframes pulse{from{opacity:1}to{opacity:.4}}
+.remind .state{margin:10px 0 0;font-size:15px;font-weight:600}
+.remind .state:empty{display:none}
+.remind .state.on{color:var(--on)}
+.remind .state.err{color:var(--danger)}
+
+.how{margin:0;font-size:15px;color:var(--muted)}
 .how p{margin:0}
 .how p + p{margin-top:6px}
 .foot{margin-top:16px;font-size:13px;color:var(--muted)}
@@ -71,91 +125,195 @@ main{display:grid;gap:12px;padding-top:10px}
     <div class="toprow"><button class="menubtn" id="menubtn" type="button" aria-expanded="false" aria-controls="drawer" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Розділи</span></button><button class="themebtn" id="themebtn" type="button" aria-label="Увімкнути темну тему"><svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M5.3 18.7L7 17M17 7l1.7-1.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.6A8.2 8.2 0 0 1 9.4 4a8.2 8.2 0 1 0 10.6 10.6z" fill="currentColor"/></svg></button></div>
     <div class="eyebrow">Ксантен · Везель</div>
     <h1>Проспекти</h1>
-    <p class="lede">Рекламні газети магазинів на цей тиждень. Кнопки відкривають офіційні сторінки мереж, і новий проспект з’являється там сам щотижня.</p>
+    <p class="lede">Акції магазинів на цей тиждень. Кнопки ведуть на офіційні сторінки мереж, там новий проспект щотижня з’являється сам.</p>
   </header>
-
   <main>
+    <section class="card week" id="week" aria-labelledby="wk-title">
+      <div class="eyebrow" id="wk-kw"></div>
+      <h2 id="wk-title"></h2>
+      <p class="wk-line" id="wk-line"></p>
+      <ul class="closures" id="wk-closed" hidden></ul>
+      <div class="progress" id="progress" aria-live="polite"><div class="ptext" id="ptext"></div><div class="pbar" aria-hidden="true"><i id="pbar"></i></div></div>
+    </section>
     <div class="town" role="group" aria-label="Місто">
       <button type="button" data-town="xanten" aria-pressed="true">Ксантен</button>
       <button type="button" data-town="wesel" aria-pressed="false">Везель</button>
     </div>
-    <div id="list" aria-live="polite" style="display:grid;gap:12px"></div>
-    <div class="how">
-      <p>Більшість мереж починає новий тиждень акцій у понеділок. Деякі сайти один раз просять вибрати магазин («Markt wählen» або «Filiale wählen»): вибери найближчий, і браузер це запам’ятає.</p>
-      <p>У EDEKA й REWE кожен магазин має власний проспект, тому кнопки там окремі для кожної адреси.</p>
-    </div>
+    <div id="list"></div>
+    <section class="card remind" aria-labelledby="h-remind">
+      <div class="row">
+        <div>
+          <h2 id="h-remind">Нагадування щопонеділка</h2>
+          <p class="note">Бот напише о 8:00, що вийшли нові проспекти, і попередить про свята, коли магазини зачинені.</p>
+        </div>
+        <button class="switch" id="sw" type="button" role="switch" aria-checked="false" aria-labelledby="h-remind" disabled></button>
+      </div>
+      <p class="state" id="sw-state" aria-live="polite"></p>
+    </section>
+    <section class="card how" aria-label="Як це працює">
+      <p>Зірочка піднімає мережу нагору, у «Мої магазини». Позначка «Переглянуто» з’являється, коли ти відкриваєш проспект, і щопонеділка скидається.</p>
+      <p>Деякі сайти один раз просять вибрати магазин («Markt wählen» або «Filiale wählen»). У EDEKA й REWE кожен магазин має власний проспект, тому там кнопки окремі для кожної адреси.</p>
+    </section>
   </main>
-
-  <p class="foot">Адреси REWE й EDEKA взято з пошуку магазинів на сайтах мереж, решту з OpenStreetMap, станом на листопад 2026. Якщо якийсь магазин закрився або відкрився новий, скажи, і я виправлю список.</p>
+  <p class="foot">Адреси REWE й EDEKA взято з пошуку магазинів на сайтах мереж, решту з OpenStreetMap, програми знижок за оглядом MonsterDealz, станом на жовтень–листопад 2026. Якщо щось змінилося, напиши, і я виправлю.</p>
 </div>
-
 <script src="../assets/ui.js?v=10"></script>
-<script>
-(function(){
-  // Official pages that always show the current flyer. EDEKA and REWE: one page per store.
-  var CHAINS = [
-    {name:'ALDI SÜD', url:'https://www.aldi-sued.de/prospekte', stores:{xanten:['Sonsbecker Straße 21'], wesel:['Esplanade 18', 'Reeser Landstraße 87', 'Schermbecker Landstraße 11']}},
-    {name:'Lidl', url:'https://www.lidl.de/c/online-prospekte/s10005610', extra:['Отримувати проспект щотижня у WhatsApp', 'https://www.lidl.de/c/whatsapp-prospekte/s10015695'],
-      stores:{xanten:['Hagdornstraße 1'], wesel:['Reeser Landstraße 66', 'Rudolf-Diesel-Straße 18']}},
-    {name:'REWE', stores:{
-      xanten:[['Hagdornstraße 2', 'https://www.rewe.de/angebote/xanten/9067625/rewe-hagdornstr-2/']],
-      wesel:[['Friedrichstraße 8', 'https://www.rewe.de/angebote/wesel/1470066/rewe-friedrichstr-8/'],
-             ['Marktplatz Feldmark 23–31', 'https://www.rewe.de/angebote/wesel/240534/rewe-marktplatz-feldmark-23-31/'],
-             ['Kurt-Kräcker-Straße 61', 'https://www.rewe.de/angebote/wesel/320548/rewe-kurt-kraecker-str-61/'],
-             ['Bislicher Straße 22', 'https://www.rewe.de/angebote/wesel/25811/rewe-bislicher-str-22/', 'Flüren']]}},
-    {name:'EDEKA', stores:{
-      xanten:[['Lüttinger Straße 29', 'https://www.edeka.de/maerkte/070919/prospekte/', 'Pascal Lurvink'],
-              ['Sonsbecker Straße 19a', 'https://www.edeka.de/maerkte/070920/prospekte/', 'Benny Lurvink']],
-      wesel:[['Kreuzstraße 11–13', 'https://www.edeka.de/maerkte/072411/prospekte/', 'Lurvink'],
-             ['Julius-Leber-Straße 10', 'https://www.edeka.de/maerkte/070475/prospekte/', 'Frische-Center Komp, Lackhausen'],
-             ['Felixstowestraße 5', 'https://www.edeka.de/maerkte/070480/prospekte/', 'Komp, Obrighoven'],
-             ['Marienstraße 11', 'https://www.edeka.de/maerkte/070438/prospekte/', 'Janssen, Ginderich']]}},
-    {name:'Netto', kind:'Marken-Discount', url:'https://www.netto-online.de/ueber-netto/Online-Prospekte.chtm',
-      stores:{xanten:[['Kalkarer Straße 17', null, 'Marienbaum']], wesel:['Hohe Straße', 'Pastor-Schmitz-Straße 1a']}},
-    {name:'PENNY', url:'https://www.penny.de/angebote', stores:{xanten:['Viktorstraße 12'], wesel:['Werftstraße 1', ['Rheinallee', null, 'Büderich']]}},
-    {name:'Kaufland', url:'https://filiale.kaufland.de/prospekte.html', stores:{wesel:['Rudolf-Diesel-Straße 7']}},
-    {name:'trinkgut', kind:'напої', url:'https://www.trinkgut.de/angebote', stores:{xanten:['Boxtelstraße 2'], wesel:['Reeser Landstraße 60', 'Rudolf-Diesel-Straße 64', 'Werftstraße 6']}},
-  ];
-  var KEY = 'prospekty-town';
-  var tgApp = window.Telegram && window.Telegram.WebApp;
-  var tg = (tgApp && tgApp.platform && tgApp.platform !== 'unknown') ? tgApp : null;
-  if (tg){ try { tg.ready(); tg.expand(); } catch(e){} }
-  var ARROW = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 5h5v5M19 5l-8 8M18 14v4.5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 4 18.5v-11A1.5 1.5 0 0 1 5.5 6H10"/></svg>';
-  var esc = function(t){ return String(t).replace(/[&<>"]/g, function(c){ return {'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;'}[c]; }); };
-  var link = function(url, text, cls, label){ return '<a class="' + cls + '" href="' + esc(url) + '" target="_blank" rel="noopener"' + (label ? ' aria-label="' + esc(label) + '"' : '') + '>' + text + '</a>'; };
+<script type="module">
+import { berlinDay } from '../smittia/due.js';
+import { flyerWeek, closures, rangeText, dayText, addDays } from './week.js';
 
-  function render(town){
-    var html = CHAINS.filter(function(c){ return (c.stores[town] || []).length; }).map(function(c, i){
-      var stores = c.stores[town].map(function(s){ return typeof s === 'string' ? [s, null, ''] : s; });
-      var rows = stores.map(function(s){
-        return '<li class="store"><span>' + esc(s[0]) + (s[2] ? '<small>' + esc(s[2]) + '</small>' : '') + '</span>' +
-          (s[1] ? link(s[1], 'Проспект ' + ARROW, 'go small', 'Проспект ' + c.name + ', ' + s[0]) : '') + '</li>';
-      }).join('');
-      return '<section class="chain" style="animation-delay:' + (i * 30) + 'ms" aria-label="' + esc(c.name) + '">' +
-        '<div class="head"><h2>' + esc(c.name) + '</h2>' + (c.kind ? '<span class="kind">' + esc(c.kind) + '</span>' : '') + '</div>' +
-        '<ul class="stores">' + rows + '</ul>' +
-        (c.url ? link(c.url, 'Проспект цього тижня ' + ARROW, 'go', 'Проспект ' + c.name + ' цього тижня') : '') +
-        (c.extra ? link(c.extra[1], esc(c.extra[0]), 'extra') : '') + '</section>';
-    }).join('');
-    document.getElementById('list').innerHTML = html;
-    Array.prototype.forEach.call(document.querySelectorAll('.town button'), function(b){ b.setAttribute('aria-pressed', String(b.getAttribute('data-town') === town)); });
+// Official pages that always show the current flyer. EDEKA and REWE: one page per store.
+// perk: the chain's discount app or card (as of October 2026)
+const CHAINS = [
+  {name:'ALDI SÜD', url:'https://www.aldi-sued.de/prospekte', perk:'Без купонів і застосунків: ціна однакова для всіх.',
+    stores:{xanten:['Sonsbecker Straße 21'], wesel:['Esplanade 18', 'Reeser Landstraße 87', 'Schermbecker Landstraße 11']}},
+  {name:'Lidl', url:'https://www.lidl.de/c/online-prospekte/s10005610', perk:'Знижки: купони й бали в застосунку Lidl Plus.',
+    extra:['Отримувати проспект щотижня у WhatsApp', 'https://www.lidl.de/c/whatsapp-prospekte/s10015695'],
+    stores:{xanten:['Hagdornstraße 1'], wesel:['Reeser Landstraße 66', 'Rudolf-Diesel-Straße 18']}},
+  {name:'REWE', perk:'Знижки: REWE Bonus у застосунку REWE, гроші на бонусний рахунок.', stores:{
+    xanten:[['Hagdornstraße 2', 'https://www.rewe.de/angebote/xanten/9067625/rewe-hagdornstr-2/']],
+    wesel:[['Friedrichstraße 8', 'https://www.rewe.de/angebote/wesel/1470066/rewe-friedrichstr-8/'],
+           ['Marktplatz Feldmark 23–31', 'https://www.rewe.de/angebote/wesel/240534/rewe-marktplatz-feldmark-23-31/'],
+           ['Kurt-Kräcker-Straße 61', 'https://www.rewe.de/angebote/wesel/320548/rewe-kurt-kraecker-str-61/'],
+           ['Bislicher Straße 22', 'https://www.rewe.de/angebote/wesel/25811/rewe-bislicher-str-22/', 'Flüren']]}},
+  {name:'EDEKA', perk:'Знижки: бали PAYBACK (не в кожному магазині) і застосунок EDEKA.', stores:{
+    xanten:[['Lüttinger Straße 29', 'https://www.edeka.de/maerkte/070919/prospekte/', 'Pascal Lurvink'],
+            ['Sonsbecker Straße 19a', 'https://www.edeka.de/maerkte/070920/prospekte/', 'Benny Lurvink']],
+    wesel:[['Kreuzstraße 11–13', 'https://www.edeka.de/maerkte/072411/prospekte/', 'Lurvink'],
+           ['Julius-Leber-Straße 10', 'https://www.edeka.de/maerkte/070475/prospekte/', 'Frische-Center Komp, Lackhausen'],
+           ['Felixstowestraße 5', 'https://www.edeka.de/maerkte/070480/prospekte/', 'Komp, Obrighoven'],
+           ['Marienstraße 11', 'https://www.edeka.de/maerkte/070438/prospekte/', 'Janssen, Ginderich']]}},
+  {name:'Netto', kind:'Marken-Discount', url:'https://www.netto-online.de/ueber-netto/Online-Prospekte.chtm', perk:'Знижки: бали PAYBACK і застосунок Netto plus.',
+    stores:{xanten:[['Kalkarer Straße 17', null, 'Marienbaum']], wesel:['Hohe Straße', 'Pastor-Schmitz-Straße 1a']}},
+  {name:'PENNY', url:'https://www.penny.de/angebote', perk:'Знижки: застосунок PENNY з щомісячним «Rabattsammler».',
+    stores:{xanten:['Viktorstraße 12'], wesel:['Werftstraße 1', ['Rheinallee', null, 'Büderich']]}},
+  {name:'Kaufland', url:'https://filiale.kaufland.de/prospekte.html', perk:'Знижки: бали Kaufland Card у застосунку Kaufland.', stores:{wesel:['Rudolf-Diesel-Straße 7']}},
+  {name:'trinkgut', kind:'напої', url:'https://www.trinkgut.de/angebote', perk:'Знижки: бали PAYBACK.',
+    stores:{xanten:['Boxtelstraße 2'], wesel:['Reeser Landstraße 60', 'Rudolf-Diesel-Straße 64', 'Werftstraße 6']}},
+];
+const TOWNS = {xanten:'Xanten', wesel:'Wesel'};
+const WORKER_URL = 'https://d-simya.whysends.workers.dev';   // same Worker as the scanner
+const $ = (s, r) => (r || document).querySelector(s);
+const tgApp = window.Telegram && window.Telegram.WebApp;
+const tg = tgApp && tgApp.platform && tgApp.platform !== 'unknown' ? tgApp : null;
+if (tg) { try { tg.ready(); tg.expand(); } catch (e) {} }
+const haptic = (k) => { try { if (!tg || !tg.HapticFeedback) return; k ? tg.HapticFeedback.notificationOccurred(k) : tg.HapticFeedback.selectionChanged(); } catch (e) {} };
+const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } };
+const store = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;'})[c]);
+const svg = (d, extra = '') => `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"${extra}>${d}</svg>`;
+const ARROW = svg('<path d="M14 5h5v5M19 5l-8 8M18 14v4.5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 4 18.5v-11A1.5 1.5 0 0 1 5.5 6H10"/>');
+const CHECK = svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>', ' stroke-width="2.4"');
+const PIN = svg('<path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/>');
+const STAR = svg('<path d="M12 3.6l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/>', ' stroke-width="1.8"');
+
+/* ---------- the week ---------- */
+const today = berlinDay(new Date()), week = flyerWeek(today);
+function renderWeek() {
+  $('#wk-kw').textContent = (week.sunday ? 'Наступний тиждень' : 'Цей тиждень') + ' · KW ' + week.kw;
+  $('#wk-title').textContent = rangeText(week.monday, week.saturday);
+  const next = dayText(addDays(week.saturday, 2), {day:'numeric', month:'long'});
+  const todayOff = closures(today, today).find((c) => c.kind === 'closed');
+  $('#wk-line').textContent = week.sunday ? 'Сьогодні неділя, магазини зачинені. Проспекти на наступний тиждень уже на сайтах.'
+    : todayOff ? `Сьогодні свято, ${todayOff.uk} (${todayOff.de}): магазини зачинені. Акції діють до суботи, ${dayText(week.saturday, {day:'numeric', month:'long'})}.`
+    : today === week.saturday ? `Сьогодні останній день цих акцій. Нові проспекти з понеділка, ${next}.`
+    : `Акції діють до суботи, ${dayText(week.saturday, {day:'numeric', month:'long'})}. Нові проспекти з понеділка, ${next}.`;
+  const ahead = closures(today > week.monday ? addDays(today, todayOff ? 1 : 0) : week.monday, week.saturday);
+  $('#wk-closed').innerHTML = ahead.map((c) => `<li class="${c.kind}">${esc(dayText(c.day))}: ${esc(c.uk)} (${esc(c.de)}), ` +
+    (c.kind === 'closed' ? 'магазини зачинені' : 'більшість магазинів працює до 14:00') + '</li>').join('');
+  $('#wk-closed').hidden = !ahead.length;
+}
+
+/* ---------- seen flyers (this week only) and starred chains ---------- */
+let seen = load('prospekty-seen', {});
+if (seen.week !== week.monday) seen = {week: week.monday, urls: []};
+let favs = load('prospekty-fav', []);
+const isSeen = (url) => seen.urls.includes(url);
+function markSeen(url) { if (!isSeen(url)) { seen.urls.push(url); store('prospekty-seen', seen); } }
+
+const storesOf = (c, town) => (c.stores[town] || []).map((s) => typeof s === 'string' ? [s, null, ''] : s);
+const flyersOf = (c, town) => c.url ? [c.url] : storesOf(c, town).map((s) => s[1]).filter(Boolean);
+const mapUrl = (c, s, town) => 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(`${c.name}, ${s[0]}, ${TOWNS[town]}`);
+const link = (url, html, cls, label) => `<a class="${cls}" href="${esc(url)}" target="_blank" rel="noopener"${label ? ` aria-label="${esc(label)}"` : ''}>${html}</a>`;
+
+function chainCard(c, town, i) {
+  const all = flyersOf(c, town), done = all.length && all.every(isSeen), fav = favs.includes(c.name);
+  const rows = storesOf(c, town).map((s) => {
+    const flyer = s[1] ? link(s[1], isSeen(s[1]) ? CHECK + 'Переглянуто, відкрити ' + ARROW : 'Проспект цього магазину ' + ARROW, 'go' + (isSeen(s[1]) ? ' seen' : ''),   /* filled until opened, like the chain buttons */
+      `Проспект ${c.name}, ${s[0]}` + (isSeen(s[1]) ? ', переглянуто' : '')) : '';
+    const row = `<span class="addr" lang="de">${esc(s[0]).replace(/ (?=\d)/, '\u00a0')}${s[2] ? `<small>${esc(s[2])}</small>` : ''}</span>` +
+      link(mapUrl(c, s, town), PIN, 'route', `Маршрут: ${c.name}, ${s[0]}`);
+    return flyer ? `<li class="store own"><div class="srow">${row}</div>${flyer}</li>` : `<li class="store">${row}</li>`;
+  }).join('');
+  return `<section class="chain" style="animation-delay:${i * 30}ms" aria-label="${esc(c.name)}" data-chain="${esc(c.name)}">` +
+    `<div class="head"><div class="title"><h2>${esc(c.name)}</h2>${c.kind ? `<span class="kind">${esc(c.kind)}</span>` : ''}` +
+    (done ? `<span class="seenmark">${CHECK}переглянуто</span>` : '') + '</div>' +
+    `<button class="star" type="button" aria-pressed="${fav}" aria-label="Мій магазин: ${esc(c.name)}" title="${fav ? 'Прибрати з моїх магазинів' : 'До моїх магазинів'}">${STAR}</button></div>` +
+    `<p class="perk">${esc(c.perk)}</p><ul class="stores">${rows}</ul>` +
+    (c.url ? link(c.url, isSeen(c.url) ? CHECK + 'Переглянуто, відкрити ' + ARROW : 'Проспект цього тижня ' + ARROW, 'go' + (isSeen(c.url) ? ' seen' : ''),
+      `Проспект ${c.name} цього тижня` + (isSeen(c.url) ? ', переглянуто' : '')) : '') +
+    (c.extra ? link(c.extra[1], esc(c.extra[0]), 'extra') : '') + '</section>';
+}
+
+let town = load('prospekty-town', 'xanten') === 'wesel' ? 'wesel' : 'xanten';
+function render() {
+  const here = CHAINS.filter((c) => storesOf(c, town).length);
+  const mine = here.filter((c) => favs.includes(c.name)), rest = here.filter((c) => !favs.includes(c.name));
+  let i = 0;
+  $('#list').innerHTML = (mine.length ? '<h3 class="group">Мої магазини</h3>' + mine.map((c) => chainCard(c, town, i++)).join('') +
+    (rest.length ? '<h3 class="group">Інші магазини</h3>' : '') : '') + rest.map((c) => chainCard(c, town, i++)).join('');
+  document.querySelectorAll('.town button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.town === town)));
+  const all = here.flatMap((c) => flyersOf(c, town)), n = all.filter(isSeen).length;
+  $('#ptext').innerHTML = n === all.length ? CHECK + 'Усі проспекти цього тижня переглянуто' : `Переглянуто ${n} з ${all.length} проспектів`;
+  $('#pbar').style.width = (all.length ? n / all.length * 100 : 0) + '%';
+}
+renderWeek(); render();
+
+document.querySelector('.town').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-town]'); if (!b || b.dataset.town === town) return;
+  town = b.dataset.town; store('prospekty-town', town); render(); haptic();
+});
+$('#list').addEventListener('click', (e) => {
+  const star = e.target.closest('.star');
+  if (star) {
+    const name = star.closest('.chain').dataset.chain;
+    favs = favs.includes(name) ? favs.filter((x) => x !== name) : favs.concat(name);
+    store('prospekty-fav', favs); render(); haptic();
+    const again = document.querySelector(`.chain[data-chain="${CSS.escape(name)}"] .star`); if (again) again.focus({preventScroll:false});
+    return;
   }
-  var town = 'xanten';
-  try { if (localStorage.getItem(KEY) === 'wesel') town = 'wesel'; } catch(e){}
-  render(town);
-  document.querySelector('.town').addEventListener('click', function(e){
-    var b = e.target.closest('button[data-town]'); if (!b) return;
-    var t = b.getAttribute('data-town'); if (t === town) return;
-    town = t; try { localStorage.setItem(KEY, t); } catch(err){}
-    render(t);
-    try { if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged(); } catch(err){}
+  const a = e.target.closest('a[href]'); if (!a) return;
+  if (a.matches('.go')) { markSeen(a.getAttribute('href')); setTimeout(render, 60); }
+  // Inside Telegram links open in the phone's browser (or the maps app): chain sites remember the chosen store there
+  if (tg && tg.openLink) { e.preventDefault(); try { tg.openLink(a.href); } catch (err) { location.href = a.href; } }
+});
+
+/* ---------- Monday reminder: the Worker keeps who wants it ---------- */
+const sw = $('#sw'), state = $('#sw-state');
+function show(on, text, cls) { sw.setAttribute('aria-checked', String(on)); state.textContent = text; state.className = 'state' + (cls ? ' ' + cls : ''); }
+async function call(action) {
+  const fd = new FormData(); fd.append('initData', tg.initData); fd.append('action', action); fd.append('kind', 'prospekty');
+  const r = await fetch(WORKER_URL.replace(/\/*$/, '/') + 'reminders', {method:'POST', body:fd});
+  const d = await r.json(); if (!d.ok) throw new Error(d.error); return d;
+}
+const failText = (e) => e && e.message === 'bot_blocked'
+  ? 'Бот не може тобі написати. Відкрий чат із ботом, натисни «Почати» (Start) і спробуй ще раз.'
+  : 'Не вдалося. Перевір інтернет і спробуй ще раз.';
+if (tg && tg.initData) {
+  sw.classList.add('busy');
+  call('status').then((d) => { sw.disabled = false; show(d.on, d.on ? 'Увімкнено' : '', d.on ? 'on' : ''); }, () => show(false, 'Не вдалося перевірити нагадування. Спробуй пізніше.', 'err'))
+    .finally(() => sw.classList.remove('busy'));
+  sw.addEventListener('click', () => {
+    const want = sw.getAttribute('aria-checked') !== 'true';
+    sw.disabled = true; sw.classList.add('busy');
+    call(want ? 'on' : 'off').then((d) => {
+      show(d.on, d.on ? (d.confirmed ? 'Увімкнено. Бот щойно надіслав підтвердження в чат.' : 'Увімкнено. Перше нагадування прийде в понеділок о 8:00.') : 'Вимкнено', d.on ? 'on' : '');
+      if (d.on) haptic('success');
+    }, (e) => show(!want, failText(e), 'err')).finally(() => { sw.disabled = false; sw.classList.remove('busy'); });
   });
-  // Inside Telegram the flyer opens in the phone's browser: chain sites remember the chosen store there
-  document.getElementById('list').addEventListener('click', function(e){
-    var a = e.target.closest('a[href]'); if (!a || !tg || !tg.openLink) return;
-    e.preventDefault(); try { tg.openLink(a.href); } catch(err){ location.href = a.href; }
-  });
-})();
+} else {
+  show(false, 'Увімкнути можна, якщо відкрити цю сторінку через бота в Telegram.');
+}
 </script>
 </body>
 </html>
