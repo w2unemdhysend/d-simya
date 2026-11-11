@@ -124,6 +124,9 @@ const FLYERS = { prefix: 'fsub:', sent: 'fsent:', button: { text: 'Проспе�
 const WEATHER_BUTTON = { text: 'Погода', url: 'https://w2unemdhysend.github.io/d-simya/pogoda/' };
 const KINDS = { smittia: 'sub:', prospekty: FLYERS.prefix, wetter: 'wsub:', wort: 'dsub:' };
 
+// switching on in progress, per kind and person (one confirmation even when a page sends the same tap several times)
+const CONFIRMING = new Set();
+
 async function reminders(request, env, reply) {
   if (request.method !== 'POST') return reply(405, { ok: false, error: 'POST only' });
   if (!env.SCANS) return reply(500, { ok: false, error: 'KV binding SCANS is not set' });
@@ -141,6 +144,20 @@ async function reminders(request, env, reply) {
     : null;
   const record = () => JSON.stringify({ id: signed.user.id, name: String(signed.user.first_name || '').slice(0, 40), ...prefs });
   if (action === 'on') {
+    // Already on (a second tap, a repeated request, another device): keep the new choices, say nothing new in the chat.
+    // Requests that arrive together are taken in by the same Worker, and the check-and-mark below runs before any await;
+    // the KV mark (one minute) covers a request that another Worker takes in.
+    const mark = `conf:${kind}:${signed.user.id}`, already = () => reply(200, { ok: true, on: true, confirmed: false, already: true });
+    if (CONFIRMING.has(mark)) return already();
+    CONFIRMING.add(mark);
+    try {
+      if ((await env.SCANS.get(key)) !== null) { await env.SCANS.put(key, record()); return already(); }
+      if ((await env.SCANS.get(mark)) !== null) return already();
+      await env.SCANS.put(mark, '1', { expirationTtl: 60 });
+      return await switchOn(mark);
+    } finally { CONFIRMING.delete(mark); }
+  }
+  async function switchOn(mark) {
     // Confirm in the chat right away: it proves the bot may write to this person (they must have started it)
     let text, button;
     if (flyers) { text = flyerConfirmText(new Date()); button = FLYERS.button; }
@@ -151,7 +168,7 @@ async function reminders(request, env, reply) {
       text = warnConfirmText(prefs.place, prefs.level, list); button = WEATHER_BUTTON;
     } else { text = confirmText(new Date(), prefs); button = WASTE_BUTTON; }
     const res = await tgSend(env, signed.user.id, text, button);
-    if (res.status === 403) return reply(200, { ok: false, on: false, error: 'bot_blocked' });
+    if (res.status === 403) { await env.SCANS.delete(mark); return reply(200, { ok: false, on: false, error: 'bot_blocked' }); }
     await env.SCANS.put(key, record());
     return reply(200, { ok: true, on: true, confirmed: res.ok });
   }
@@ -160,7 +177,7 @@ async function reminders(request, env, reply) {
     if (on) await env.SCANS.put(key, record());
     return reply(200, { ok: true, on });
   }
-  if (action === 'off') await env.SCANS.delete(key);
+  if (action === 'off') await Promise.all([env.SCANS.delete(key), env.SCANS.delete(`conf:${kind}:${signed.user.id}`)]);
   else if (action !== 'status') return reply(400, { ok: false, error: 'action: on, off, status or prefs' });
   const rec = await env.SCANS.get(key);
   let saved = null;

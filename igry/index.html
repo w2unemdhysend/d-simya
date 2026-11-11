@@ -730,7 +730,7 @@ import { WORDS, RULES, ruleOf } from './words.js';
       var want = dsw.getAttribute('aria-checked') !== 'true';
       dsw.disabled = true;
       dCall(want ? 'on' : 'off').then(function(d){
-        dShow(d.on, d.on ? 'Увімкнено. Сьогоднішнє слово вже в чаті з ботом.' : 'Вимкнено', d.on ? 'on' : ''); if (d.on) haptic('ok');
+        dShow(d.on, d.on ? (d.already ? 'Увімкнено' : 'Увімкнено. Сьогоднішнє слово вже в чаті з ботом.') : 'Вимкнено', d.on ? 'on' : ''); if (d.on) haptic('ok');
       }, function(e){
         dShow(!want, e && e.message === 'bot_blocked' ? 'Бот не може тобі написати. Відкрий чат із ботом, натисни «Почати» (Start) і спробуй ще раз.' : 'Не вдалося. Перевір інтернет і спробуй ще раз.', 'err');
       }).then(function(){ dsw.disabled = false; });

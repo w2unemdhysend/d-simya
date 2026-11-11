@@ -168,11 +168,20 @@ async def main():
         check('warnings: the German DWD text inside, and a translate button in Telegram', 'Amtliche WARNUNG vor GLATTEIS' in cards[0]['t'] and await pg.locator('.warn [data-tr]').count() == 2)
         await pg.wait_for_function("document.getElementById('sw').getAttribute('disabled') === null")
         check('bot switch: status read, level from the saved subscription (red only)', await pg.get_attribute('#levels [data-level="3"]', 'aria-checked') == 'true' and 'для Lüttingen' in await pg.text_content('#remind-note'))
+        # the same page changes place a few times before the tap (each change once added the switch again: one tap, many confirmations)
+        for place in ['Xanten', 'Wesel', 'Lüttingen', 'Xanten']:
+            await pg.click(f'#places [data-place="{place}"]'); await pg.wait_for_timeout(150)
+        await pg.click('#places .chip >> nth=0'); await pg.wait_for_timeout(200)
+        acts = lambda a: sum(1 for x in w.posts if isinstance(x, str) and f'name="action"\r\n\r\n{a}' in x)
+        n_on = acts('on')
         await pg.click('#sw'); await pg.wait_for_timeout(300)
+        check('one tap after changing place 5 times sends exactly one "on"', acts('on') - n_on == 1, f'{acts("on") - n_on} requests')
         on = w.posts[-1]
         check('bot switch on: sends kind wetter, the household place and the level', 'wetter' in on and 'Lüttingen' in on and 'name="level"\r\n\r\n3' in on and await pg.get_attribute('#sw', 'aria-checked') == 'true', on[:400] if isinstance(on, str) else str(on))
+        n_prefs = acts('prefs')
         await pg.click('#levels [data-level="1"]'); await pg.wait_for_timeout(300)
-        check('changing the level while on saves it (prefs)', 'name="action"\r\n\r\nprefs' in w.posts[-1] and 'name="level"\r\n\r\n1' in w.posts[-1])
+        check('changing the level while on saves it (prefs), with one request', 'name="action"\r\n\r\nprefs' in w.posts[-1] and 'name="level"\r\n\r\n1' in w.posts[-1] and acts('prefs') - n_prefs == 1, acts('prefs') - n_prefs)
+        check('the page has one bot switch and one warnings block', await pg.locator('#sw').count() == 1 and await pg.evaluate("document.querySelectorAll('#warns').length") == 1)
         if OUT: await pg.screenshot(path=os.path.join(OUT, 'pogoda-warn.png'), full_page=True)
         await ctx.close()
 

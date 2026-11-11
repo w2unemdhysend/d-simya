@@ -19,8 +19,10 @@ const STAS = { id: 4242, first_name: 'Стас' }, MAMA = { id: 5151, first_name
 
 // in-memory stand-ins: KV, Durable Objects, Telegram, Bright Sky
 const kv = new Map();
+let slowKV = false;   // real KV answers in milliseconds: requests that come together all read before any of them writes
+const lag = () => (slowKV ? new Promise((r) => setTimeout(r, 5)) : null);
 const SCANS = {
-  async put(k, v) { kv.set(k, v); }, async get(k) { return kv.has(k) ? kv.get(k) : null; }, async delete(k) { kv.delete(k); },
+  async put(k, v) { await lag(); kv.set(k, v); }, async get(k) { await lag(); return kv.has(k) ? kv.get(k) : null; }, async delete(k) { await lag(); kv.delete(k); },
   async list({ prefix }) { return { keys: [...kv.keys()].filter((k) => k.startsWith(prefix)).map((name) => ({ name })), list_complete: true }; },
 };
 const objects = new Map();
@@ -75,6 +77,24 @@ t('GET /warnings: no sign-in needed, bad coordinates refused', (await worker.fet
 let r = await post('/reminders', STAS, { kind: 'wetter', action: 'on', place: 'Lüttingen', level: '2' });
 t('warnings: switch on with place and level, confirmation lists what is on now', r.body.on && JSON.parse(kv.get('wsub:4242')).place === 'Lüttingen' && messages.at(-1).text.includes('Попередження про негоду увімкнено для Lüttingen') && messages.at(-1).text.includes('ожеледь'), messages.at(-1) && messages.at(-1).text);
 t('warnings: the confirmation button opens the weather page in the Mini App', messages.at(-1).reply_markup.inline_keyboard[0][0].web_app.url.endsWith('/pogoda/'));
+let before = messages.length;
+r = await post('/reminders', STAS, { kind: 'wetter', action: 'on', place: 'Lüttingen', level: '2' });
+const twice = await Promise.all([1, 2, 3].map(() => post('/reminders', STAS, { kind: 'wetter', action: 'on', place: 'Lüttingen', level: '2' })));
+t('warnings: "on" again (a second tap, three requests at once) sends no new confirmation', messages.length === before && r.body.on && r.body.already && twice.every((x) => x.body.on), messages.slice(before).map((m) => m.text.slice(0, 40)).join(' | '));
+r = await post('/reminders', OTHER, { kind: 'wetter', action: 'on', place: 'Wardt', level: '2' });
+before = messages.length;
+slowKV = true;
+await Promise.all([1, 2, 3].map(() => post('/reminders', { ...OTHER, id: 8888 }, { kind: 'wetter', action: 'on', place: 'Wardt', level: '2' })));
+slowKV = false;
+t('warnings: three first "on" requests at the same moment → one confirmation', messages.filter((m) => m.chat_id === 8888).length === 1 && kv.has('wsub:8888'), messages.slice(before).length);
+r = await post('/reminders', STAS, { kind: 'wetter', action: 'on', place: 'Lüttingen', level: '1' });
+t('warnings: a repeated "on" still keeps the new level, quietly', JSON.parse(kv.get('wsub:4242')).level === 1 && messages.length === before + 1);
+await post('/reminders', STAS, { kind: 'wetter', action: 'on', place: 'Lüttingen', level: '2' });
+await post('/reminders', OTHER, { kind: 'wetter', action: 'off' });
+before = messages.length;
+await post('/reminders', OTHER, { kind: 'wetter', action: 'on', place: 'Wardt', level: '2' });
+t('warnings: off and on again within a minute → on, with a confirmation again', messages.length === before + 1 && messages.at(-1).chat_id === 7777 && kv.has('wsub:7777'));
+await post('/reminders', OTHER, { kind: 'wetter', action: 'off' }); await post('/reminders', { ...OTHER, id: 8888 }, { kind: 'wetter', action: 'off' });
 r = await post('/reminders', STAS, { kind: 'wetter', action: 'status' });
 t('warnings: status gives back place and level', r.body.on && r.body.place === 'Lüttingen' && r.body.level === 2, JSON.stringify(r.body));
 r = await post('/reminders', MAMA, { kind: 'wetter', action: 'on', place: 'Nowhere', level: '9' });

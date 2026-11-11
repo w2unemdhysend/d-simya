@@ -222,154 +222,14 @@ $('#places').addEventListener('click', (e) => {
   if (p === 'here') { locate(); return; }
   if (p === choice) return;
   choice = p; try { localStorage.setItem('pogoda-place', p); } catch (err) {}
-  /* ---------- official warnings ---------- */
-const LV = { 1: 'жовтий', 2: 'помаранчевий', 3: 'червоний', 4: 'темно-червоний' };
-let warnData = [];
-const trDone = new Map();
-function renderWarnings() {
-  const box = $('#warns');
-  box.hidden = false;
-  if (!warnData.length) { box.innerHTML = '<p class="calm">Офіційних попереджень DWD зараз немає.</p>'; return; }
-  box.innerHTML = warnData.map((w, i) => {
-    const de = [w.de, w.text, w.instruction].filter(Boolean).join('\n\n'), tr = trDone.get(de);
-    return `<article class="warn lv${w.level}" aria-label="Попередження рівня ${w.level} з 4: ${esc(w.uk)}">` +
-      `<div class="wh"><span class="lvl">${w.level} з 4 · ${esc(LV[w.level] || '')}</span><b>${esc(w.uk)}</b></div>` +
-      `<p class="when">${esc(warnWhen(w))}</p>` + (w.tip ? `<p class="wtip">${esc(w.tip)}</p>` : '') +
-      `<details><summary>Текст DWD німецькою</summary><p class="de" lang="de">${esc(de)}</p>` +
-      (tr ? `<p class="tr">${esc(tr)}</p>` : tg && tg.initData ? `<button class="trb" type="button" data-tr="${i}">Перекласти українською</button>` : '') + '</details></article>';
-  }).join('');
-}
-async function showWarnings(at, my) {
-  try { const d = await getWarnings(at[0], at[1]); if (my !== seq) return; warnData = d.warnings || []; renderWarnings(); }
-  catch (e) { if (my === seq) { $('#warns').hidden = true; } }
-}
-$('#warns').addEventListener('click', async (e) => {
-  const b = e.target.closest('[data-tr]'); if (!b) return;
-  const w = warnData[Number(b.dataset.tr)]; if (!w) return;
-  const de = [w.de, w.text, w.instruction].filter(Boolean).join('\n\n');
-  b.disabled = true; b.textContent = 'Перекладаю…';
-  try {
-    const fd = new FormData(); fd.append('initData', tg.initData); fd.append('pair', 'de-uk'); fd.append('text', de.slice(0, 4000));
-    const r = await fetch(WORKER_URL.replace(/\/*$/, '/') + 'translate', { method: 'POST', body: fd });
-    const d = await r.json(); if (!d.ok) throw new Error(d.error);
-    trDone.set(de, d.text); renderWarnings();
-    const open = document.querySelectorAll('.warn details')[Number(b.dataset.tr)]; if (open) open.open = true;
-  } catch (err) { b.disabled = false; b.textContent = 'Не вдалося, спробувати ще раз'; }
-});
-
-/* ---------- the bot writes about warnings for the household's place ---------- */
-const sw = $('#sw'), state = $('#sw-state'), subPlace = home || 'Xanten';
-let level = 2;
-$('#remind-note').textContent = `Бот напише, коли Німецька метеослужба (DWD) оголосить попередження для ${subPlace}: шторм, ожеледиця, гроза, сильний снігопад.`;
-function showLevel() { document.querySelectorAll('#levels [data-level]').forEach((b) => b.setAttribute('aria-checked', String(Number(b.dataset.level) === level))); }
-function showSw(on, text, cls) { sw.setAttribute('aria-checked', String(on)); state.textContent = text; state.className = 'state' + (cls ? ' ' + cls : ''); }
-async function call(action) {
-  const fd = new FormData(); fd.append('initData', tg.initData); fd.append('action', action); fd.append('kind', 'wetter');
-  fd.append('place', subPlace); fd.append('level', String(level));
-  const r = await fetch(WORKER_URL.replace(/\/*$/, '/') + 'reminders', { method: 'POST', body: fd });
-  const d = await r.json(); if (!d.ok) throw new Error(d.error); return d;
-}
-const failText = (e) => e && e.message === 'bot_blocked' ? 'Бот не може тобі написати. Відкрий чат із ботом, натисни «Почати» (Start) і спробуй ще раз.' : 'Не вдалося. Перевір інтернет і спробуй ще раз.';
-if (tg && tg.initData) {
-  sw.classList.add('busy');
-  call('status').then((d) => {
-    sw.disabled = false; if (d.level) level = d.level; showLevel();
-    showSw(d.on, d.on ? 'Увімкнено' : '', d.on ? 'on' : '');
-  }, () => showSw(false, 'Не вдалося перевірити. Спробуй пізніше.', 'err')).finally(() => sw.classList.remove('busy'));
-  sw.addEventListener('click', () => {
-    const want = sw.getAttribute('aria-checked') !== 'true';
-    sw.disabled = true; sw.classList.add('busy');
-    call(want ? 'on' : 'off').then((d) => {
-      showSw(d.on, d.on ? 'Увімкнено. Бот щойно надіслав підтвердження в чат.' : 'Вимкнено', d.on ? 'on' : ''); if (d.on) haptic();
-    }, (e) => showSw(!want, failText(e), 'err')).finally(() => { sw.disabled = false; sw.classList.remove('busy'); });
-  });
-} else {
-  showSw(false, 'Увімкнути можна, якщо відкрити цю сторінку через бота в Telegram.');
-}
-$('#levels').addEventListener('click', (e) => {
-  const b = e.target.closest('[data-level]'); if (!b) return;
-  level = Number(b.dataset.level); showLevel(); haptic();
-  if (tg && tg.initData && sw.getAttribute('aria-checked') === 'true') call('prefs').then(() => showSw(true, 'Збережено', 'on'), () => showSw(true, 'Не вдалося зберегти рівень', 'err'));
-});
-
-renderPlaces(); show(); haptic();
+  renderPlaces(); show(); haptic();
 });
 function locate() {
   waiting('Визначаю, де ти…');
   navigator.geolocation.getCurrentPosition(async (pos) => {
     const lat = Math.round(pos.coords.latitude * 100) / 100, lon = Math.round(pos.coords.longitude * 100) / 100;
     here = { lat, lon, name: 'Тут' };
-    choice = 'here'; /* ---------- official warnings ---------- */
-const LV = { 1: 'жовтий', 2: 'помаранчевий', 3: 'червоний', 4: 'темно-червоний' };
-let warnData = [];
-const trDone = new Map();
-function renderWarnings() {
-  const box = $('#warns');
-  box.hidden = false;
-  if (!warnData.length) { box.innerHTML = '<p class="calm">Офіційних попереджень DWD зараз немає.</p>'; return; }
-  box.innerHTML = warnData.map((w, i) => {
-    const de = [w.de, w.text, w.instruction].filter(Boolean).join('\n\n'), tr = trDone.get(de);
-    return `<article class="warn lv${w.level}" aria-label="Попередження рівня ${w.level} з 4: ${esc(w.uk)}">` +
-      `<div class="wh"><span class="lvl">${w.level} з 4 · ${esc(LV[w.level] || '')}</span><b>${esc(w.uk)}</b></div>` +
-      `<p class="when">${esc(warnWhen(w))}</p>` + (w.tip ? `<p class="wtip">${esc(w.tip)}</p>` : '') +
-      `<details><summary>Текст DWD німецькою</summary><p class="de" lang="de">${esc(de)}</p>` +
-      (tr ? `<p class="tr">${esc(tr)}</p>` : tg && tg.initData ? `<button class="trb" type="button" data-tr="${i}">Перекласти українською</button>` : '') + '</details></article>';
-  }).join('');
-}
-async function showWarnings(at, my) {
-  try { const d = await getWarnings(at[0], at[1]); if (my !== seq) return; warnData = d.warnings || []; renderWarnings(); }
-  catch (e) { if (my === seq) { $('#warns').hidden = true; } }
-}
-$('#warns').addEventListener('click', async (e) => {
-  const b = e.target.closest('[data-tr]'); if (!b) return;
-  const w = warnData[Number(b.dataset.tr)]; if (!w) return;
-  const de = [w.de, w.text, w.instruction].filter(Boolean).join('\n\n');
-  b.disabled = true; b.textContent = 'Перекладаю…';
-  try {
-    const fd = new FormData(); fd.append('initData', tg.initData); fd.append('pair', 'de-uk'); fd.append('text', de.slice(0, 4000));
-    const r = await fetch(WORKER_URL.replace(/\/*$/, '/') + 'translate', { method: 'POST', body: fd });
-    const d = await r.json(); if (!d.ok) throw new Error(d.error);
-    trDone.set(de, d.text); renderWarnings();
-    const open = document.querySelectorAll('.warn details')[Number(b.dataset.tr)]; if (open) open.open = true;
-  } catch (err) { b.disabled = false; b.textContent = 'Не вдалося, спробувати ще раз'; }
-});
-
-/* ---------- the bot writes about warnings for the household's place ---------- */
-const sw = $('#sw'), state = $('#sw-state'), subPlace = home || 'Xanten';
-let level = 2;
-$('#remind-note').textContent = `Бот напише, коли Німецька метеослужба (DWD) оголосить попередження для ${subPlace}: шторм, ожеледиця, гроза, сильний снігопад.`;
-function showLevel() { document.querySelectorAll('#levels [data-level]').forEach((b) => b.setAttribute('aria-checked', String(Number(b.dataset.level) === level))); }
-function showSw(on, text, cls) { sw.setAttribute('aria-checked', String(on)); state.textContent = text; state.className = 'state' + (cls ? ' ' + cls : ''); }
-async function call(action) {
-  const fd = new FormData(); fd.append('initData', tg.initData); fd.append('action', action); fd.append('kind', 'wetter');
-  fd.append('place', subPlace); fd.append('level', String(level));
-  const r = await fetch(WORKER_URL.replace(/\/*$/, '/') + 'reminders', { method: 'POST', body: fd });
-  const d = await r.json(); if (!d.ok) throw new Error(d.error); return d;
-}
-const failText = (e) => e && e.message === 'bot_blocked' ? 'Бот не може тобі написати. Відкрий чат із ботом, натисни «Почати» (Start) і спробуй ще раз.' : 'Не вдалося. Перевір інтернет і спробуй ще раз.';
-if (tg && tg.initData) {
-  sw.classList.add('busy');
-  call('status').then((d) => {
-    sw.disabled = false; if (d.level) level = d.level; showLevel();
-    showSw(d.on, d.on ? 'Увімкнено' : '', d.on ? 'on' : '');
-  }, () => showSw(false, 'Не вдалося перевірити. Спробуй пізніше.', 'err')).finally(() => sw.classList.remove('busy'));
-  sw.addEventListener('click', () => {
-    const want = sw.getAttribute('aria-checked') !== 'true';
-    sw.disabled = true; sw.classList.add('busy');
-    call(want ? 'on' : 'off').then((d) => {
-      showSw(d.on, d.on ? 'Увімкнено. Бот щойно надіслав підтвердження в чат.' : 'Вимкнено', d.on ? 'on' : ''); if (d.on) haptic();
-    }, (e) => showSw(!want, failText(e), 'err')).finally(() => { sw.disabled = false; sw.classList.remove('busy'); });
-  });
-} else {
-  showSw(false, 'Увімкнути можна, якщо відкрити цю сторінку через бота в Telegram.');
-}
-$('#levels').addEventListener('click', (e) => {
-  const b = e.target.closest('[data-level]'); if (!b) return;
-  level = Number(b.dataset.level); showLevel(); haptic();
-  if (tg && tg.initData && sw.getAttribute('aria-checked') === 'true') call('prefs').then(() => showSw(true, 'Збережено', 'on'), () => showSw(true, 'Не вдалося зберегти рівень', 'err'));
-});
-
-renderPlaces(); show(); haptic();
+    choice = 'here'; renderPlaces(); show(); haptic();
     // the town's name for the chip: one OpenStreetMap lookup with the rounded spot
     try {
       const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=10&accept-language=de&lat=${lat}&lon=${lon}`);
@@ -497,7 +357,7 @@ if (tg && tg.initData) {
     const want = sw.getAttribute('aria-checked') !== 'true';
     sw.disabled = true; sw.classList.add('busy');
     call(want ? 'on' : 'off').then((d) => {
-      showSw(d.on, d.on ? 'Увімкнено. Бот щойно надіслав підтвердження в чат.' : 'Вимкнено', d.on ? 'on' : ''); if (d.on) haptic();
+      showSw(d.on, d.on ? (d.already ? 'Увімкнено' : 'Увімкнено. Бот щойно надіслав підтвердження в чат.') : 'Вимкнено', d.on ? 'on' : ''); if (d.on) haptic();
     }, (e) => showSw(!want, failText(e), 'err')).finally(() => { sw.disabled = false; sw.classList.remove('busy'); });
   });
 } else {

@@ -149,7 +149,7 @@ async function remindP(fields) {
   return { status: res.status, body: await res.json().catch(() => null) };
 }
 messages.length = 0;
-for (const k of [...kv.keys()]) if (k.startsWith('sub:')) kv.delete(k);
+for (const k of [...kv.keys()]) if (k.startsWith('sub:') || k.startsWith('conf:')) kv.delete(k);   // a fresh start: nobody subscribed
 r = await remindP({ action: 'on', district: '1', bins: 'papier,gelb,bogus', rhythm: '14' });
 let rec = JSON.parse(kv.get('sub:4242'));
 t('district 1 household: saved with its bins, unknown ones dropped, no street', r.body.on && rec.district === '1' && rec.bins.join() === 'papier,gelb' && rec.rhythm === '14' && !('street' in rec), JSON.stringify(rec));
@@ -178,7 +178,7 @@ async function remindF(action, initData = sign(base)) {
   return { status: res.status, body: await res.json().catch(() => null) };
 }
 messages.length = 0;
-for (const k of [...kv.keys()]) if (k.startsWith('sub:')) kv.delete(k);
+for (const k of [...kv.keys()]) if (k.startsWith('sub:') || k.startsWith('conf:')) kv.delete(k);   // a fresh start: nobody subscribed
 kv.set('sub:777', JSON.stringify({ id: 777 }));   // waste only
 r = await remindF('on');
 t('flyers: switch on, kept apart from waste reminders', r.body.on === true && kv.has('fsub:4242') && !kv.has('sub:4242'));
