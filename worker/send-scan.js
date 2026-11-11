@@ -18,9 +18,9 @@
  *                          no sign-in, so only fixed texts, and every answer is cached
  *   GET  /transit/stops, /transit/departures, /weather
  *                          public timetable (VRR) and weather (Open-Meteo) data for the pages, see transit.js
- *   cron, daily            at 18:00 Xanten time: tells subscribers which bins go out tomorrow
- *   cron, Mondays          at 08:00 Xanten time: new flyers are out, and which days shops close that week
- *   cron, every 30 minutes new DWD warnings for subscribers' places; at 09:00 Xanten time the word of the day
+ *   cron, every 30 minutes, each job checks the time in Xanten and sends at most once:
+ *                          18:00 daily: which bins go out tomorrow · Mondays 08:00: new flyers and closed days ·
+ *                          09:00 daily: the word of the day · any time: new DWD warnings for subscribers' places
  *
  * Settings (Cloudflare → Worker → Settings):
  *   BOT_TOKEN       secret, the token from @BotFather            (required)
@@ -107,14 +107,12 @@ export default {
     return reply(200, { ok: true });
   },
 
-  // Crons: 16:00 and 17:00 UTC daily, 06:00 and 07:00 UTC on Mondays. Each job checks the Xanten hour
-  // itself (18:00 for waste, 08:00 for flyers), so it runs once, winter or summer time.
-  // Every 30 minutes: weather warnings, and the word of the day when it is 09:00 in Xanten.
-  // Each cron runs only its own jobs, so two crons firing at the same minute never send a message twice.
+  // One cron, every 30 minutes. Each job checks the Xanten time itself (18:00 waste, Monday 08:00 flyers, 09:00 word
+  // of the day) and keeps a mark in KV for the day, so it sends once, winter or summer time; warnings go out as they come.
   async scheduled(controller, env, ctx) {
     const now = new Date(controller.scheduledTime);
-    if (controller.cron === EVERY_30) ctx.waitUntil(Promise.all([sendWarnings(env, now, tgSend, WEATHER_BUTTON), sendWordOfDay(env, now, broadcast)]));
-    else ctx.waitUntil(Promise.all([sendReminders(env, now), sendFlyerReminders(env, now)]));
+    ctx.waitUntil(Promise.all([sendReminders(env, now), sendFlyerReminders(env, now),
+      sendWarnings(env, now, tgSend, WEATHER_BUTTON), sendWordOfDay(env, now, broadcast)]));
   },
 };
 
@@ -124,7 +122,6 @@ const PAGE_URL = 'https://w2unemdhysend.github.io/d-simya/smittia/';
 const WASTE_BUTTON = { text: 'Розклад', url: PAGE_URL };
 const FLYERS = { prefix: 'fsub:', sent: 'fsent:', button: { text: 'Проспекти', url: 'https://w2unemdhysend.github.io/d-simya/prospekty/' } };
 const WEATHER_BUTTON = { text: 'Погода', url: 'https://w2unemdhysend.github.io/d-simya/pogoda/' };
-const EVERY_30 = '*/30 * * * *';
 const KINDS = { smittia: 'sub:', prospekty: FLYERS.prefix, wetter: 'wsub:', wort: 'dsub:' };
 
 async function reminders(request, env, reply) {

@@ -13,8 +13,8 @@
   // The family shopping list: one Durable Object per list (SQLite storage, available on the free plan)
   "durable_objects": { "bindings": [{ "name": "LISTS", "class_name": "ShoppingList" }] },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ShoppingList"] }],
-  // 16:00 and 17:00 UTC: one of them is 18:00 in Xanten in winter, the other in summer (waste reminders);
-  // Mondays 06:00 and 07:00 UTC: 08:00 in Xanten (new flyers);
-  // every 30 minutes: DWD weather warnings, and at 09:00 in Xanten the word of the day (3 of the free plan's 5 crons)
-  "triggers": { "crons": ["0 16,17 * * *", "0 6,7 * * 1", "*/30 * * * *"] }
+  // One cron every 30 minutes runs every job; each job checks the time in Xanten itself and sends at most once:
+  // waste at 18:00, flyers on Mondays at 08:00, the word of the day at 09:00, DWD warnings whenever there are new ones.
+  // (The free plan allows 5 crons per account, shared by all Workers: this one uses a single one.)
+  "triggers": { "crons": ["*/30 * * * *"] }
 }

@@ -91,8 +91,11 @@ t('cron: the same warning is not sent again half an hour later', !msgs.some((m) 
 alerts = [ALERT({ alert_id: 'A9', severity: 'severe' })];
 msgs = await cron('2026-11-20T06:00:00Z', '*/30 * * * *');
 t('cron: an upgrade to red is news: both get it', msgs.some((m) => m.chat_id === 4242) && msgs.some((m) => m.chat_id === 5151 && m.text.includes('Wesel')), JSON.stringify(msgs.map((m) => m.chat_id)));
-msgs = await cron('2026-11-20T16:00:00Z', '0 16,17 * * *');
-t('the waste cron does not send warnings', !msgs.some((m) => m.text.includes('DWD')));
+kv.set('sub:4242', JSON.stringify({ id: 4242, district: '2', bins: ['rest', 'papier', 'gelb'], rhythm: 'unknown' }));
+msgs = await cron('2026-11-11T17:00:00Z', '*/30 * * * *');
+t('one cron runs every job: at 18:00 the waste reminder goes out', msgs.some((m) => m.chat_id === 4242 && m.text.includes('завтра')), JSON.stringify(msgs.map((m) => m.text.slice(0, 50))));
+msgs = await cron('2026-11-11T17:30:00Z', '*/30 * * * *');
+t('… and at 18:30 not again', !msgs.some((m) => m.chat_id === 4242 && m.text.includes('завтра')));
 
 /* ---------- word of the day ---------- */
 const seen = new Set(); for (let i = 0; i < WORDS.length; i++) seen.add(wordOfDay(new Date(Date.UTC(2026, 10, 1 + i)).toISOString().slice(0, 10))[0]);
