@@ -7,7 +7,10 @@ the laundry clicker (taps, upgrades and their rising cost, income per second, ea
 8-hour cap, a milestone, Ukrainian plural forms, saving, the two-tap reset, the copy kept in Telegram), the
 sorting game (items and bins are consistent, right and wrong answers, the double-points streak, the clock
 standing still while a mistake is explained, digit keys, Telegram's Back button, the end of a round with the
-mistakes and the record), the remembered tab, and the layout at 340 px. Exits 1 if a check fails.
+mistakes and the record), the remembered tab, and the layout at 340 px. Der, die, das: the word list (valid articles, rules, compounds), buttons,
+swipes (left der, up die, right das, short or downward drags do nothing), arrow keys, double points, a mistake shown
+with the right article and its rule while the clock stands still, words got wrong coming back more often, Telegram's
+vertical swipes off during a round, the end of a round with the record kept in Telegram. Exits 1 if a check fails.
 """
 import asyncio, functools, http.server, json, os, re, sys, threading, time
 from playwright.async_api import async_playwright
@@ -18,6 +21,7 @@ window.Telegram = {WebApp: {platform: 'android', colorScheme: 'light', initData:
   setHeaderColor() {}, setBackgroundColor() {}, isVersionAtLeast() { return true; },
   CloudStorage: {getItem(k, cb) { setTimeout(() => cb(null, window.__cloud[k] || ''), 30); }, setItem(k, v, cb) { window.__cloud[k] = v; cb && cb(null, true); }},
   HapticFeedback: {selectionChanged() {}, impactOccurred() {}, notificationOccurred() {}},
+  disableVerticalSwipes() { window.__vs = false; }, enableVerticalSwipes() { window.__vs = true; },
   BackButton: {shown: false, show() { this.shown = true; }, hide() { this.shown = false; }, onClick(f) { window.__back = f; }}}};"""
 fails = []
 
@@ -160,6 +164,85 @@ async def main():
         await pg.reload(); await pg.clock.run_for(600)
         check('reopens on the sorting tab with the record', await pg.get_attribute('#tab-sort', 'aria-selected') == 'true' and '7 балів' in await text(pg, '#s-best'))
         await pg.screenshot(path=os.path.join(os.environ.get('SHOTS', '/tmp'), 'igry-sort.png'))
+        await ctx.close()
+
+        # der, die, das
+        ctx, pg = await context(browser, cloud={}, width=340)
+        await ctx.add_init_script("if (!sessionStorage.getItem('seeded')) { localStorage.setItem('dsimya-artikel-miss', JSON.stringify({Gleis: 4})); sessionStorage.setItem('seeded', '1'); }")
+        await pg.clock.install()
+        await pg.goto(base + 'igry/'); await pg.clock.run_for(400)
+        await pg.click('#tab-art'); await pg.clock.run_for(600); await pg.wait_for_timeout(500)
+        check('three tabs fit 340 px', await pg.evaluate('document.documentElement.scrollWidth') <= 340 and await pg.is_visible('#view-art'))
+        words = await pg.evaluate('__games.WORDS'); rules = await pg.evaluate('Object.keys(__games.RULES)')
+        names = [w[0] for w in words]
+        bad = [w for w in words if w[1] not in ('der', 'die', 'das') or not w[2] or (len(w) > 3 and w[3] not in rules) or (len(w) > 3 and w[3] == 'comp' and not w[4].startswith(w[1] + ' '))]
+        per = {a: sum(1 for w in words if w[1] == a) for a in ('der', 'die', 'das')}
+        check('words: 100+, valid articles and rules, compounds take the last word, no repeats, balanced', len(words) >= 100 and not bad and len(set(names)) == len(names) and min(per.values()) >= 30, f'{per} {bad[:3]}')
+        check('in Germany: der Prospekt', next(w for w in words if w[0] == 'Prospekt')[1] == 'der')
+        check('start: a word to repeat is announced', 'На повторення: 1 слово' in await text(pg, '#a-learn'))
+        share = await pg.evaluate("(() => { let n = 0; for (let i = 0; i < 3000; i++) if (__games.pickWord() === 'Gleis') n++; return n / 3000; })()")
+        check('a word got wrong comes back far more often (weight 13 instead of 1)', 0.07 < share < 0.17, share)
+
+        await pg.click('#a-go'); await pg.clock.run_for(200)
+        check('round starts: 60 s, Back shown, Telegram vertical swipes off', await text(pg, '#a-time') == '60 с' and await pg.evaluate('Telegram.WebApp.BackButton.shown') and await pg.evaluate('window.__vs') is False)
+        W = '__games.word()'
+        leans = []
+        async def answer(how='button'):
+            art = await pg.evaluate(W + '[1]')
+            if how == 'button': await pg.click(f'.artbtn[data-art="{art}"]')
+            elif how == 'key': await pg.keyboard.press({'der': 'ArrowLeft', 'die': 'ArrowUp', 'das': 'ArrowRight'}[art])
+            else:
+                box = await pg.locator('#a-card').bounding_box(); cx, cy = box['x'] + box['width'] / 2, box['y'] + box['height'] / 2
+                dx, dy = {'der': (-130, 0), 'die': (0, -120), 'das': (130, 0)}[art]
+                await pg.mouse.move(cx, cy); await pg.mouse.down()
+                for i in range(1, 9): await pg.mouse.move(cx + dx * i / 8, cy + dy * i / 8)
+                leans.append((art, await pg.evaluate("document.getElementById('a-card').className")))
+                await pg.mouse.up()
+            await pg.clock.run_for(300)
+        first = await pg.evaluate(W + '[0]')
+        await answer('button')
+        check('right article by button: 1 point, next word', await text(pg, '#a-score') == '1' and await pg.evaluate(W + '[0]') != first)
+        check('"1 бал", not "1 балів"', await text(pg, '#a-pw') == 'бал')
+        await answer('swipe')
+        check('right article by swipe (left der, up die, right das)', await text(pg, '#a-score') == '2', await text(pg, '#a-score'))
+        check('while swiping, the card shows the article it leans to', leans and all('lean-' + a in c for a, c in leans), str(leans))
+        await answer('key')
+        check('arrow keys pick the article', await text(pg, '#a-score') == '3')
+        await answer('swipe'); await answer('button')
+        check('five in a row: double points from the fifth (1+1+1+1+2)', await text(pg, '#a-score') == '6' and '×2' in await text(pg, '#a-streak'), await text(pg, '#a-score'))
+
+        # a short drag and a drag downwards answer nothing
+        w0 = await pg.evaluate(W + '[0]')
+        box = await pg.locator('#a-card').bounding_box(); cx, cy = box['x'] + box['width'] / 2, box['y'] + box['height'] / 2
+        await pg.mouse.move(cx, cy); await pg.mouse.down(); await pg.mouse.move(cx + 25, cy, steps=4); await pg.mouse.up(); await pg.clock.run_for(400)
+        await pg.mouse.move(cx, cy); await pg.mouse.down(); await pg.mouse.move(cx + 10, cy + 140, steps=6); await pg.mouse.up(); await pg.clock.run_for(400)
+        check('short or downward drags answer nothing, the card comes back', await pg.evaluate(W + '[0]') == w0 and await text(pg, '#a-score') == '6' and not await pg.evaluate("document.getElementById('a-card').style.transform"))
+
+        wrong_word = await pg.evaluate(W)
+        wrong = next(a for a in ('der', 'die', 'das') if a != wrong_word[1])
+        await pg.click(f'.artbtn[data-art="{wrong}"]'); await pg.clock.run_for(100)
+        why = await text(pg, '#a-why'); t1 = await text(pg, '#a-time')
+        check('mistake: the right article with the word and its rule or "запамʼятай"', wrong_word[1] + ' ' + wrong_word[0] in why and ('.' in why) and 'right' in await pg.get_attribute(f'.artbtn[data-art="{wrong_word[1]}"]', 'class'), why)
+        await pg.clock.run_for(4000)
+        check('the clock stands still while the mistake is shown, streak reset', await text(pg, '#a-time') == t1 and await text(pg, '#a-streak') == '')
+        miss = json.loads(await pg.evaluate("localStorage.getItem('dsimya-artikel-miss')"))
+        check('the word is marked to come back', miss.get(wrong_word[0]) == min(4, 2 + (4 if wrong_word[0] == 'Gleis' else 0)), str(miss))
+        await pg.click('#a-next'); await pg.clock.run_for(100)
+        check('"Далі" goes on', await pg.is_hidden('#a-fb') and await pg.evaluate(W + '[0]') != wrong_word[0])
+        await pg.evaluate("(() => { const n = document.getElementById('a-noun'); n.textContent = 'Ausländerbehörde'; n.className = 'noun xlong'; })()")
+        check('the longest word fits the card at 340 px', await pg.evaluate("(() => { const n = document.getElementById('a-noun'); return n.scrollWidth <= n.clientWidth + 1; })()") and await pg.evaluate('document.documentElement.scrollWidth') <= 340)
+        await pg.screenshot(path=os.path.join(os.environ.get('SHOTS', '/tmp'), 'igry-art.png'))
+
+        await pg.clock.run_for(61000)
+        check('time up: score, accuracy, the word to learn with its article', await pg.is_visible('#a-end') and await text(pg, '#a-result') == '6 балів' and wrong_word[1] + ' ' + wrong_word[0] in await text(pg, '#a-miss') and '5 з 6' in await text(pg, '#a-sum'), await text(pg, '#a-sum'))
+        check('record kept on the device and in Telegram', await pg.is_visible('#a-record') and await pg.evaluate("localStorage.getItem('dsimya-artikel-best')") == '6' and await pg.evaluate('window.__cloud.artikel_best') == '6')
+        check('after the round: Back hidden, Telegram vertical swipes on again', not await pg.evaluate('Telegram.WebApp.BackButton.shown') and await pg.evaluate('window.__vs') is True)
+        await pg.click('#a-again'); await pg.clock.run_for(200)
+        await pg.evaluate('window.__back()'); await pg.clock.run_for(100)
+        check("Telegram's Back button leaves the round", await pg.is_visible('#a-start') and await pg.is_hidden('#a-play') and await pg.evaluate('window.__vs') is True)
+        await pg.click('#a-go'); await pg.clock.run_for(200)
+        await pg.click('#tab-click'); await pg.clock.run_for(600)
+        check('switching tabs ends the round', await pg.evaluate('__games.artRound()') is None and not await pg.evaluate("document.body.classList.contains('playing')"))
         await ctx.close()
         await browser.close()
 

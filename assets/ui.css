@@ -1,6 +1,8 @@
 /* Shared UI layer for all sections: theme toggle, section menu, sliding tab indicators, soft transitions, swipes.
    Motion uses only transform and opacity (smooth on phones) with one gentle ease-out curve. */
 :root{--ease-out:cubic-bezier(.22,1,.36,1)}
+/* a view sliding in from the side must never make the page scroll sideways for a moment */
+body{overflow-x:clip}
 
 .toprow{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
 

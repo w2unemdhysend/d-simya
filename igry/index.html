@@ -10,7 +10,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@600;700&display=swap">
 <style>
-/* Two small games behind the quiet icon in the menu: a laundry clicker and waste sorting the way Xanten wants it */
+/* Small games behind the quiet icon in the menu: a laundry clicker, waste sorting the way Xanten wants it,
+   and der/die/das with everyday German words (swipe the card or tap the article) */
 :root{
   padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom);
   --bg:#E7ECEF; --surface:#F6F8F9; --ink:#12181C; --muted:#53616A; --line:#C7D0D5;
@@ -55,7 +56,7 @@ main{padding-top:4px}
 .btn:active{transform:scale(.98)}
 
 .tabbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:6;background:var(--bg);padding-block:12px}
-.tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:4px}
+.tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:4px}
 .tabs button{border:0;background:transparent;border-radius:10px;min-height:44px;padding:6px 4px;font-weight:600;font-size:15px;cursor:pointer}
 
 /* clicker */
@@ -119,6 +120,40 @@ main{padding-top:4px}
 .miss b{font-weight:600}
 .miss .dot{display:inline-block;width:12px;height:12px;border-radius:4px;margin-right:6px;vertical-align:-1px}
 
+/* der, die, das: a card that can be swiped left (der), up (die) or right (das) */
+.acard{position:relative;margin-top:14px;min-height:190px;border-radius:22px;background:var(--surface);border:2px solid var(--line);display:grid;align-content:center;justify-items:center;gap:6px;
+  padding:26px 16px;text-align:center;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;will-change:transform;
+  transition:border-color .15s ease, box-shadow .15s ease}
+.acard .noun{font-family:var(--f-display);font-weight:700;font-size:30px;line-height:1.15;overflow-wrap:anywhere;hyphens:auto}
+.acard .noun.long{font-size:24px}.acard .noun.xlong{font-size:20px}
+.acard .uk{color:var(--muted);font-size:16px}
+/* the article the card leans to shows at its top, where it stays on screen whichever way the card goes */
+.acard .tag{position:absolute;top:12px;left:50%;transform:translateX(-50%) scale(.9);font-family:var(--f-display);font-weight:700;font-size:20px;
+  padding:2px 12px;border-radius:999px;opacity:0;transition:opacity .12s ease, transform .12s ease}
+.acard .tag.der{color:var(--der)}.acard .tag.die{color:var(--die)}.acard .tag.das{color:var(--das)}
+.acard.lean-der .tag.der,.acard.lean-die .tag.die,.acard.lean-das .tag.das{transform:translateX(-50%) scale(1)}
+.acard.lean-der{border-color:var(--der)}.acard.lean-der .tag.der{opacity:1}
+.acard.lean-die{border-color:var(--die)}.acard.lean-die .tag.die{opacity:1}
+.acard.lean-das{border-color:var(--das)}.acard.lean-das .tag.das{opacity:1}
+.acard.in{animation:cardIn .3s var(--ease-out, cubic-bezier(.22,1,.36,1))}
+@keyframes cardIn{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
+.acard.back{transition:transform .3s var(--ease-out, ease), border-color .15s ease}
+.acard.fly{transition:transform .22s ease-in, opacity .22s ease-in;opacity:0}
+.acard.good{border-color:var(--ok);box-shadow:0 0 0 3px var(--ok)}
+.acard.bad{border-color:var(--danger);box-shadow:0 0 0 3px var(--danger);animation:shake .32s ease}
+.acard .right{font-size:18px;font-weight:600}
+.arrows{display:flex;justify-content:space-between;margin:8px 4px 0;font-size:13px;color:var(--muted)}
+.arts{margin-top:12px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.artbtn{min-height:64px;border-radius:14px;border:0;color:#FFFFFF;font-family:var(--f-display);font-weight:700;font-size:20px;cursor:pointer;touch-action:manipulation;
+  box-shadow:inset 0 -4px 0 rgba(0,0,0,.18);transition:transform .1s ease, opacity .2s ease}
+.artbtn:active{transform:scale(.96)}
+.artbtn.der{background:var(--der)}.artbtn.die{background:var(--die)}.artbtn.das{background:var(--das)}
+:root[data-theme="dark"] .artbtn{color:#0F1417}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .artbtn{color:#0F1417}}
+.artbtn.dim{opacity:.3}
+.artbtn.right{outline:3px solid var(--ink);outline-offset:2px;opacity:1}
+.learn{margin:-6px 0 14px;font-size:15px;color:var(--muted)}
+
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom, 0px));transform:translate(-50%, 20px);max-width:min(92vw, 420px);
   background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:14px;font-weight:600;font-size:15px;opacity:0;pointer-events:none;
   transition:opacity .2s ease, transform .2s ease;z-index:30;text-align:center}
@@ -129,7 +164,7 @@ body.playing .top .eyebrow,body.playing .top h1,body.playing .top .lede,body.pla
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 @media (min-width:480px){h1{font-size:38px}}
 </style>
-<link rel="stylesheet" href="../assets/ui.css?v=12">
+<link rel="stylesheet" href="../assets/ui.css?v=13">
 </head>
 <body>
 <div class="wrap">
@@ -145,6 +180,7 @@ body.playing .top .eyebrow,body.playing .top h1,body.playing .top .lede,body.pla
       <span class="tthumb" aria-hidden="true"></span>
       <button role="tab" id="tab-click" data-tab="click" aria-controls="view-click" aria-selected="true">Пральня</button>
       <button role="tab" id="tab-sort" data-tab="sort" aria-controls="view-sort" aria-selected="false">Сортування</button>
+      <button role="tab" id="tab-art" data-tab="art" aria-controls="view-art" aria-selected="false">Артиклі</button>
     </div>
   </div>
 
@@ -185,7 +221,7 @@ body.playing .top .eyebrow,body.playing .top h1,body.playing .top .lede,body.pla
       <button class="btn primary" id="s-go" type="button">Почати</button>
     </div>
     <div id="s-play" hidden>
-      <div class="hud"><span class="pts"><span id="s-score">0</span> <small class="note">балів</small></span><span class="streak" id="s-streak"></span><span class="sec" id="s-time">60 с</span></div>
+      <div class="hud"><span class="pts"><span id="s-score">0</span> <small class="note" id="s-pw">балів</small></span><span class="streak" id="s-streak"></span><span class="sec" id="s-time">60 с</span></div>
       <div class="timebar" aria-hidden="true"><i id="s-bar"></i></div>
       <div class="item" id="s-item" aria-live="polite"><div class="uk" id="s-uk"></div><div class="de" id="s-de"></div></div>
       <div class="fb" id="s-fb" hidden><p id="s-why"></p><button class="btn" id="s-next" type="button">Далі</button></div>
@@ -200,11 +236,44 @@ body.playing .top .eyebrow,body.playing .top h1,body.playing .top .lede,body.pla
       <button class="btn primary" id="s-again" type="button">Ще раз</button>
     </div>
   </section>
+
+  <section class="view" id="view-art" role="tabpanel" aria-labelledby="tab-art" hidden>
+    <div class="card" id="a-start">
+      <h2>Der, die чи das?</h2>
+      <p class="note rules">60 секунд на слова з життя в Німеччині. Вибирай артикль кнопкою або свайпом картки: вліво — der, вгору — die, вправо — das. Якщо помилишся, гра покаже правильний артикль і правило, а це слово потім трапиться частіше. П’ять правильних поспіль дають подвійні бали.</p>
+      <p class="best" id="a-best"></p>
+      <p class="learn" id="a-learn" hidden></p>
+      <button class="btn primary" id="a-go" type="button">Почати</button>
+    </div>
+    <div id="a-play" hidden>
+      <div class="hud"><span class="pts"><span id="a-score">0</span> <small class="note" id="a-pw">балів</small></span><span class="streak" id="a-streak"></span><span class="sec" id="a-time">60 с</span></div>
+      <div class="timebar" aria-hidden="true"><i id="a-bar"></i></div>
+      <div class="acard" id="a-card" data-noswipe aria-live="polite">
+        <span class="tag der" aria-hidden="true">der</span><span class="tag die" aria-hidden="true">die</span><span class="tag das" aria-hidden="true">das</span>
+        <div class="noun" id="a-noun" lang="de"></div><div class="uk" id="a-uk"></div>
+      </div>
+      <div class="arrows" aria-hidden="true"><span>← der</span><span>↑ die</span><span>das →</span></div>
+      <div class="fb" id="a-fb" hidden><p id="a-why"></p><button class="btn" id="a-next" type="button">Далі</button></div>
+      <div class="arts" id="a-arts" role="group" aria-label="Артикль">
+        <button class="artbtn der" type="button" data-art="der" aria-keyshortcuts="ArrowLeft 1">der</button>
+        <button class="artbtn die" type="button" data-art="die" aria-keyshortcuts="ArrowUp 2">die</button>
+        <button class="artbtn das" type="button" data-art="das" aria-keyshortcuts="ArrowRight 3">das</button>
+      </div>
+    </div>
+    <div class="card" id="a-end" hidden>
+      <h2>Час вийшов</h2>
+      <div class="result" id="a-result">0</div>
+      <p class="note" id="a-sum"></p>
+      <p class="record" id="a-record" hidden>Новий рекорд!</p>
+      <ul class="miss" id="a-miss"></ul>
+      <button class="btn primary" id="a-again" type="button">Ще раз</button>
+    </div>
+  </section>
   </main>
   <p class="foot" id="foot">Прогрес зберігається на цьому пристрої.</p>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="../assets/ui.js?v=12"></script>
+<script src="../assets/ui.js?v=13"></script>
 <script>
 (function(){
   var $ = function(s, r){ return (r || document).querySelector(s); };
@@ -235,13 +304,14 @@ body.playing .top .eyebrow,body.playing .top h1,body.playing .top .lede,body.pla
   function socks(n){ n = Math.floor(n); if (n >= 10000) return 'шкарпеток'; return {one:'шкарпетка', few:'шкарпетки', many:'шкарпеток'}[plural.select(n)] || 'шкарпетки'; }
 
   /* ---------------- tabs ---------------- */
-  var views = [$('#view-click'), $('#view-sort')];
+  var views = [$('#view-click'), $('#view-sort'), $('#view-art')];
   function tab(t, instant){
     document.querySelectorAll('.tabs [role="tab"]').forEach(function(b){ b.setAttribute('aria-selected', b.getAttribute('data-tab') === t ? 'true' : 'false'); });
     if (window.UI){ UI.tabsThumb(instant); UI.switchView(views, $('#view-' + t), {instant:instant, keepScroll:true}); }
     else views.forEach(function(v){ v.hidden = v.id !== 'view-' + t; });
     try { localStorage.setItem('dsimya-igry-tab', t); } catch(e){}
     if (t !== 'sort' && round) stopRound();
+    if (t !== 'art' && aRound) aStop();
   }
   document.querySelectorAll('.tabs [role="tab"]').forEach(function(b){
     b.addEventListener('click', function(){ if (b.getAttribute('aria-selected') !== 'true'){ haptic(); tab(b.getAttribute('data-tab')); } });
@@ -410,8 +480,9 @@ body.playing .top .eyebrow,body.playing .top h1,body.playing .top .lede,body.pla
     void el.offsetWidth; el.classList.add('in');
     document.querySelectorAll('.binbtn').forEach(function(b){ b.classList.remove('dim', 'right'); b.disabled = false; });
   }
+  function points(n){ return {one:'бал', few:'бали', many:'балів'}[plural.select(n)] || 'балів'; }
   function hud(){
-    $('#s-score').textContent = round.score;
+    $('#s-score').textContent = round.score; $('#s-pw').textContent = points(round.score);
     $('#s-streak').textContent = round.streak >= 5 ? 'Серія ' + round.streak + ' · ×2' : round.streak >= 2 ? 'Серія ' + round.streak : '';
     var left = Math.max(0, round.left);
     $('#s-time').textContent = Math.ceil(left / 1000) + ' с';
@@ -478,11 +549,201 @@ body.playing .top .eyebrow,body.playing .top h1,body.playing .top .lede,body.pla
     if (round.paused && !$('#s-fb').hidden && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); $('#s-next').click(); return; }
     var i = Number(e.key) - 1; if (i >= 0 && i < ORDER.length){ e.preventDefault(); pick(ORDER[i]); }
   });
-  if (tg && tg.BackButton) try { tg.BackButton.onClick(stopRound); } catch(e){}
 
-  var t0 = 'click'; try { if (localStorage.getItem('dsimya-igry-tab') === 'sort') t0 = 'sort'; } catch(e){}
+  /* ---------------- der, die, das ----------------
+     Everyday nouns from life in Germany. A word you got wrong comes back more often (kept on this device), and for
+     every word with a rule the game says which one. Swipe the card: left der, up die, right das. */
+  var RULES = {
+    ung:'Слова на -ung завжди die.', heit:'Слова на -heit і -keit завжди die.', schaft:'Слова на -schaft завжди die.',
+    ion:'Слова на -ion завжди die.', taet:'Слова на -tät завжди die.', ik:'Слова на -ik здебільшого die.', ei:'Слова на -ei (як Bäckerei) — die.',
+    e:'Слова на -e здебільшого die.', kaese:'Виняток: хоч і на -e, але der Käse.',
+    chen:'Зменшувальні слова на -chen і -lein завжди das.', ment:'Слова на -ment здебільшого das.', um:'Слова на -um здебільшого das.',
+    ge:'Слова, що починаються на Ge-, часто das.', inf:'Дієслово як іменник (essen → das Essen) завжди das.',
+    ling:'Слова на -ling завжди der.', ismus:'Слова на -ismus завжди der.', er:'Хто щось робить або що працює, на -er: здебільшого der (der Fahrer, der Trockner).',
+    time:'Дні тижня, місяці й пори року — der.', comp:'У складеному слові артикль дає останнє слово',
+    prospekt:'У Німеччині кажуть der Prospekt; das Prospekt — це австрійський варіант.',
+  };
+  // [noun, article, Ukrainian, rule, last word of a compound]
+  var WORDS = [
+    ['Bahnhof','der','вокзал'], ['Bus','der','автобус'], ['Zug','der','потяг'], ['Termin','der','запис на прийом'], ['Antrag','der','заява'],
+    ['Ausweis','der','посвідчення'], ['Schlüssel','der','ключ'], ['Müll','der','сміття'], ['Kühlschrank','der','холодильник','comp','der Schrank'],
+    ['Trockner','der','сушарка','er'], ['Fahrplan','der','розклад руху','comp','der Plan'], ['Arzt','der','лікар'], ['Brief','der','лист'],
+    ['Vertrag','der','договір'], ['Mietvertrag','der','договір оренди','comp','der Vertrag'], ['Supermarkt','der','супермаркет','comp','der Markt'],
+    ['Montag','der','понеділок','time'], ['Winter','der','зима','time'], ['Januar','der','січень','time'], ['Regenschirm','der','парасолька','comp','der Schirm'],
+    ['Tisch','der','стіл'], ['Stuhl','der','стілець'], ['Löffel','der','ложка'], ['Kaffee','der','кава'], ['Käse','der','сир','kaese'], ['Apfel','der','яблуко'],
+    ['Frühling','der','весна','ling'], ['Lehrer','der','вчитель','er'], ['Fahrer','der','водій','er'], ['Optimismus','der','оптимізм','ismus'],
+    ['Bescheid','der','рішення установи'], ['Briefkasten','der','поштова скринька','comp','der Kasten'], ['Eingang','der','вхід'], ['Ausgang','der','вихід'],
+    ['Prospekt','der','рекламний проспект','prospekt'],
+    ['Haltestelle','die','зупинка','comp','die Stelle'], ['Tonne','die','бак для сміття','e'], ['Wohnung','die','квартира','ung'], ['Anmeldung','die','реєстрація місця проживання','ung'],
+    ['Rechnung','die','рахунок до сплати','ung'], ['Waschmaschine','die','пральна машина','comp','die Maschine'], ['Miete','die','орендна плата','e'], ['Bank','die','банк'],
+    ['Post','die','пошта'], ['Fahrkarte','die','квиток','comp','die Karte'], ['Apotheke','die','аптека','e'], ['Krankenkasse','die','лікарняна каса','comp','die Kasse'],
+    ['Versicherung','die','страховка','ung'], ['Frist','die','строк'], ['Freiheit','die','свобода','heit'], ['Möglichkeit','die','можливість','heit'],
+    ['Nachbarschaft','die','сусідство','schaft'], ['Information','die','інформація','ion'], ['Universität','die','університет','taet'], ['Musik','die','музика','ik'],
+    ['Bäckerei','die','пекарня','ei'], ['Straße','die','вулиця','e'], ['Tür','die','двері'], ['Küche','die','кухня','e'], ['Uhr','die','годинник'],
+    ['Zeitung','die','газета','ung'], ['Milch','die','молоко'], ['Butter','die','вершкове масло'], ['Kartoffel','die','картопля'],
+    ['Ausländerbehörde','die','відомство у справах іноземців','comp','die Behörde'], ['Behörde','die','установа','e'], ['Verspätung','die','запізнення','ung'],
+    ['Ticket','das','квиток'], ['Gleis','das','колія'], ['Fahrrad','das','велосипед','comp','das Rad'], ['Waschmittel','das','пральний засіб','comp','das Mittel'],
+    ['Formular','das','бланк'], ['Konto','das','банківський рахунок'], ['Geld','das','гроші'], ['Amt','das','відомство'], ['Bürgeramt','das','бюро громадян','comp','das Amt'],
+    ['Rathaus','das','ратуша','comp','das Haus'], ['Haus','das','будинок'], ['Zimmer','das','кімната'], ['Fenster','das','вікно'], ['Bett','das','ліжко'],
+    ['Handy','das','мобільний телефон'], ['Brot','das','хліб'], ['Wasser','das','вода'], ['Mädchen','das','дівчинка','chen'], ['Brötchen','das','булочка','chen'],
+    ['Dokument','das','документ','ment'], ['Zentrum','das','центр','um'], ['Studium','das','навчання в університеті','um'], ['Essen','das','їжа','inf'],
+    ['Gespräch','das','розмова','ge'], ['Gemüse','das','овочі','ge'], ['Gepäck','das','багаж','ge'], ['Angebot','das','пропозиція, акція'], ['Pfand','das','застава за тару'],
+    ['Auto','das','авто'], ['Problem','das','проблема'], ['Paket','das','посилка'], ['Rezept','das','рецепт'], ['Wetter','das','погода'], ['Kind','das','дитина'],
+    ['Messer','das','ніж'], ['Glas','das','склянка'], ['Datum','das','дата','um'],
+  ];
+  function ruleOf(w){
+    if (!w[3]) return '';
+    return w[3] === 'comp' ? RULES.comp + ': ' + w[4] + ' → ' + w[1] + ' ' + w[0] + '.' : RULES[w[3]];
+  }
+  var A_BEST = 'dsimya-artikel-best', A_MISS = 'dsimya-artikel-miss', aRound = null, aWord = null;
+  var aBest = Number(load(A_BEST)) || 0, aMiss = load(A_MISS) || {};
+  function aShowBest(){
+    $('#a-best').textContent = aBest ? 'Твій рекорд: ' + aBest + ' балів' : 'Рекорду ще немає. Час його поставити.';
+    var n = Object.keys(aMiss).length;
+    $('#a-learn').textContent = n ? 'На повторення: ' + n + ' ' + {one:'слово', few:'слова', many:'слів'}[plural.select(n)] + '. Вони трапляться частіше.' : '';
+    $('#a-learn').hidden = !n;
+  }
+  aShowBest();
+  cloudGet('artikel_best', function(c){ if (typeof c === 'number' && c > aBest){ aBest = c; store(A_BEST, aBest); aShowBest(); } });
+  // a word you got wrong weighs more; the last few words do not come back right away
+  function aPick(recent){
+    var pool = WORDS.filter(function(w){ return recent.indexOf(w[0]) < 0; }), sum = 0;
+    var weights = pool.map(function(w){ var k = 1 + 3 * (aMiss[w[0]] || 0); sum += k; return k; });
+    var r = Math.random() * sum;
+    for (var i = 0; i < pool.length; i++){ r -= weights[i]; if (r < 0) return pool[i]; }
+    return pool[pool.length - 1];
+  }
+  var card = $('#a-card');
+  function aNext(){
+    aWord = aPick(aRound.recent);
+    aRound.recent.push(aWord[0]); if (aRound.recent.length > 8) aRound.recent.shift();
+    card.className = 'acard'; card.style.transform = ''; card.style.opacity = '';
+    $('#a-noun').textContent = aWord[0];
+    $('#a-noun').className = 'noun' + (aWord[0].length > 14 ? ' xlong' : aWord[0].length > 10 ? ' long' : '');
+    $('#a-uk').textContent = aWord[2];
+    void card.offsetWidth; card.classList.add('in');
+    document.querySelectorAll('.artbtn').forEach(function(b){ b.classList.remove('dim', 'right'); b.disabled = false; });
+  }
+  function aHud(){
+    $('#a-score').textContent = aRound.score; $('#a-pw').textContent = points(aRound.score);
+    $('#a-streak').textContent = aRound.streak >= 5 ? 'Серія ' + aRound.streak + ' · ×2' : aRound.streak >= 2 ? 'Серія ' + aRound.streak : '';
+    var left = Math.max(0, aRound.left);
+    $('#a-time').textContent = Math.ceil(left / 1000) + ' с';
+    $('#a-bar').style.transform = 'scaleX(' + (left / ROUND_MS) + ')';
+  }
+  function vSwipes(on){ try { if (tg) (on ? tg.enableVerticalSwipes : tg.disableVerticalSwipes).call(tg); } catch(e){} }
+  function aStart(){
+    if (round) stopRound();
+    aRound = {score:0, streak:0, right:0, wrong:0, miss:[], left:ROUND_MS, last:Date.now(), paused:false, recent:[]};
+    $('#a-start').hidden = true; $('#a-end').hidden = true; $('#a-play').hidden = false; $('#a-fb').hidden = true;
+    document.body.classList.add('playing'); window.scrollTo(0, 0);
+    vSwipes(false);   // swiping the card up must not pull the Mini App down
+    aNext(); aHud(); haptic();
+    aRound.timer = setInterval(function(){
+      var now = Date.now();
+      if (!aRound.paused) aRound.left -= now - aRound.last;
+      aRound.last = now; aHud();
+      if (aRound.left <= 0) aEnd();
+    }, 100);
+    if (tg && tg.BackButton) try { tg.BackButton.show(); } catch(e){}
+  }
+  function aStop(){
+    if (!aRound) return;
+    clearInterval(aRound.timer); aRound = null; document.body.classList.remove('playing'); vSwipes(true);
+    $('#a-play').hidden = true; $('#a-end').hidden = true; $('#a-start').hidden = false; aShowBest();
+    if (tg && tg.BackButton) try { tg.BackButton.hide(); } catch(e){}
+  }
+  function aEnd(){
+    var r = aRound; clearInterval(r.timer); aRound = null; document.body.classList.remove('playing'); vSwipes(true);
+    if (tg && tg.BackButton) try { tg.BackButton.hide(); } catch(e){}
+    var record = r.score > aBest;
+    if (record){ aBest = r.score; store(A_BEST, aBest); cloudSet('artikel_best', aBest); }
+    aShowBest();
+    $('#a-play').hidden = true; $('#a-end').hidden = false;
+    $('#a-result').textContent = r.score + ' ' + {one:'бал', few:'бали', many:'балів'}[plural.select(r.score)];
+    var all = r.right + r.wrong;
+    $('#a-sum').textContent = 'Правильно ' + r.right + ' з ' + all + (all ? ' (' + Math.round(r.right / all * 100) + '%)' : '') + '. Рекорд: ' + aBest + '.';
+    $('#a-record').hidden = !record || !r.score;
+    if (record && r.score) haptic('ok');
+    var seen = {};
+    $('#a-miss').innerHTML = r.miss.filter(function(w){ if (seen[w[0]]) return false; seen[w[0]] = 1; return true; }).map(function(w){
+      var rule = ruleOf(w);
+      return '<li><b lang="de"><span class="art ' + w[1] + '">' + w[1] + '</span> ' + w[0] + '</b> · ' + w[2] + (rule ? '<br>' + rule : '') + '</li>';
+    }).join('');
+    $('#a-miss').hidden = !r.miss.length;
+  }
+  var DIR = {der:'translate(-140%, 0) rotate(-14deg)', die:'translate(0, -140%)', das:'translate(140%, 0) rotate(14deg)'};
+  function aAnswer(art){
+    if (!aRound || aRound.paused || aRound.busy || !aWord) return;
+    var w = aWord;
+    if (art === w[1]){
+      aRound.right++; aRound.streak++; aRound.score += aRound.streak >= 5 ? 2 : 1;
+      if (aMiss[w[0]]){ aMiss[w[0]]--; if (!aMiss[w[0]]) delete aMiss[w[0]]; store(A_MISS, aMiss); }
+      haptic(); aHud();
+      var r = aRound; r.busy = true;
+      card.classList.remove('in', 'back', 'lean-der', 'lean-die', 'lean-das'); card.classList.add('good');
+      if (!reduce){ card.classList.add('fly'); card.style.transform = DIR[art]; }
+      setTimeout(function(){ if (aRound === r){ r.busy = false; aNext(); } }, reduce ? 120 : 200);
+    } else {
+      aRound.wrong++; aRound.streak = 0; aRound.miss.push(w); aRound.paused = true;
+      aMiss[w[0]] = Math.min(4, (aMiss[w[0]] || 0) + 2); store(A_MISS, aMiss);
+      card.className = 'acard bad'; card.style.transform = '';
+      haptic('error'); aHud();
+      document.querySelectorAll('.artbtn').forEach(function(b){ var ok = b.getAttribute('data-art') === w[1]; b.classList.toggle('right', ok); b.classList.toggle('dim', !ok); b.disabled = true; });
+      var rule = ruleOf(w);
+      $('#a-why').innerHTML = 'Правильно: <b lang="de"><span class="art ' + w[1] + '">' + w[1] + '</span> ' + w[0] + '</b> — ' + w[2] + '.' + (rule ? ' ' + rule : ' Тут правила немає, просто запамʼятай.');
+      $('#a-fb').hidden = false; $('#a-next').focus({preventScroll:true});
+    }
+  }
+  $('#a-arts').addEventListener('click', function(e){ var b = e.target.closest('.artbtn'); if (b) aAnswer(b.getAttribute('data-art')); });
+  $('#a-next').addEventListener('click', function(){ if (!aRound) return; $('#a-fb').hidden = true; aRound.paused = false; aRound.last = Date.now(); aNext(); });
+  $('#a-go').addEventListener('click', aStart);
+  $('#a-again').addEventListener('click', aStart);
+  // the card follows the finger; far enough to the left, up or to the right picks that article
+  var drag = null;
+  function leanOf(dx, dy){
+    if (-dy > 50 && -dy > Math.abs(dx)) return 'die';
+    if (dx < -50) return 'der';
+    if (dx > 50) return 'das';
+    return '';
+  }
+  card.addEventListener('pointerdown', function(e){
+    if (!aRound || aRound.paused || aRound.busy) return;
+    drag = {x:e.clientX, y:e.clientY, t:Date.now(), id:e.pointerId};
+    try { card.setPointerCapture(e.pointerId); } catch(err){}
+    card.classList.remove('in', 'back');
+  });
+  card.addEventListener('pointermove', function(e){
+    if (!drag || e.pointerId !== drag.id) return;
+    var dx = e.clientX - drag.x, dy = Math.min(e.clientY - drag.y, 30);   // down does nothing, so it barely moves
+    card.style.transform = 'translate(' + dx + 'px,' + dy + 'px) rotate(' + (dx / 22) + 'deg)';
+    var lean = leanOf(dx, dy);
+    card.classList.toggle('lean-der', lean === 'der'); card.classList.toggle('lean-die', lean === 'die'); card.classList.toggle('lean-das', lean === 'das');
+  });
+  function dragEnd(e){
+    if (!drag || e.pointerId !== drag.id) return;
+    var dx = e.clientX - drag.x, dy = e.clientY - drag.y, dt = Math.max(1, Date.now() - drag.t);
+    drag = null;
+    var art = leanOf(dx, dy);
+    if (!art && (Math.abs(dx) > 30 || dy < -30) && Math.hypot(dx, dy) / dt > 0.5) art = Math.abs(dx) > -dy ? (dx < 0 ? 'der' : 'das') : 'die';   // a quick flick
+    if (art){ aAnswer(art); if (aRound && aRound.paused) card.style.transform = ''; return; }
+    card.classList.remove('lean-der', 'lean-die', 'lean-das'); card.classList.add('back'); card.style.transform = '';
+  }
+  card.addEventListener('pointerup', dragEnd);
+  card.addEventListener('pointercancel', dragEnd);
+  document.addEventListener('keydown', function(e){
+    if (!aRound || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (aRound.paused && !$('#a-fb').hidden && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); $('#a-next').click(); return; }
+    var art = {ArrowLeft:'der', ArrowUp:'die', ArrowRight:'das', 1:'der', 2:'die', 3:'das'}[e.key];
+    if (art){ e.preventDefault(); aAnswer(art); }
+  });
+
+  if (tg && tg.BackButton) try { tg.BackButton.onClick(function(){ if (aRound) aStop(); else stopRound(); }); } catch(e){}
+
+  var t0 = 'click'; try { var tSaved = localStorage.getItem('dsimya-igry-tab'); if (tSaved === 'sort' || tSaved === 'art') t0 = tSaved; } catch(e){}
   tab(t0, true);
-  window.__games = {state:function(){ return S; }, item:function(){ return item; }, round:function(){ return round; }, ITEMS:ITEMS, BINS:BINS};
+  window.__games = {state:function(){ return S; }, item:function(){ return item; }, round:function(){ return round; }, ITEMS:ITEMS, BINS:BINS,
+    word:function(){ return aWord; }, artRound:function(){ return aRound; }, WORDS:WORDS, RULES:RULES, pickWord:function(){ return aPick([])[0]; }};
 })();
 </script>
 </body>
