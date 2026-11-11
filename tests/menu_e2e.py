@@ -41,7 +41,7 @@ async def main():
             await pg.goto(base + path); await pg.wait_for_timeout(300)
             await pg.click('#menubtn'); await pg.wait_for_timeout(400)
             info = await pg.evaluate("""() => {
-              const d = document.getElementById('drawer'), links = [...d.querySelectorAll('a')];
+              const d = document.getElementById('drawer'), links = [...d.querySelectorAll('nav a')];   // the games icon is outside the list on purpose (tests/igry_e2e.py)
               return {open: d.classList.contains('open'), names: links.map(a => a.querySelector('b').textContent),
                 current: (d.querySelector('[aria-current="page"] b') || {}).textContent, focus: document.activeElement.textContent,
                 expanded: document.getElementById('menubtn').getAttribute('aria-expanded'), inert: document.querySelector('.wrap').inert,

@@ -14,7 +14,10 @@
     trash: '<path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10.5 11v5.5M13.5 11v5.5"/>',
     tag: '<path d="M3.5 12.3V5A1.5 1.5 0 0 1 5 3.5h7.3l8.2 8.2a1.5 1.5 0 0 1 0 2.1l-6.7 6.7a1.5 1.5 0 0 1-2.1 0z"/><circle cx="8" cy="8" r="1.4"/>',
     close: '<path d="M6 6l12 12M18 6L6 18"/>',
+    game: '<path d="M7.5 7.5h9a4.5 4.5 0 0 1 4.4 5.4l-.8 3.8a2.4 2.4 0 0 1-4.2 1L14.6 16H9.4l-1.3 1.7a2.4 2.4 0 0 1-4.2-1l-.8-3.8a4.5 4.5 0 0 1 4.4-5.4z"/><path d="M8.5 10.5v3M7 12h3"/><circle cx="15.5" cy="11.2" r=".6"/><circle cx="17" cy="12.8" r=".6"/>',
   };
+  // not in the list on purpose: a quiet icon in the bottom-left corner of the menu
+  var SECRET = 'igry/';
   var SITE = (function(){ try { return new URL('..', document.currentScript.src).href; } catch(e){ return location.href; } })();
   var root = document.documentElement;
   var KEY = 'dsimya-theme';
@@ -101,7 +104,10 @@
           var href = new URL(it[0], SITE).href;
           return '<li><a href="' + href + '"' + (samePage(href) ? ' aria-current="page"' : '') + '><span class="ic">' + svg(it[3]) + '</span><span><b>' + it[1] + '</b><small>' + it[2] + '</small></span></a></li>';
         }).join('') + '</ul>';
-      }).join('') + '</nav></div>';
+      }).join('') + '</nav>' + (function(){
+        var href = new URL(SECRET, SITE).href;
+        return '<a class="drawer-secret" href="' + href + '" aria-label="Мініігри" title="Мініігри"' + (samePage(href) ? ' aria-current="page"' : '') + '>' + svg('game') + '</a>';
+      })() + '</div>';
     document.body.appendChild(d);
     var wrap = document.querySelector('.wrap'), panel = d.querySelector('.drawer-panel');
     var isOpen = function(){ return d.classList.contains('open'); };

@@ -31,6 +31,13 @@
 .drawer b{display:block;font-weight:600;font-size:17px;line-height:1.25}
 .drawer small{display:block;font-size:14px;line-height:1.3;color:var(--muted)}
 .drawer a[aria-current="page"] small{color:inherit;opacity:.8}
+.drawer-panel{display:flex;flex-direction:column}
+.drawer nav{flex:none;margin-bottom:24px}
+/* the games: a quiet icon in the bottom-left corner, no label */
+.drawer a.drawer-secret{flex:none;margin-top:auto;align-self:flex-start;width:44px;min-height:44px;height:44px;padding:0;justify-content:center;border-radius:12px;color:var(--muted);opacity:.45;transition:opacity .2s ease, background-color .2s ease}
+.drawer a.drawer-secret:hover,.drawer a.drawer-secret:focus-visible{opacity:1}
+.drawer a.drawer-secret[aria-current="page"]{opacity:1;color:var(--bg)}
+.drawer-secret svg{width:22px;height:22px}
 .menu-open,.menu-open body{overflow:hidden}
 
 /* section tabs with a sliding thumb */

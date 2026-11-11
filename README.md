@@ -6,6 +6,8 @@
 - `/sushka/` — сушарка Gorenje SensoCare 6 кг: кнопки й лампочки, перемикач програм, «Що сушити», догляд і типові проблеми.
 - `/scan/` — сканер документів камерою: сам знаходить аркуш, вирівнює перспективу, прибирає тіні й жовтизну, збирає сторінки в PDF. Уміє перекладати документ (німецька → українська, українська → німецька, англійська → українська) і зберігати переклад як PDF зі справжнім текстом.
 - `/prospekty/` — рекламні проспекти магазинів Ксантена й Везеля (ALDI SÜD, Lidl, REWE, EDEKA, Netto, Penny, Kaufland, trinkgut): посилання на офіційні сторінки, де проспект щотижня оновлюється сам.
+- `/igry/` — секретний розділ: його немає в списку меню, лише тиха іконка в лівому нижньому куті панелі «Розділи». Дві мініігри:
+  клікер «Пральня» (прогрес зберігається в Telegram CloudStorage, тож він спільний для телефона й комп'ютера) і «Сортування»: 60 секунд розкладати речі по баках за правилами Ксантена, кожна річ підписана німецькою з артиклем.
 - `/smittia/` — вивіз сміття в Ксантені (район 2 календаря Schönmackers): найближчі дати, що куди викидати, нагадування в Telegram о 18:00 напередодні.
 
 Сторінки працюють як звичайний сайт і як Telegram Mini App (тема, кнопка «Назад» і вібрація підхоплюються автоматично).
@@ -14,6 +16,6 @@
 Сервер на Cloudflare робить те, чого сторінка сама не може: «Надіслати PDF у чат», «Передати в браузер», нагадування про сміття й переклад (Gemma 4 на Workers AI, безкоштовно). Налаштування в [`worker/README.md`](worker/README.md).
 Шрифт для PDF перекладу: Noto Sans (латиниця й кирилиця), ліцензія SIL OFL, [`assets/fonts/`](assets/fonts/).
 
-Перевірки: `python3 tests/scan_e2e.py` (сканер у Chrome, потрібні playwright, Pillow, numpy), `python3 tests/translate_e2e.py` (переклад; потрібні ще pdftotext і pdffonts), `python3 tests/smittia_e2e.py` (сторінка сміття), `python3 tests/menu_e2e.py` (меню), `python3 tests/prospekty_e2e.py [--live]` (проспекти) і `node tests/worker.test.mjs` (Worker).
+Перевірки: `python3 tests/scan_e2e.py` (сканер у Chrome, потрібні playwright, Pillow, numpy), `python3 tests/translate_e2e.py` (переклад; потрібні ще pdftotext і pdffonts), `python3 tests/smittia_e2e.py` (сторінка сміття), `python3 tests/menu_e2e.py` (меню), `python3 tests/igry_e2e.py` (мініігри), `python3 tests/prospekty_e2e.py [--live]` (проспекти) і `node tests/worker.test.mjs` (Worker).
 
 Дані для пральки й сушарки взяті з інструкцій Beko WMB 71243/71443/71643 PTE і Gorenje SP10.

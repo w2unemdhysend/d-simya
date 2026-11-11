@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>(function(){try{var s=null;try{s=localStorage.getItem('dsimya-theme')}catch(e){}var w=window.Telegram&&Telegram.WebApp;var tg=w&&w.platform&&w.platform!=='unknown';var t=s||(tg?(w.colorScheme==='dark'?'dark':'light'):(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));document.documentElement.setAttribute('data-theme',t)}catch(e){}})();</script>
+<title>Мініігри</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@600;700&display=swap">
+<style>
+/* Two small games behind the quiet icon in the menu: a laundry clicker and waste sorting the way Xanten wants it */
+:root{
+  padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom);
+  --bg:#E7ECEF; --surface:#F6F8F9; --ink:#12181C; --muted:#53616A; --line:#C7D0D5;
+  --accent:#9A5800; --accent-soft:#F7E3BF; --ok:#2E7D32; --danger:#B3261E;
+  --glass:#BFD8E6; --chrome:#9AA6AD; --der:#1F5FAF; --die:#B3261E; --das:#2E7D32;
+  --f-display:"Unbounded","Arial Black",system-ui,sans-serif;
+  --f-body:"Onest","Segoe UI",Roboto,system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1417; --surface:#182026; --ink:#E5EBEE; --muted:#98A6AE; --line:#2A343B;
+    --accent:#FFB424; --accent-soft:#3A2909; --ok:#66BB6A; --danger:#FF8A80;
+    --glass:#27404D; --chrome:#56646C; --der:#8AB4F8; --die:#FF8A80; --das:#81C995; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1417; --surface:#182026; --ink:#E5EBEE; --muted:#98A6AE; --line:#2A343B;
+  --accent:#FFB424; --accent-soft:#3A2909; --ok:#66BB6A; --danger:#FF8A80;
+  --glass:#27404D; --chrome:#56646C; --der:#8AB4F8; --die:#FF8A80; --das:#81C995; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.5 var(--f-body);
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:0 40px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+[hidden]{display:none!important}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2.5px solid var(--accent);outline-offset:2px}
+.wrap{max-width:560px;margin:0 auto}
+.top{padding-block:16px 4px}
+.eyebrow{font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--f-display);font-weight:700;font-size:32px;line-height:1.05;margin:6px 0 8px;letter-spacing:-.01em}
+.lede{margin:0;color:var(--muted);font-size:16px;max-width:40ch}
+h2{font-family:var(--f-display);font-weight:600;font-size:17px;line-height:1.2;margin:0}
+main{padding-top:4px}
+.view{display:grid;gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px}
+.note{margin:0;color:var(--muted);font-size:15px}
+.center{text-align:center}
+.btn{display:block;width:100%;min-height:52px;border-radius:14px;border:1px solid var(--line);background:var(--surface);font-weight:600;font-size:17px;cursor:pointer;touch-action:manipulation;transition:transform .12s ease}
+.btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn:active{transform:scale(.98)}
+
+.tabbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:6;background:var(--bg);padding-block:12px}
+.tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:4px}
+.tabs button{border:0;background:transparent;border-radius:10px;min-height:44px;padding:6px 4px;font-weight:600;font-size:15px;cursor:pointer}
+
+/* clicker */
+.score{text-align:center;padding-block:14px}
+.count{font-family:var(--f-display);font-weight:700;font-size:40px;line-height:1.1;font-variant-numeric:tabular-nums}
+.unit{color:var(--muted);font-size:15px}
+.rates{margin-top:8px;font-size:15px;font-weight:600}
+.drumwrap{position:relative;display:grid;place-items:center;padding-block:4px}
+.drum{width:min(68vw, 260px);aspect-ratio:1;border-radius:50%;border:0;padding:0;background:transparent;cursor:pointer;touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;transition:transform .09s ease}
+.drum:active{transform:scale(.95)}
+.drum svg{width:100%;height:100%;display:block;overflow:visible}
+.drum .spin{transition:transform .45s cubic-bezier(.2,.8,.3,1);transform-origin:50px 50px}
+.plus{position:absolute;pointer-events:none;font-family:var(--f-display);font-weight:700;font-size:22px;color:var(--accent);animation:float .75s ease-out forwards}
+@keyframes float{from{opacity:1;transform:translate(-50%,-50%)}to{opacity:0;transform:translate(-50%,-160%)}}
+.ups{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.up{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 10px 10px 14px}
+.up .t{flex:1;min-width:0}
+.up b{display:block;font-weight:600;line-height:1.25}
+.up small{display:block;color:var(--muted);font-size:14px;line-height:1.3}
+.buy{flex:none;min-width:96px;min-height:48px;border-radius:12px;border:0;background:var(--ink);color:var(--bg);font-weight:700;font-size:16px;cursor:pointer;
+  font-variant-numeric:tabular-nums;touch-action:manipulation;transition:transform .12s ease, opacity .2s ease}
+.buy:active{transform:scale(.96)}
+.buy:disabled{background:var(--line);color:var(--muted);cursor:default;transform:none}
+.reset{justify-self:center;border:0;background:transparent;color:var(--muted);font-size:15px;min-height:44px;padding:0 14px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.reset.armed{color:var(--danger);font-weight:600}
+
+/* sorting */
+.rules{margin:8px 0 12px}
+.best{margin:0 0 14px;font-weight:600}
+.hud{display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-weight:600}
+.hud .pts{font-family:var(--f-display);font-size:24px}
+.hud .streak{color:var(--accent);font-size:15px}
+.hud .sec{font-variant-numeric:tabular-nums;font-size:18px}
+.timebar{height:8px;border-radius:999px;background:var(--line);overflow:hidden;margin-top:8px}
+.timebar i{display:block;height:100%;width:100%;background:var(--accent);border-radius:inherit;transform-origin:left;transition:transform .1s linear}
+.item{margin-top:14px;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:22px 16px;text-align:center;min-height:132px;display:grid;align-content:center;gap:6px}
+.item .uk{font-family:var(--f-display);font-weight:600;font-size:21px;line-height:1.2;text-wrap:balance}
+.item .de{font-size:17px}
+.art{font-weight:700}
+.art.der{color:var(--der)}.art.die{color:var(--die)}.art.das{color:var(--das)}
+.item.in{animation:itemIn .26s cubic-bezier(.2,.7,.2,1)}
+@keyframes itemIn{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+.item.good{box-shadow:0 0 0 3px var(--ok)}
+.item.bad{box-shadow:0 0 0 3px var(--danger);animation:shake .32s ease}
+@keyframes shake{25%{transform:translateX(-6px)}50%{transform:translateX(5px)}75%{transform:translateX(-3px)}}
+.fb{margin-top:10px;background:var(--accent-soft);border-radius:14px;padding:12px 14px;display:grid;gap:10px}
+.fb p{margin:0;font-size:16px}
+.binsgrid{margin-top:14px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.binbtn{min-height:76px;border:0;border-radius:14px;padding:8px 6px;color:#FFFFFF;font-weight:700;font-size:15px;line-height:1.2;cursor:pointer;
+  touch-action:manipulation;display:grid;align-content:center;gap:2px;box-shadow:inset 0 -4px 0 rgba(0,0,0,.18);transition:transform .1s ease, opacity .2s ease}
+.binbtn small{font-weight:500;font-size:12.5px;opacity:.92}
+.binbtn:active{transform:scale(.96)}
+.binbtn.dark{color:#1A1A1A}
+.binbtn.dim{opacity:.35}
+.binbtn.right{outline:3px solid var(--ink);outline-offset:2px;opacity:1}
+.result{font-family:var(--f-display);font-weight:700;font-size:44px;line-height:1.1;margin:6px 0 2px}
+.record{color:var(--ok);font-weight:700}
+.miss{list-style:none;margin:10px 0 14px;padding:0;display:grid;gap:8px}
+.miss li{border-top:1px solid var(--line);padding-top:8px;font-size:15px}
+.miss b{font-weight:600}
+.miss .dot{display:inline-block;width:12px;height:12px;border-radius:4px;margin-right:6px;vertical-align:-1px}
+
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom, 0px));transform:translate(-50%, 20px);max-width:min(92vw, 420px);
+  background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:14px;font-weight:600;font-size:15px;opacity:0;pointer-events:none;
+  transition:opacity .2s ease, transform .2s ease;z-index:30;text-align:center}
+.toast.show{opacity:1;transform:translate(-50%, 0)}
+.foot{margin-top:20px;font-size:13px;color:var(--muted)}
+/* during a round the page title steps aside, so the item and all six bins fit on a phone screen */
+body.playing .top .eyebrow,body.playing .top h1,body.playing .top .lede,body.playing .foot{display:none}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+@media (min-width:480px){h1{font-size:38px}}
+</style>
+<link rel="stylesheet" href="../assets/ui.css?v=10">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="toprow"><button class="menubtn" id="menubtn" type="button" aria-expanded="false" aria-controls="drawer" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Розділи</span></button><button class="themebtn" id="themebtn" type="button" aria-label="Увімкнути темну тему"><svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M5.3 18.7L7 17M17 7l1.7-1.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.6A8.2 8.2 0 0 1 9.4 4a8.2 8.2 0 1 0 10.6 10.6z" fill="currentColor"/></svg></button></div>
+    <div class="eyebrow">Секретний розділ</div>
+    <h1>Мініігри</h1>
+    <p class="lede">Для перерви між справами.</p>
+  </header>
+
+  <div class="tabbar">
+    <div class="tabs" role="tablist" aria-label="Ігри">
+      <span class="tthumb" aria-hidden="true"></span>
+      <button role="tab" id="tab-click" data-tab="click" aria-controls="view-click" aria-selected="true">Пральня</button>
+      <button role="tab" id="tab-sort" data-tab="sort" aria-controls="view-sort" aria-selected="false">Сортування</button>
+    </div>
+  </div>
+
+  <main>
+  <section class="view" id="view-click" role="tabpanel" aria-labelledby="tab-click">
+    <div class="card score">
+      <div class="count" id="count" aria-live="polite">0</div>
+      <div class="unit" id="unit">шкарпеток</div>
+      <div class="rates"><span id="per-tap">+1 за натиск</span> · <span id="per-sec">0 за секунду</span></div>
+    </div>
+    <div class="drumwrap" id="drumwrap">
+      <button class="drum" id="drum" type="button" aria-label="Крутити барабан">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="48" fill="var(--surface)" stroke="var(--line)" stroke-width="1.5"/>
+          <circle cx="50" cy="50" r="41" fill="none" stroke="var(--chrome)" stroke-width="6"/>
+          <circle cx="50" cy="50" r="37" fill="var(--glass)"/>
+          <g class="spin" id="spin">
+            <g fill="var(--chrome)" opacity=".55"><circle cx="50" cy="22" r="1.6"/><circle cx="74" cy="36" r="1.6"/><circle cx="74" cy="64" r="1.6"/><circle cx="50" cy="78" r="1.6"/><circle cx="26" cy="64" r="1.6"/><circle cx="26" cy="36" r="1.6"/></g>
+            <path d="M46 26h7v10q0 7-7 7h-6q-4 0-4-4t4-4h6z" fill="#E8C10A"/>
+            <path d="M46 26h7v10q0 7-7 7h-6q-4 0-4-4t4-4h6z" fill="#C8402C" transform="rotate(120 50 50)"/>
+            <path d="M46 26h7v10q0 7-7 7h-6q-4 0-4-4t4-4h6z" fill="#2F5DB3" transform="rotate(240 50 50)"/>
+          </g>
+          <path d="M28 30a30 30 0 0 1 16-12" fill="none" stroke="#FFFFFF" stroke-opacity=".55" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+    <p class="note center">Тисни на барабан, а за шкарпетки купуй покращення. Пральня працює й тоді, коли тебе немає (до 8 годин).</p>
+    <h2>Покращення</h2>
+    <ul class="ups" id="ups"></ul>
+    <button class="reset" id="reset" type="button">Почати заново</button>
+  </section>
+
+  <section class="view" id="view-sort" role="tabpanel" aria-labelledby="tab-sort" hidden>
+    <div class="card" id="s-start">
+      <h2>Куди це викинути?</h2>
+      <p class="note rules">За 60 секунд розклади по баках якомога більше речей, за правилами Ксантена. Кожна річ підписана й німецькою, з артиклем. Якщо помилишся, гра покаже, куди правильно і чому. П’ять правильних поспіль дають подвійні бали.</p>
+      <p class="best" id="s-best"></p>
+      <button class="btn primary" id="s-go" type="button">Почати</button>
+    </div>
+    <div id="s-play" hidden>
+      <div class="hud"><span class="pts"><span id="s-score">0</span> <small class="note">балів</small></span><span class="streak" id="s-streak"></span><span class="sec" id="s-time">60 с</span></div>
+      <div class="timebar" aria-hidden="true"><i id="s-bar"></i></div>
+      <div class="item" id="s-item" aria-live="polite"><div class="uk" id="s-uk"></div><div class="de" id="s-de"></div></div>
+      <div class="fb" id="s-fb" hidden><p id="s-why"></p><button class="btn" id="s-next" type="button">Далі</button></div>
+      <div class="binsgrid" id="s-bins" role="group" aria-label="Баки"></div>
+    </div>
+    <div class="card" id="s-end" hidden>
+      <h2>Час вийшов</h2>
+      <div class="result" id="s-result">0</div>
+      <p class="note" id="s-sum"></p>
+      <p class="record" id="s-record" hidden>Новий рекорд!</p>
+      <ul class="miss" id="s-miss"></ul>
+      <button class="btn primary" id="s-again" type="button">Ще раз</button>
+    </div>
+  </section>
+  </main>
+  <p class="foot" id="foot">Прогрес зберігається на цьому пристрої.</p>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="../assets/ui.js?v=10"></script>
+<script>
+(function(){
+  var $ = function(s, r){ return (r || document).querySelector(s); };
+  var tgApp = window.Telegram && window.Telegram.WebApp;
+  var tg = tgApp && tgApp.platform && tgApp.platform !== 'unknown' ? tgApp : null;
+  if (tg){ try { tg.ready(); tg.expand(); } catch(e){} }
+  var reduce = window.UI ? UI.reduce : false;
+  function haptic(kind){
+    try {
+      if (!tg || !tg.HapticFeedback) return;
+      if (kind === 'tap') tg.HapticFeedback.impactOccurred('light');
+      else if (kind === 'ok' || kind === 'error') tg.HapticFeedback.notificationOccurred(kind === 'ok' ? 'success' : 'error');
+      else tg.HapticFeedback.selectionChanged();
+    } catch(e){}
+  }
+  var toastTimer = null;
+  function toast(text, ms){ var t = $('#toast'); t.textContent = text; t.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(function(){ t.classList.remove('show'); }, ms || 2600); }
+  function load(key){ try { return JSON.parse(localStorage.getItem(key)); } catch(e){ return null; } }
+  function store(key, v){ try { localStorage.setItem(key, JSON.stringify(v)); } catch(e){} }
+  // Telegram keeps a copy for the bot's user, so the progress follows from the phone to the computer
+  var cloud = tg && tg.CloudStorage && tg.isVersionAtLeast && tg.isVersionAtLeast('6.9') ? tg.CloudStorage : null;
+  function cloudGet(key, cb){ if (!cloud){ cb(null); return; } try { cloud.getItem(key, function(err, v){ var o = null; try { o = err || !v ? null : JSON.parse(v); } catch(e){} cb(o); }); } catch(e){ cb(null); } }
+  function cloudSet(key, v){ if (cloud) try { cloud.setItem(key, JSON.stringify(v)); } catch(e){} }
+  if (cloud) $('#foot').textContent = 'Прогрес зберігається в Telegram, тож він той самий на телефоні й на комп’ютері.';
+  var nf = new Intl.NumberFormat('uk-UA', {maximumFractionDigits:0}), cf = new Intl.NumberFormat('uk-UA', {notation:'compact', maximumFractionDigits:1});
+  function fmt(n){ n = Math.floor(n); return n < 10000 ? nf.format(n) : cf.format(n); }
+  var plural = new Intl.PluralRules('uk-UA');
+  function socks(n){ n = Math.floor(n); if (n >= 10000) return 'шкарпеток'; return {one:'шкарпетка', few:'шкарпетки', many:'шкарпеток'}[plural.select(n)] || 'шкарпетки'; }
+
+  /* ---------------- tabs ---------------- */
+  var views = [$('#view-click'), $('#view-sort')];
+  function tab(t, instant){
+    document.querySelectorAll('.tabs [role="tab"]').forEach(function(b){ b.setAttribute('aria-selected', b.getAttribute('data-tab') === t ? 'true' : 'false'); });
+    if (window.UI){ UI.tabsThumb(instant); UI.switchView(views, $('#view-' + t), {instant:instant, keepScroll:true}); }
+    else views.forEach(function(v){ v.hidden = v.id !== 'view-' + t; });
+    try { localStorage.setItem('dsimya-igry-tab', t); } catch(e){}
+    if (t !== 'sort' && round) stopRound();
+  }
+  document.querySelectorAll('.tabs [role="tab"]').forEach(function(b){
+    b.addEventListener('click', function(){ if (b.getAttribute('aria-selected') !== 'true'){ haptic(); tab(b.getAttribute('data-tab')); } });
+  });
+
+  /* ---------------- laundry clicker ---------------- */
+  var UPS = [
+    {id:'powder', name:'Порошок', tap:1, cost:15},
+    {id:'softener', name:'Кондиціонер', sec:1, cost:60},
+    {id:'cotton', name:'Програма «Бавовна 40°»', sec:6, cost:450},
+    {id:'spin', name:'Віджим 1400', tap:8, cost:1200},
+    {id:'dryer', name:'Сушарка', sec:40, cost:5000},
+    {id:'laundromat', name:'Пральня самообслуговування', sec:200, cost:40000},
+  ];
+  var MILESTONES = [[100, 'Перша сотня шкарпеток!'], [1000, 'Тисяча шкарпеток!'], [10000, '10 тисяч. Ціла гора прання.'],
+    [100000, '100 тисяч. Пралка просить відпустку.'], [1000000, 'Мільйон шкарпеток!'], [10000000, '10 мільйонів. А пари до всіх знайшлися?']];
+  var KEY = 'dsimya-kliker', OFFLINE_MAX = 8 * 3600 * 1000;
+  function fresh(){ return {n:0, total:0, lv:{}, m:0, t:Date.now()}; }
+  function valid(s){ return s && typeof s.n === 'number' && typeof s.total === 'number' && s.lv && typeof s.lv === 'object'; }
+  var S = valid(load(KEY)) ? load(KEY) : fresh();
+  var lv = function(u){ return S.lv[u.id] || 0; };
+  function perTap(){ return UPS.reduce(function(a, u){ return a + (u.tap || 0) * lv(u); }, 1); }
+  function perSec(){ return UPS.reduce(function(a, u){ return a + (u.sec || 0) * lv(u); }, 0); }
+  function cost(u){ return Math.ceil(u.cost * Math.pow(1.15, lv(u))); }
+  function earn(x){
+    S.n += x; S.total += x;
+    while (S.m < MILESTONES.length && S.total >= MILESTONES[S.m][0]){ toast(MILESTONES[S.m][1]); haptic('ok'); S.m++; }
+  }
+  var ups = $('#ups');
+  ups.innerHTML = UPS.map(function(u){
+    return '<li class="up"><div class="t"><b>' + u.name + '</b><small data-note="' + u.id + '"></small></div><button class="buy" type="button" data-id="' + u.id + '"></button></li>';
+  }).join('');
+  function render(){
+    $('#count').textContent = fmt(S.n); $('#unit').textContent = socks(S.n);
+    $('#per-tap').textContent = '+' + fmt(perTap()) + ' за натиск';
+    $('#per-sec').textContent = fmt(perSec()) + ' за секунду';
+    UPS.forEach(function(u){
+      var b = $('[data-id="' + u.id + '"]', ups), c = cost(u), l = lv(u);
+      if (b.textContent !== fmt(c)) b.textContent = fmt(c);
+      b.disabled = S.n < c;
+      b.setAttribute('aria-label', 'Купити «' + u.name + '» за ' + fmt(c));
+      $('[data-note="' + u.id + '"]', ups).textContent = (u.tap ? '+' + u.tap + ' за натиск' : '+' + u.sec + ' за секунду') + (l ? ' · куплено ' + l : '');
+    });
+  }
+  var dirty = false, cloudDirty = false;
+  function save(toCloud){ S.t = Date.now(); store(KEY, S); dirty = false; if (toCloud && cloudDirty){ cloudSet('kliker', S); cloudDirty = false; } }
+  function adopt(s, quiet){   // a save (this device or Telegram): add what the laundry did while nobody looked
+    S = s;
+    var away = Math.min(Math.max(0, Date.now() - (S.t || Date.now())), OFFLINE_MAX), gain = perSec() * away / 1000;
+    if (gain >= 1){ earn(gain); if (!quiet && away >= 60000) toast('Поки тебе не було, випралось ' + fmt(gain) + ' ' + socks(gain), 4000); }
+    last = Date.now(); render(); save(false);
+  }
+  var last = Date.now();
+  adopt(S);
+  cloudGet('kliker', function(c){ if (valid(c) && c.total > S.total) adopt(c); });
+
+  var angle = 0, lastBuzz = 0;
+  $('#drum').addEventListener('click', function(e){
+    var k = perTap(); earn(k); dirty = cloudDirty = true; render();
+    angle += 40; $('#spin').style.transform = 'rotate(' + angle + 'deg)';
+    var now = Date.now(); if (now - lastBuzz > 60){ haptic('tap'); lastBuzz = now; }
+    if (reduce) return;
+    var wrap = $('#drumwrap'), r = wrap.getBoundingClientRect(), p = document.createElement('span');
+    var x = e.clientX ? e.clientX - r.left : r.width / 2, y = e.clientY ? e.clientY - r.top : r.height / 2;
+    p.className = 'plus'; p.textContent = '+' + fmt(k); p.style.left = x + 'px'; p.style.top = y + 'px';
+    wrap.appendChild(p); setTimeout(function(){ p.remove(); }, 800);
+  });
+  ups.addEventListener('click', function(e){
+    var b = e.target.closest('.buy'); if (!b || b.disabled) return;
+    var u = UPS.filter(function(x){ return x.id === b.getAttribute('data-id'); })[0], c = cost(u);
+    if (S.n < c) return;
+    S.n -= c; S.lv[u.id] = lv(u) + 1; dirty = cloudDirty = true; haptic('ok'); render(); save(false);
+  });
+  var resetTimer = null;
+  $('#reset').addEventListener('click', function(){
+    var b = $('#reset');
+    if (!b.classList.contains('armed')){
+      b.classList.add('armed'); b.textContent = 'Точно все скинути? Натисни ще раз';
+      resetTimer = setTimeout(function(){ b.classList.remove('armed'); b.textContent = 'Почати заново'; }, 3500);
+      return;
+    }
+    clearTimeout(resetTimer); b.classList.remove('armed'); b.textContent = 'Почати заново';
+    S = fresh(); cloudDirty = true; render(); save(true); toast('Пральня знову порожня');
+  });
+  setInterval(function(){
+    var now = Date.now(), dt = Math.min(now - last, OFFLINE_MAX); last = now;
+    var ps = perSec();
+    if (ps > 0){ earn(ps * dt / 1000); dirty = cloudDirty = true; render(); }
+  }, 250);
+  setInterval(function(){ if (dirty) save(false); }, 2000);
+  setInterval(function(){ save(true); }, 30000);
+  function flush(){ save(true); }
+  document.addEventListener('visibilitychange', function(){ if (document.visibilityState === 'hidden') flush(); });
+  window.addEventListener('pagehide', flush);
+
+  /* ---------------- waste sorting ----------------
+     Bins and rules as on the "Сміття" page: Xanten, a household without a Biotonne. */
+  var BINS = {
+    rest:{uk:'Сірий бак', de:'Restmüll', color:'#4A5258'},
+    papier:{uk:'Синій бак', de:'Papier', color:'#2F5DB3'},
+    gelb:{uk:'Жовтий', de:'Gelbe Tonne', color:'#E8C10A', dark:true},
+    glas:{uk:'Скло', de:'Altglas', color:'#3F6E45'},
+    pfand:{uk:'У магазин', de:'Pfand', color:'#B23A26'},
+    schad:{uk:'Батарейки, хімія', de:'Sammelstelle', color:'#6E3589'},
+  };
+  var ORDER = ['rest', 'papier', 'gelb', 'glas', 'pfand', 'schad'];
+  // [Ukrainian, article, German, bin, why]
+  var ITEMS = [
+    ['Газета', 'die', 'Zeitung', 'papier', 'Газети й журнали йдуть у синій бак.'],
+    ['Коробка з посилки', 'der', 'Versandkarton', 'papier', 'Картон у синій. Коробку склади, тоді більше влізе.'],
+    ['Картонна упаковка для яєць', 'der', 'Eierkarton', 'papier', 'Картон для яєць це папір. Пластикова упаковка пішла б у жовтий.'],
+    ['Конверт із віконцем', 'der', 'Briefumschlag', 'papier', 'Конверти, навіть із пластиковим віконцем, кидають у синій.'],
+    ['Паперовий пакет', 'die', 'Papiertüte', 'papier', 'Паперові пакети йдуть у синій бак.'],
+    ['Рекламний проспект', 'der', 'Prospekt', 'papier', 'Проспекти з магазинів це звичайний папір.'],
+    ['Старий зошит', 'das', 'Heft', 'papier', 'Зошити й блокноти йдуть у синій.'],
+    ['Стаканчик від йогурту', 'der', 'Joghurtbecher', 'gelb', 'Це упаковка, тому жовтий. Мити не треба, досить вишкребти ложкою.'],
+    ['Пляшка з‑під шампуню', 'die', 'Shampooflasche', 'gelb', 'Пластикова упаковка йде в жовтий бак.'],
+    ['Пакет з‑під молока', 'der', 'Milchkarton', 'gelb', 'Пакет з‑під молока склеєний із картону, пластику й алюмінію, тому він жовтий, а не синій.'],
+    ['Бляшанка з‑під консервів', 'die', 'Konservendose', 'gelb', 'На консервні бляшанки Pfand немає, тож у жовтий.'],
+    ['Алюмінієва фольга', 'die', 'Alufolie', 'gelb', 'Фольга йде в жовтий. Зімни її в кульку.'],
+    ['Металева кришка від пляшки', 'der', 'Kronkorken', 'gelb', 'Металева кришка це упаковка, тому жовтий.'],
+    ['Пакет із‑під чипсів', 'die', 'Chipstüte', 'gelb', 'Пакет із‑під чипсів це упаковка, тому жовтий.'],
+    ['Тюбик зубної пасти', 'die', 'Zahnpastatube', 'gelb', 'Тюбик це упаковка, тому жовтий.'],
+    ['Кришка від банки з варенням', 'der', 'Schraubdeckel', 'gelb', 'Кришка йде в жовтий, а сама банка в контейнер для скла.'],
+    ['Касовий чек', 'der', 'Kassenbon', 'rest', 'Чек надруковано на термопапері з хімією, тому не в синій, а в сірий.'],
+    ['Жирна коробка від піци', 'der', 'Pizzakarton', 'rest', 'Жирний чи брудний папір не переробляють, тому сірий.'],
+    ['Використана хустинка', 'das', 'Taschentuch', 'rest', 'Серветки й хустинки йдуть у сірий бак.'],
+    ['Підгузок', 'die', 'Windel', 'rest', 'Підгузки йдуть у сірий бак.'],
+    ['Мішок із пилососа', 'der', 'Staubsaugerbeutel', 'rest', 'Пил із пилососа йде в сірий бак.'],
+    ['Розбита чашка', 'die', 'Tasse', 'rest', 'Кераміку й порцеляну в контейнер для скла не можна, тільки в сірий.'],
+    ['Питна склянка', 'das', 'Trinkglas', 'rest', 'Склянки й посуд плавляться не так, як пляшки, тому вони в сірий, а не в контейнер для скла.'],
+    ['Бананова шкірка', 'die', 'Bananenschale', 'rest', 'Біо-бака у вас немає, тому очистки йдуть у сірий.'],
+    ['Кавова гуща', 'der', 'Kaffeesatz', 'rest', 'Біо-бака у вас немає, тому кавова гуща в сірий.'],
+    ['Пластикова іграшка', 'das', 'Spielzeug', 'rest', 'Іграшка не була упаковкою, тому не в жовтий, а в сірий.'],
+    ['Зубна щітка', 'die', 'Zahnbürste', 'rest', 'Зубна щітка не упаковка, тому сірий.'],
+    ['Пергамент для випічки', 'das', 'Backpapier', 'rest', 'Пергамент має покриття, його не переробляють. Тому сірий.'],
+    ['Лампочка розжарювання', 'die', 'Glühbirne', 'rest', 'Звичайна лампочка йде в сірий. Енергоощадні й LED здають окремо.'],
+    ['Банка з‑під варення', 'das', 'Marmeladenglas', 'glas', 'Порожня банка без кришки йде в контейнер для білого скла.'],
+    ['Пляшка з‑під вина', 'die', 'Weinflasche', 'glas', 'Зелене скло кидай у зелений контейнер.'],
+    ['Синя скляна пляшка', 'die', 'blaue Glasflasche', 'glas', 'Синє скло кидай у зелений контейнер.'],
+    ['Банка з‑під огірків', 'das', 'Gurkenglas', 'glas', 'Біле скло. Кришку зніми й кинь у жовтий.'],
+    ['Пластикова пляшка зі знаком Pfand', 'die', 'Pfandflasche', 'pfand', 'Здай її в автомат у супермаркеті, повернуть 25 центів.'],
+    ['Бляшанка з‑під напою', 'die', 'Getränkedose', 'pfand', 'На бляшанки з напоями є Pfand 25 центів, тож в автомат у магазині.'],
+    ['Пляшка з‑під пива', 'die', 'Bierflasche', 'pfand', 'Це багаторазова скляна пляшка: автомат у магазині поверне 8 центів.'],
+    ['Батарейка', 'die', 'Batterie', 'schad', 'Батарейки кидай у коробку в супермаркеті чи в dm.'],
+    ['Акумулятор від телефона', 'der', 'Akku', 'schad', 'Акумулятори теж у коробку для батарейок.'],
+    ['Залишки фарби', 'die', 'Farbreste', 'schad', 'Фарби й лаки збирає Schadstoffmobil.'],
+    ['Лак для нігтів', 'der', 'Nagellack', 'schad', 'Лак це хімія, його збирає Schadstoffmobil.'],
+  ];
+  var ROUND_MS = 60000, BEST = 'dsimya-sort-best', round = null, item = null;
+  var best = Number(load(BEST)) || 0;
+  function showBest(){ $('#s-best').textContent = best ? 'Твій рекорд: ' + best + ' балів' : 'Рекорду ще немає. Час його поставити.'; }
+  showBest();
+  cloudGet('sort_best', function(c){ if (typeof c === 'number' && c > best){ best = c; store(BEST, best); showBest(); } });
+  $('#s-bins').innerHTML = ORDER.map(function(k, i){
+    var b = BINS[k];
+    return '<button class="binbtn' + (b.dark ? ' dark' : '') + '" type="button" data-bin="' + k + '" style="background:' + b.color + '" aria-keyshortcuts="' + (i + 1) + '">' + b.uk + '<small>' + b.de + '</small></button>';
+  }).join('');
+  function shuffle(a){ for (var i = a.length - 1; i > 0; i--){ var j = Math.floor(Math.random() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  function nextItem(){
+    if (!round.deck.length) round.deck = shuffle(ITEMS.slice());
+    item = round.deck.pop();
+    var el = $('#s-item'); el.className = 'item';
+    $('#s-uk').textContent = item[0];
+    $('#s-de').innerHTML = '<span class="art ' + item[1] + '">' + item[1] + '</span> ' + item[2];
+    void el.offsetWidth; el.classList.add('in');
+    document.querySelectorAll('.binbtn').forEach(function(b){ b.classList.remove('dim', 'right'); b.disabled = false; });
+  }
+  function hud(){
+    $('#s-score').textContent = round.score;
+    $('#s-streak').textContent = round.streak >= 5 ? 'Серія ' + round.streak + ' · ×2' : round.streak >= 2 ? 'Серія ' + round.streak : '';
+    var left = Math.max(0, round.left);
+    $('#s-time').textContent = Math.ceil(left / 1000) + ' с';
+    $('#s-bar').style.transform = 'scaleX(' + (left / ROUND_MS) + ')';
+  }
+  function startRound(){
+    round = {score:0, streak:0, right:0, wrong:0, miss:[], left:ROUND_MS, last:Date.now(), paused:false, deck:shuffle(ITEMS.slice())};
+    $('#s-start').hidden = true; $('#s-end').hidden = true; $('#s-play').hidden = false; $('#s-fb').hidden = true;
+    document.body.classList.add('playing'); window.scrollTo(0, 0);
+    nextItem(); hud(); haptic();
+    round.timer = setInterval(function(){
+      var now = Date.now();
+      if (!round.paused) round.left -= now - round.last;
+      round.last = now; hud();
+      if (round.left <= 0) endRound();
+    }, 100);
+    if (tg && tg.BackButton) try { tg.BackButton.show(); } catch(e){}
+  }
+  function stopRound(){
+    if (!round) return;
+    clearInterval(round.timer); round = null; document.body.classList.remove('playing');
+    $('#s-play').hidden = true; $('#s-end').hidden = true; $('#s-start').hidden = false;
+    if (tg && tg.BackButton) try { tg.BackButton.hide(); } catch(e){}
+  }
+  function endRound(){
+    var r = round; clearInterval(r.timer); round = null; document.body.classList.remove('playing');
+    if (tg && tg.BackButton) try { tg.BackButton.hide(); } catch(e){}
+    var record = r.score > best;
+    if (record){ best = r.score; store(BEST, best); cloudSet('sort_best', best); showBest(); }
+    $('#s-play').hidden = true; $('#s-end').hidden = false;
+    $('#s-result').textContent = r.score + ' ' + {one:'бал', few:'бали', many:'балів'}[plural.select(r.score)];
+    var all = r.right + r.wrong;
+    $('#s-sum').textContent = 'Правильно ' + r.right + ' з ' + all + (all ? ' (' + Math.round(r.right / all * 100) + '%)' : '') + '. Рекорд: ' + best + '.';
+    $('#s-record').hidden = !record || !r.score;
+    if (record && r.score) haptic('ok');
+    var seen = {};
+    $('#s-miss').innerHTML = r.miss.filter(function(m){ if (seen[m[2]]) return false; seen[m[2]] = 1; return true; }).map(function(m){
+      return '<li><b>' + m[0] + '</b> · ' + m[1] + ' ' + m[2] + '<br><span class="dot" style="background:' + BINS[m[3]].color + '"></span>' + BINS[m[3]].uk + ' (' + BINS[m[3]].de + '). ' + m[4] + '</li>';
+    }).join('');
+    $('#s-miss').hidden = !r.miss.length;
+  }
+  function pick(bin){
+    if (!round || round.paused || round.busy || !item) return;
+    var el = $('#s-item');
+    if (bin === item[3]){
+      round.right++; round.streak++; round.score += round.streak >= 5 ? 2 : 1;
+      el.classList.add('good'); haptic(); hud();
+      var r = round; r.busy = true;   // a short green flash; the clock keeps running
+      setTimeout(function(){ if (round === r){ r.busy = false; nextItem(); } }, 160);
+    } else {
+      round.wrong++; round.streak = 0; round.miss.push(item); round.paused = true;
+      el.classList.remove('in'); el.classList.add('bad'); haptic('error'); hud();
+      document.querySelectorAll('.binbtn').forEach(function(b){ var ok = b.getAttribute('data-bin') === item[3]; b.classList.toggle('right', ok); b.classList.toggle('dim', !ok); b.disabled = true; });
+      $('#s-why').textContent = 'Не туди. Правильно: «' + BINS[item[3]].uk + '» (' + BINS[item[3]].de + '). ' + item[4];
+      $('#s-fb').hidden = false; $('#s-next').focus({preventScroll:true});
+    }
+  }
+  $('#s-bins').addEventListener('click', function(e){ var b = e.target.closest('.binbtn'); if (b) pick(b.getAttribute('data-bin')); });
+  $('#s-next').addEventListener('click', function(){ if (!round) return; $('#s-fb').hidden = true; round.paused = false; round.last = Date.now(); nextItem(); });
+  $('#s-go').addEventListener('click', startRound);
+  $('#s-again').addEventListener('click', startRound);
+  document.addEventListener('keydown', function(e){
+    if (!round || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (round.paused && !$('#s-fb').hidden && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); $('#s-next').click(); return; }
+    var i = Number(e.key) - 1; if (i >= 0 && i < ORDER.length){ e.preventDefault(); pick(ORDER[i]); }
+  });
+  if (tg && tg.BackButton) try { tg.BackButton.onClick(stopRound); } catch(e){}
+
+  var t0 = 'click'; try { if (localStorage.getItem('dsimya-igry-tab') === 'sort') t0 = 'sort'; } catch(e){}
+  tab(t0, true);
+  window.__games = {state:function(){ return S; }, item:function(){ return item; }, round:function(){ return round; }, ITEMS:ITEMS, BINS:BINS};
+})();
+</script>
+</body>
+</html>
