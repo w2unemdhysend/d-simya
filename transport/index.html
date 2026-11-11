@@ -102,6 +102,10 @@ details[open] > summary .chev{transform:rotate(180deg)}
 
 /* one time column for all rows, as wide as the widest time ("зараз" in Unbounded at 18 px needs ~70 px): it never runs
    into the line badge and every row starts its badge at the same place */
+.tolink{display:flex;align-items:center;justify-content:space-between;gap:12px;text-decoration:none;min-height:60px}
+.tolink b{display:block;font-weight:600;font-size:16.5px;line-height:1.25}
+.tolink small{display:block;color:var(--muted);font-size:14px}
+.tolink svg{flex:none;width:20px;height:20px;color:var(--muted)}
 .deps{list-style:none;margin:10px 0 0;padding:0;display:grid;grid-template-columns:max-content minmax(0,1fr);column-gap:12px}
 .dep{grid-column:1/-1;display:grid;grid-template-columns:subgrid;padding:10px 0;border-top:1px solid var(--line);animation:in .25s ease backwards}
 @supports not (grid-template-columns:subgrid){.dep{grid-template-columns:4.6em minmax(0,1fr);column-gap:12px}}
@@ -196,6 +200,8 @@ details[open] > summary .chev{transform:rotate(180deg)}
         <p class="src">За даними vrr.de і Deutsche Bahn, листопад 2026.</p>
       </details>
     </section>
+
+    <a class="card tolink" href="../marshrut/"><span><b>Маршрут: звідки — куди</b><small>Як доїхати з пересадками, час і колії наживо</small></span><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></a>
 
     <a class="card wxmini" id="wxmini" href="../pogoda/" hidden></a>
 

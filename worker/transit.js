@@ -5,6 +5,9 @@
 //                                        a street or an address without a stop of that name, also the stops nearest to it
 //   GET /transit/stops?lat=<..>&lon=<..> the stops nearest to the phone
 //   GET /transit/departures?stop=<id>    next departures from a stop, with live times and notices
+//   GET /transit/trip?from=<id>&to=<id>  connections between two stops: times, changes, each leg with line, platform
+//        [&when=YYYY-MM-DDTHH:MM]        and delay; when: departure time in Xanten time (default: now);
+//        [&long=1]                       long=1 also allows ICE/IC/EC, where the Deutschlandticket is not valid
 //   GET /weather?lat=<..>&lon=<..>       now, next 24 hours and 7 days (Open-Meteo)
 //   GET /warnings?lat=<..>&lon=<..>      official weather warnings of the Deutscher Wetterdienst (through Bright Sky)
 //
@@ -20,7 +23,7 @@ const CACHE_V = 2;         // raise when the shape of an answer changes, so a ne
 
 import { fetchWarnings } from './warn.js';
 
-export function isTransit(path) { return path === '/transit/stops' || path === '/transit/departures' || path === '/weather' || path === '/warnings'; }
+export function isTransit(path) { return path === '/transit/stops' || path === '/transit/departures' || path === '/transit/trip' || path === '/weather' || path === '/warnings'; }
 
 export async function transit(request, env, ctx, reply, cors) {
   if (request.method !== 'GET') return reply(405, { ok: false, error: 'GET only' });
@@ -42,6 +45,14 @@ export async function transit(request, env, ctx, reply, cors) {
       const stop = String(p.get('stop') || '');
       if (!STOP_ID.test(stop)) return reply(400, { ok: false, error: 'stop: an id like de:05170:37032' });
       return await cached(`dep:${stop}`, 30, ctx, cors, url.origin, () => departures(stop));
+    }
+    if (url.pathname === '/transit/trip') {
+      const from = String(p.get('from') || ''), to = String(p.get('to') || ''), when = String(p.get('when') || ''), long = p.get('long') === '1';
+      if (!STOP_ID.test(from) || !STOP_ID.test(to) || from === to) return reply(400, { ok: false, error: 'from and to: two different stop ids' });
+      if (when && !/^20\d\d-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d$/.test(when)) return reply(400, { ok: false, error: 'when: YYYY-MM-DDTHH:MM' });
+      // "now" is kept by the minute it was asked in, a chosen time a little longer
+      const stamp = when || berlinStamp(new Date());
+      return await cached(`trip:${from}:${to}:${stamp}:${long ? 1 : 0}`, when ? 60 : 30, ctx, cors, url.origin, () => trip(from, to, stamp, long));
     }
     const lat = Number(p.get('lat')), lon = Number(p.get('lon'));
     if (!(Math.abs(lat) <= 90 && Math.abs(lon) <= 180) || p.get('lat') === null || p.get('lon') === null)
@@ -186,6 +197,52 @@ export async function departures(stop, limit = 40) {
     };
   }).filter((x) => x.plan);
   return { stop: { id: stop, name: clip(loc.name || loc.disassembledName, 120) }, at: new Date().toISOString(), deps, notices, hints };
+}
+
+// 'YYYY-MM-DDTHH:MM' in Xanten time for a moment
+function berlinStamp(date) {
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+    .formatToParts(date).map((x) => [x.type, x.value]));
+  return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
+}
+
+// Connections between two stops. Long-distance trains (EFA classes 14–16: ICE, IC, EC) are left out unless asked for:
+// the Deutschlandticket is not valid on them. The answer from VRR is large (alternatives for every leg); only what
+// the page shows is passed on.
+const LONG = [14, 15, 16], WALK = [99, 100];
+export async function trip(from, to, stamp, long = false) {
+  const u = new URL(EFA + 'XML_TRIP_REQUEST2');
+  Object.entries({ outputFormat: 'rapidJSON', coordOutputFormat: 'WGS84[dd.ddddd]', type_origin: 'any', name_origin: from, type_destination: 'any', name_destination: to,
+    itdDateTimeDepArr: 'dep', itdDate: stamp.slice(0, 10).replace(/-/g, ''), itdTime: stamp.slice(11).replace(':', ''), calcNumberOfTrips: '4', useRealtime: '1',
+    routeType: 'LEASTTIME', useProxFootSearch: '0', locationServerActive: '1', genC: '0', genMaps: '0', genP: '0',
+    ...(long ? {} : { excludedMeans: 'checkbox', exclMOT_14: '1', exclMOT_15: '1', exclMOT_16: '1' }) }).forEach(([k, v]) => u.searchParams.set(k, v));
+  const d = await getJson(u);
+  const stopName = (l) => clip(l.type === 'platform' && l.parent ? l.parent.name : l.name, 80);
+  const point = (l, kind) => {
+    const pr = l.properties || {};
+    return { name: stopName(l), plan: l[kind + 'TimePlanned'] || null, est: l[kind + 'TimeEstimated'] || null,
+      plat: clip(pr.platformName || pr.platform, 12), platOld: pr.plannedPlatformName && pr.plannedPlatformName !== pr.platformName ? clip(pr.plannedPlatformName, 12) : '' };
+  };
+  const trips = (d.journeys || []).map((j) => {
+    const legs = (j.legs || []).map((l) => {
+      const t = l.transportation || {}, prod = t.product || {}, walk = WALK.includes(prod.class) || !t.product, status = l.realtimeStatus || [];
+      const after = (l.footPathInfo || []).find((f) => f.position === 'AFTER');
+      return {
+        walk, mode: walk ? 'walk' : modeOf(prod.class), line: walk ? '' : clip(t.disassembledName || t.number || prod.name, 24), kind: clip(prod.name, 30),
+        dir: walk ? '' : clip(t.destination && t.destination.name, 80), long: LONG.includes(prod.class),
+        from: point(l.origin || {}, 'departure'), to: point(l.destination || {}, 'arrival'),
+        mins: Math.round((l.duration || 0) / 60), stops: Math.max(0, (l.stopSequence || []).length - 1), walkAfter: after ? Math.round(after.duration / 60) : 0,
+        gone: !!l.isCancelled || status.includes('TRIP_CANCELLED') || status.includes('CANCELLED'),
+        notes: (l.infos || []).map((i) => clip(((i.infoLinks || [])[0] || {}).title || ((i.infoLinks || [])[0] || {}).urlText, 160)).filter(Boolean).slice(0, 2),
+      };
+    }).filter((l) => l.from.plan && l.to.plan);
+    if (!legs.length) return null;
+    const first = legs[0].from, last = legs[legs.length - 1].to;
+    return { dep: first.plan, depEst: first.est, arr: last.plan, arrEst: last.est, changes: Math.max(0, legs.filter((l) => !l.walk).length - 1),
+      mins: Math.round((Date.parse(last.est || last.plan) - Date.parse(first.est || first.plan)) / 60000), legs };
+  }).filter(Boolean);
+  const names = trips.length ? { from: trips[0].legs[0].from.name, to: trips[0].legs[trips[0].legs.length - 1].to.name } : { from: '', to: '' };
+  return { from: { id: from, name: names.from }, to: { id: to, name: names.to }, when: stamp, long, at: new Date().toISOString(), trips };
 }
 
 const clip = (s, n) => String(s == null ? '' : s).replace(/\s+/g, ' ').trim().slice(0, n);

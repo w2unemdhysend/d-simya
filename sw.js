@@ -9,10 +9,10 @@
    Nothing else is kept: not the shopping list, not translations, not searches.
    When the asset version (?v=) changes, update it here too (tests/offline_e2e.py checks that they match). */
 
-const VERSION = '2026-11-12.2';
+const VERSION = '2026-11-12.3';
 const CORE_CACHE = 'dsimya-core-' + VERSION, DATA_CACHE = 'dsimya-data', STATIC_CACHE = 'dsimya-static';
 const CORE = [
-  './', 'pralka/', 'sushka/', 'scan/', 'smittia/', 'prospekty/', 'spysok/', 'transport/', 'pogoda/', 'igry/', 'bot/', 'ekstreno/', 'rozmovnyk/',
+  './', 'pralka/', 'sushka/', 'scan/', 'smittia/', 'prospekty/', 'spysok/', 'transport/', 'pogoda/', 'igry/', 'bot/', 'ekstreno/', 'rozmovnyk/', 'marshrut/',
   'assets/ui.css?v=16', 'assets/ui.js?v=16', 'assets/page.css?v=1', 'rozmovnyk/phrases.js', 'assets/fonts/noto-sans.ttf',
   'smittia/kalender.json', 'smittia/due.js', 'smittia/wohin.js', 'prospekty/week.js', 'pogoda/wx.js', 'igry/words.js',
 ];

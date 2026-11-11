@@ -6,6 +6,7 @@ import worker from '../worker/send-scan.js';
 import { plain } from '../worker/transit.js';
 
 const fx = (n) => JSON.parse(readFileSync(new URL('./fixtures/' + n, import.meta.url)));
+const TRIP = fx('efa-trip.json');
 const DM = fx('efa-dm.json'), SF = fx('efa-sf.json'), METEO = fx('meteo.json'), COORD = fx('efa-coord.json');
 // what the stop finder says for a street and for an address (no stop has that name)
 const STREET = { locations: [{ type: 'street', id: 'streetID:1', name: 'Xanten, Sonsbecker Straße', matchQuality: 250, coord: [51.6531, 6.4402] },
@@ -28,6 +29,7 @@ globalThis.fetch = async (url) => {
     if (id === 'de:05170:36246') return Response.json({ locations: [{ name: 'Xanten, Lüttingen Schule' }], stopEvents: DM.stopEvents.slice(0, 2) });
     return Response.json(DM);
   }
+  if (u.hostname === 'openservice.vrr.de' && u.pathname.endsWith('XML_TRIP_REQUEST2')) return Response.json(TRIP);
   if (u.hostname === 'api.open-meteo.com') return Response.json(METEO);
   return new Response('unexpected ' + u, { status: 599 });
 };
@@ -123,6 +125,27 @@ down = false;
 const c2 = calls.length;
 r = await get('/transit/departures?stop=de:05170:99999');
 t('upstream back: the failure was not cached', r.status === 200 && calls.length === c2 + 1);
+
+// connections between two stops
+r = await get('/transit/trip?from=de:05170:37032&to=de:05112:16032&when=2026-11-12T08:00');
+const tripCall = calls.filter((u) => u.pathname.endsWith('XML_TRIP_REQUEST2')).pop();
+t('trip: asks VRR with date and time in Xanten time, live data, no long-distance trains', tripCall.searchParams.get('itdDate') === '20261112' && tripCall.searchParams.get('itdTime') === '0800'
+  && tripCall.searchParams.get('name_origin') === 'de:05170:37032' && tripCall.searchParams.get('exclMOT_15') === '1' && tripCall.searchParams.get('useRealtime') === '1', tripCall.search);
+const tr = r.body.trips;
+t('trip: three connections with names of both ends', r.status === 200 && tr.length === 3 && r.body.from.name === 'Xanten Bahnhof' && r.body.to.name === 'Duisburg Hbf', JSON.stringify(r.body).slice(0, 300));
+t('trip: first one 07:29 → 09:40 in Xanten time (06:29Z → 08:40Z), 131 min, 2 changes', tr[0].dep === '2026-11-12T06:29:00Z' && tr[0].arr === '2026-11-12T08:40:00Z' && tr[0].mins === 131 && tr[0].changes === 2, JSON.stringify(tr[0]).slice(0, 200));
+t('trip: legs carry line, direction, platform, stops and the walk to the next one', tr[0].legs[0].line === 'X28' && tr[0].legs[0].mode === 'bus' && tr[0].legs[0].dir === 'Wesel Bahnhof' && tr[0].legs[0].from.plat === '2'
+  && tr[0].legs[0].stops === 16 && tr[0].legs[0].walkAfter === 8 && tr[0].legs[0].to.name === 'Wesel Bahnhof', JSON.stringify(tr[0].legs[0]));
+t('trip: a rail replacement bus is a bus, a regional train a train; platforms as stop names', tr[1].legs[0].line.startsWith('SEV') && tr[1].legs[0].mode === 'bus' && tr[1].legs[1].mode === 'train' && tr[1].legs[1].from.name === 'Moers Bahnhof' && tr[1].legs[1].from.plat === '2', JSON.stringify(tr[1].legs.map((l) => [l.line, l.mode, l.from.name, l.from.plat])));
+t('trip: nothing of the bulky parts is passed on', JSON.stringify(r.body).length < 6000 && !JSON.stringify(r.body).includes('stopSequence'), JSON.stringify(r.body).length);
+await get('/transit/trip?from=de:05170:37032&to=de:05112:16032&long=1');
+const longCall = calls.filter((u) => u.pathname.endsWith('XML_TRIP_REQUEST2')).pop();
+t('trip: long=1 allows ICE/IC, and "now" is today in Xanten', !longCall.searchParams.has('exclMOT_15') && /^20\d{6}$/.test(longCall.searchParams.get('itdDate')), longCall.search);
+t('trip: bad ids, the same stop twice or a bad time are refused', (await get('/transit/trip?from=x&to=de:05112:16032')).status === 400 && (await get('/transit/trip?from=de:05170:37032&to=de:05170:37032')).status === 400
+  && (await get('/transit/trip?from=de:05170:37032&to=de:05112:16032&when=tomorrow')).status === 400);
+const nTrip = calls.filter((u) => u.pathname.endsWith('XML_TRIP_REQUEST2')).length;
+await get('/transit/trip?from=de:05170:37032&to=de:05112:16032&when=2026-11-12T08:00');
+t('trip: the same question within a minute is answered from the cache', calls.filter((u) => u.pathname.endsWith('XML_TRIP_REQUEST2')).length === nTrip);
 
 // HTML to text
 t('plain: tags, entities, line breaks', plain('<div>Ab <strong>Montag</strong>&nbsp;f&uuml;r&#160;alle<br/>Linie&nbsp;&#x41;</div><script>x</script>') === 'Ab Montag für alle\nLinie A\nx');
