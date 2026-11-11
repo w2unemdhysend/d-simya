@@ -11,7 +11,8 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@600;700&display=swap">
 <style>
 /* Layout: one column. The week card on top (which dates, closed days, how many flyers are seen), the town switch,
-   then a card per chain (your stars first) with stores, route, flyer and its discount app; the Monday reminder last. */
+   then a card per chain (your stars first, then supermarkets, then drugstores) with stores, route, flyer and its
+   discount app; the Monday reminder last. */
 :root{
   padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom);
   --bg:#E7ECEF; --surface:#F6F8F9; --ink:#12181C; --muted:#53616A; --line:#C7D0D5; --accent:#9A5800;
@@ -61,6 +62,7 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-top:10px}
 .town button{border:0;background:transparent;border-radius:10px;min-height:44px;font-weight:600;font-size:16px;cursor:pointer;transition:background-color .25s ease, color .25s ease}
 .town button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
 .group{margin:6px 0 -2px;font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.gnote{margin:-4px 0 0;font-size:14.5px;line-height:1.35;color:var(--muted)}
 
 /* a chain */
 .chain{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 14px 12px;animation:in .3s ease backwards}
@@ -163,7 +165,7 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-top:10px}
       <p>Деякі сайти один раз просять вибрати магазин («Markt wählen» або «Filiale wählen»). У EDEKA й REWE кожен магазин має власний проспект, тому там кнопки окремі для кожної адреси.</p>
     </section>
   </main>
-  <p class="foot">Адреси REWE й EDEKA взято з пошуку магазинів на сайтах мереж, решту з OpenStreetMap, програми знижок за оглядом MonsterDealz, станом на жовтень–листопад 2026. Якщо щось змінилося, напиши, і я виправлю.</p>
+  <p class="foot">Адреси REWE, EDEKA, dm і Rossmann взято з пошуку магазинів на сайтах мереж, решту з OpenStreetMap, програми знижок за оглядом MonsterDealz і сайтами мереж, станом на жовтень–листопад 2026. Якщо щось змінилося, напиши, і я виправлю.</p>
 </div>
 <script src="../assets/ui.js?v=15"></script>
 <script type="module">
@@ -198,7 +200,16 @@ const CHAINS = [
   {name:'Kaufland', url:'https://filiale.kaufland.de/prospekte.html', perk:'Знижки: бали Kaufland Card у застосунку Kaufland.', stores:{wesel:['Rudolf-Diesel-Straße 7']}},
   {name:'trinkgut', kind:'напої', url:'https://www.trinkgut.de/angebote', perk:'Знижки: бали PAYBACK.',
     stores:{xanten:['Boxtelstraße 2'], wesel:['Reeser Landstraße 60', 'Rudolf-Diesel-Straße 64', 'Werftstraße 6']}},
+  // drugstores (as of November 2026): dm has no weekly flyer, it keeps its prices (Dauerpreise) and gives coupons in the app;
+  // the ROSSMANN flyer runs Monday to Friday
+  {name:'dm', group:'drug', perk:'Щотижневого проспекту немає: dm тримає сталі ціни (Dauerpreise). Знижки: бали PAYBACK і персональні купони в застосунку Mein dm.',
+    extra:['Купони в застосунку Mein dm', 'https://www.dm.de/services/services-in-der-dm-app'],
+    stores:{xanten:['Sonsbecker Straße 21a'], wesel:['Hohe Straße 45–49']}},
+  {name:'Rossmann', group:'drug', url:'https://www.rossmann.de/de/angebote/prospekte', perk:'Проспект діє з понеділка до п’ятниці. Знижки: купони −10 % у застосунку ROSSMANN, чотири кожні два місяці після реєстрації.',
+    stores:{xanten:['Marsstraße 26–28'], wesel:['Hohe Straße 6']}},
 ];
+// sections below "Мої магазини", in this order
+const GROUPS = [['food', 'Супермаркети'], ['drug', 'Дрогерії', 'Косметика, гігієна, побутова хімія, дитячі товари. Більшість ліків продають тільки в аптеці (Apotheke).']];
 const TOWNS = {xanten:'Xanten', wesel:'Wesel'};
 const WORKER_URL = 'https://d-simya.whysends.workers.dev';   // same Worker as the scanner
 const $ = (s, r) => (r || document).querySelector(s);
@@ -269,10 +280,13 @@ const canList = !!(tg && tg.initData);   // the family list needs Telegram's sig
 const SHOP = (name) => name.replace(/ SÜD$/, '');   // as the list names the shops
 function render() {
   const here = CHAINS.filter((c) => storesOf(c, town).length);
-  const mine = here.filter((c) => favs.includes(c.name)), rest = here.filter((c) => !favs.includes(c.name));
-  let i = 0;
-  $('#list').innerHTML = (mine.length ? '<h3 class="group">Мої магазини</h3>' + mine.map((c) => chainCard(c, town, i++)).join('') +
-    (rest.length ? '<h3 class="group">Інші магазини</h3>' : '') : '') + rest.map((c) => chainCard(c, town, i++)).join('');
+  const mine = here.filter((c) => favs.includes(c.name));
+  let i = 0, html = mine.length ? '<h3 class="group">Мої магазини</h3>' + mine.map((c) => chainCard(c, town, i++)).join('') : '';
+  for (const [g, title, note] of GROUPS) {
+    const rest = here.filter((c) => (c.group || 'food') === g && !favs.includes(c.name));
+    if (rest.length) html += `<h3 class="group">${title}</h3>` + (note ? `<p class="gnote">${note}</p>` : '') + rest.map((c) => chainCard(c, town, i++)).join('');
+  }
+  $('#list').innerHTML = html;
   document.querySelectorAll('.town button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.town === town)));
   const all = here.flatMap((c) => flyersOf(c, town)), n = all.filter(isSeen).length;
   $('#ptext').innerHTML = n === all.length ? CHECK + 'Усі проспекти цього тижня переглянуто' : `Переглянуто ${n} з ${all.length} проспектів`;

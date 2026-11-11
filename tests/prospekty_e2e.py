@@ -14,7 +14,7 @@ import asyncio, datetime, functools, http.server, os, re, sys, threading, urllib
 from playwright.async_api import async_playwright
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-OFFICIAL = r'^https://(www\.)?(aldi-sued\.de|lidl\.de|rewe\.de|edeka\.de|netto-online\.de|penny\.de|filiale\.kaufland\.de|trinkgut\.de)/'
+OFFICIAL = r'^https://(www\.)?(aldi-sued\.de|lidl\.de|rewe\.de|edeka\.de|netto-online\.de|penny\.de|filiale\.kaufland\.de|trinkgut\.de|dm\.de|rossmann\.de)/'
 TG = """window.Telegram = {WebApp: {platform: 'android', colorScheme: 'light', initData: '%s', ready() {}, expand() {}, onEvent() {},
   setHeaderColor() {}, setBackgroundColor() {}, openLink(u) { window.__opened = u; },
   HapticFeedback: {selectionChanged() {}, impactOccurred() {}, notificationOccurred() {}}, BackButton: {show() {}, hide() {}, onClick() {}}}};"""
@@ -38,6 +38,9 @@ STATE = """() => [...document.querySelectorAll('.chain')].map(c => ({name: c.que
   stores: c.querySelectorAll('.store').length, storeLinks: c.querySelectorAll('.store a.go').length, chainLink: !!c.querySelector(':scope > a.go'),
   routes: c.querySelectorAll('.store a.route').length, perk: c.querySelector('.perk').textContent, seen: !!c.querySelector('.seenmark'),
   star: c.querySelector('.star').getAttribute('aria-pressed')}))"""
+# the headings in #list and the chains under each
+SECTIONS = """() => { const out = []; for (const el of document.querySelectorAll('#list > .group, #list > .chain')) {
+  if (el.classList.contains('group')) out.push([el.textContent, []]); else if (out.length) out[out.length - 1][1].push(el.dataset.chain); } return out; }"""
 WEEK = "() => ({kw: document.getElementById('wk-kw').textContent, title: document.getElementById('wk-title').textContent, line: document.getElementById('wk-line').textContent, closed: [...document.querySelectorAll('#wk-closed li')].map(l => l.className + ': ' + l.textContent), progress: document.getElementById('ptext').textContent})"
 
 async def page(browser, url, day, tg='', width=340, worker=None):
@@ -58,18 +61,26 @@ async def main():
         w = await pg.evaluate(WEEK)
         check('week: 9–14 листопада, KW 46, next flyers on Monday 16', w['title'] == '9–14 листопада' and 'KW 46' in w['kw'] and 'Нові проспекти з понеділка, 16 листопада' in w['line'] and not w['closed'], str(w))
         x = {c['name']: c for c in await pg.evaluate(STATE)}
-        check('Xanten: chains', list(x) == ['ALDI SÜD', 'Lidl', 'REWE', 'EDEKA', 'Netto', 'PENNY', 'trinkgut'], str(list(x)))
+        check('Xanten: chains, drugstores after the supermarkets', list(x) == ['ALDI SÜD', 'Lidl', 'REWE', 'EDEKA', 'Netto', 'PENNY', 'trinkgut', 'dm', 'Rossmann'], str(list(x)))
+        sec = await pg.evaluate(SECTIONS)
+        check('two sections: "Супермаркети", then "Дрогерії" with what a Drogerie sells', [g for g, _ in sec] == ['Супермаркети', 'Дрогерії'] and sec[1][1] == ['dm', 'Rossmann']
+              and 'Apotheke' in await pg.text_content('#list .gnote'), str(sec))
+        check('Xanten drugstores: dm Sonsbecker Straße 21a, Rossmann Marsstraße 26–28', 'Sonsbecker' in await pg.text_content('.chain[data-chain="dm"] .addr') and 'Marsstraße' in await pg.text_content('.chain[data-chain="Rossmann"] .addr'))
+        check('Rossmann: its weekly flyer (Mon–Fri) and the 10 % app coupons', x['Rossmann']['chainLink'] and 'п’ятниці' in x['Rossmann']['perk'] and '10 %' in x['Rossmann']['perk'])
+        check('dm: no weekly flyer (constant prices), PAYBACK and app coupons, a link to the app instead', not x['dm']['chainLink'] and not x['dm']['storeLinks'] and 'PAYBACK' in x['dm']['perk']
+              and await pg.locator('.chain[data-chain="dm"] a.extra').count() == 1)
         check('Xanten: EDEKA and REWE have a flyer button per store', x['EDEKA']['storeLinks'] == 2 and x['REWE']['storeLinks'] == 1 and not x['EDEKA']['chainLink'])
-        check('Xanten: other chains have one flyer button', all(x[n]['chainLink'] and not x[n]['storeLinks'] for n in ['ALDI SÜD', 'Lidl', 'Netto', 'PENNY', 'trinkgut']))
+        check('Xanten: other chains have one flyer button', all(x[n]['chainLink'] and not x[n]['storeLinks'] for n in ['ALDI SÜD', 'Lidl', 'Netto', 'PENNY', 'trinkgut', 'Rossmann']))
         check('every store has a route button', all(c['routes'] == c['stores'] for c in x.values()))
         check('discount line per chain (ALDI: none, Lidl: Lidl Plus, EDEKA: PAYBACK)', 'Без купонів' in x['ALDI SÜD']['perk'] and 'Lidl Plus' in x['Lidl']['perk'] and 'PAYBACK' in x['EDEKA']['perk'])
-        check('progress: 0 of 8 flyers seen', w['progress'] == 'Переглянуто 0 з 8 проспектів', w['progress'])
+        check('progress: 0 of 9 flyers seen (Rossmann counts, dm has none)', w['progress'] == 'Переглянуто 0 з 9 проспектів', w['progress'])
         check('fits 340 px, no sideways scrolling', await pg.evaluate('document.documentElement.scrollWidth') <= 340)
 
         await pg.click('.town button[data-town="wesel"]')
         ws = {c['name']: c for c in await pg.evaluate(STATE)}
         check('Wesel: Kaufland appears, 4 REWE and 4 EDEKA flyers', 'Kaufland' in ws and ws['REWE']['storeLinks'] == 4 and ws['EDEKA']['storeLinks'] == 4, str(ws.get('REWE')))
-        check('Wesel: progress counts 14 flyers', (await pg.evaluate(WEEK))['progress'] == 'Переглянуто 0 з 14 проспектів')
+        check('Wesel: progress counts 15 flyers', (await pg.evaluate(WEEK))['progress'] == 'Переглянуто 0 з 15 проспектів')
+        check('Wesel drugstores: dm Hohe Straße 45–49, Rossmann Hohe Straße 6', 'Hohe' in await pg.text_content('.chain[data-chain="dm"] .addr') and 'Hohe' in await pg.text_content('.chain[data-chain="Rossmann"] .addr'))
         check('Wesel fits 340 px', await pg.evaluate('document.documentElement.scrollWidth') <= 340)
         await pg.reload(); await pg.wait_for_timeout(300)
         check('town choice remembered', await pg.get_attribute('.town button[data-town="wesel"]', 'aria-pressed') == 'true')
@@ -93,26 +104,30 @@ async def main():
         lidl_btn = await pg.text_content('.chain[data-chain="Lidl"] > a.go')
         check('opened flyer: chain marked seen, button says so', x['Lidl']['seen'] and 'Переглянуто, відкрити' in lidl_btn and not x['EDEKA']['seen'], lidl_btn)
         check('one of two EDEKA flyers seen: the chain is not marked yet, the store button is', not x['EDEKA']['seen'] and 'переглянуто' in await pg.get_attribute('.chain[data-chain="EDEKA"] .store a.go', 'aria-label') and await pg.evaluate("document.querySelector('.chain[data-chain=EDEKA] .store a.go').classList.contains('seen')"))
-        check('progress: 2 of 8', (await pg.evaluate(WEEK))['progress'] == 'Переглянуто 2 з 8 проспектів')
+        check('progress: 2 of 9', (await pg.evaluate(WEEK))['progress'] == 'Переглянуто 2 з 9 проспектів')
         await pg.reload(); await pg.wait_for_timeout(300)
-        check('seen marks kept after reload', (await pg.evaluate(WEEK))['progress'] == 'Переглянуто 2 з 8 проспектів')
+        check('seen marks kept after reload', (await pg.evaluate(WEEK))['progress'] == 'Переглянуто 2 з 9 проспектів')
 
         # stars: own chains first, under "Мої магазини"
         await pg.click('.chain[data-chain="Netto"] .star'); await pg.wait_for_timeout(200)
         order = [c['name'] for c in await pg.evaluate(STATE)]
         groups = await pg.evaluate("() => [...document.querySelectorAll('#list .group')].map(g => g.textContent)")
-        check('starred Netto moves to the top under "Мої магазини"', order[0] == 'Netto' and groups == ['Мої магазини', 'Інші магазини'] and
+        check('starred Netto moves to the top under "Мої магазини"', order[0] == 'Netto' and groups == ['Мої магазини', 'Супермаркети', 'Дрогерії'] and
               await pg.get_attribute('.chain[data-chain="Netto"] .star', 'aria-pressed') == 'true', f'{order} {groups}')
         check('focus stays on the star', await pg.evaluate("document.activeElement.closest('.chain').dataset.chain") == 'Netto')
         await pg.reload(); await pg.wait_for_timeout(300)
         check('stars kept after reload', [c['name'] for c in await pg.evaluate(STATE)][0] == 'Netto')
         await pg.click('.chain[data-chain="Netto"] .star'); await pg.wait_for_timeout(200)
-        check('unstarred: original order, no groups', [c['name'] for c in await pg.evaluate(STATE)][4] == 'Netto' and not await pg.evaluate("document.querySelectorAll('#list .group').length"))
+        check('unstarred: original order, back to the two sections', [c['name'] for c in await pg.evaluate(STATE)][4] == 'Netto' and [g for g, _ in await pg.evaluate(SECTIONS)] == ['Супермаркети', 'Дрогерії'])
+        await pg.click('.chain[data-chain="Rossmann"] .star'); await pg.wait_for_timeout(200)
+        sec = await pg.evaluate(SECTIONS)
+        check('a starred drugstore goes up to "Мої магазини" too', sec[0] == ['Мої магазини', ['Rossmann']] and sec[-1] == ['Дрогерії', ['dm']], str(sec))
+        await pg.click('.chain[data-chain="Rossmann"] .star'); await pg.wait_for_timeout(200)
         check('reminder outside Telegram: says where it can be switched on', 'через бота в Telegram' in await pg.text_content('#sw-state') and await pg.is_disabled('#sw'))
         await pg.screenshot(path=os.path.join(os.environ.get('SHOTS', '/tmp'), 'prospekty-light.png'), full_page=True)
 
         await pg.clock.set_fixed_time(at('2026-11-16', 8)); await pg.reload(); await pg.wait_for_timeout(300)
-        check('next Monday: seen marks reset', (await pg.evaluate(WEEK))['progress'] == 'Переглянуто 0 з 8 проспектів')
+        check('next Monday: seen marks reset', (await pg.evaluate(WEEK))['progress'] == 'Переглянуто 0 з 9 проспектів')
         await ctx.close()
 
         # Sunday, Christmas week, a holiday today
