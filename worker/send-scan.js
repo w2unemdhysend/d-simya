@@ -12,7 +12,8 @@
  *                          kind=smittia (default, evening before a waste pickup) or prospekty (Monday flyers)
  *   POST /translate        text of one scanned page (recognised on the phone) → its translation,
  *                          by Gemma 4 on Workers AI (free daily allowance)
- *   GET  /translate/check  translates one fixed sentence: shows the model answers (no sign-in, cached 1 h)
+ *   GET  /translate/check  translates a fixed sentence (?page=1: a fixed letter): shows the model answers;
+ *                          no sign-in, so only fixed texts, and every answer is cached
  *   cron, daily            at 18:00 Xanten time: tells subscribers which bins go out tomorrow
  *   cron, Mondays          at 08:00 Xanten time: new flyers are out, and which days shops close that week
  *
@@ -224,7 +225,7 @@ async function translate(request, env, reply, path) {
   return reply(200, { ok: true, text: out.text });
 }
 
-async function runModel(env, pair, text, extra) {
+async function runModel(env, pair, text) {
   const [from, to] = pair.split('-');
   const t0 = Date.now();
   let res;
@@ -233,7 +234,7 @@ async function runModel(env, pair, text, extra) {
       messages: [{ role: 'system', content: trPrompt(from, to) }, { role: 'user', content: text }],
       // Gemma 4 here "thinks" before answering unless told not to; on a full page that used all 4096 tokens
       // in 80 s and left no translation. Off: the same page takes about 13 s.
-      max_completion_tokens: 4096, temperature: 0.2, chat_template_kwargs: { enable_thinking: false }, ...extra,
+      max_completion_tokens: 4096, temperature: 0.2, chat_template_kwargs: { enable_thinking: false },
     });
   } catch (e) {
     const diag = { ms: Date.now() - t0, message: String(e && e.message).slice(0, 300) };
@@ -267,17 +268,16 @@ function trPrompt(from, to) {
   ].filter(Boolean).join('\n');
 }
 
-// ?page=1 translates a whole made-up letter page; &think=1 turns the model's thinking on, for comparison
+// No sign-in, so it must stay cheap: two fixed texts only (?page=1: a whole made-up letter), and every answer,
+// failures too, is cached, so calling it again and again costs nothing.
 async function translateCheck(request, env, reply) {
   if (request.method !== 'GET') return reply(405, { ok: false, error: 'GET only' });
-  const q = new URL(request.url).searchParams, page = q.get('page') === '1', think = q.get('think');
-  const key = `trchk:${page ? 'page' : 'line'}:${think === '1' ? 'on' : 'off'}`;
+  const page = new URL(request.url).searchParams.get('page') === '1', key = `trchk:${page ? 'page' : 'line'}`;
   const cached = env.SCANS && await env.SCANS.get(key);
-  if (cached) return reply(200, JSON.parse(cached));
-  const extra = think === '1' ? { chat_template_kwargs: { enable_thinking: true } } : {};
-  const out = await runModel(env, 'de-uk', page ? SAMPLE_PAGE : 'Bitte überweisen Sie 125,00 € bis zum 24.11.2026.', extra);
+  if (cached) { const c = JSON.parse(cached); return reply(c.ok ? 200 : 502, c); }
+  const out = await runModel(env, 'de-uk', page ? SAMPLE_PAGE : 'Bitte überweisen Sie 125,00 € bis zum 24.11.2026.');
   const body = { ok: !out.error, error: out.error, model: MODEL, sample: out.text, diag: out.diag, at: new Date().toISOString() };
-  if (env.SCANS && !out.error) await env.SCANS.put(key, JSON.stringify(body), { expirationTtl: 900 });
+  if (env.SCANS) await env.SCANS.put(key, JSON.stringify(body), { expirationTtl: out.error ? 600 : 900 });
   return reply(out.error ? out.status : 200, body);
 }
 const SAMPLE_PAGE = `Stadtverwaltung Musterstadt · Fachbereich Bürgerdienste · Rathausplatz 1 · 12345 Musterstadt

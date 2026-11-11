@@ -1309,22 +1309,40 @@ body.focus .toast{bottom:calc(86px + env(safe-area-inset-bottom, 0px))}
   var tr = {pair:'de-uk', job:0, ocr:null, ocrLang:'', onLog:null, status:{}, err:{}};
   try { var savedPair = localStorage.getItem('dsimya-tr-pair'); if (PAIRS[savedPair]) tr.pair = savedPair; } catch(e){}
 
+  /* The code that sees the scans comes from a CDN, so every file is checked against the hash of the official
+     npm release before it runs: a changed file is refused. (Language data is data, not code.) */
+  var TESS = {
+    main:['tesseract.js@7.0.0/dist/tesseract.min.js', 'sha384-2BQ3U3OdKOb0Uczxqr41I9UvZkzr4V9Hv8uSzMMZAlmhsFClvdZX5wi5fDCzG+tM'],
+    worker:['tesseract.js@7.0.0/dist/worker.min.js', 'sha384-iUyp1FxLBc4DYaSwxT1/G6elMdSh3vvQffNSmMiySoXDpk2XfS9ZcM4RjPSiqiw3'],
+    simd:['tesseract.js-core@7.0.0/tesseract-core-simd-lstm.wasm.js', 'sha384-1PHRxr8cs/w6IDh6HZYHEHS+Li9cfjahWYKnioD1xvjs7wZD20qpwhD2+ZvhDmHU'],
+    plain:['tesseract.js-core@7.0.0/tesseract-core-lstm.wasm.js', 'sha384-ljppwjVnA7rpAU/v9enQiR6pXDStaEAYw9I+7ddiEynJcmDNnjHCmcvizBeO3cSA'],
+  };
+  // the same test Tesseract uses to pick the faster core (WebAssembly SIMD)
+  var SIMD = (function(){ try { return WebAssembly.validate(new Uint8Array([0,97,115,109,1,0,0,0,1,5,1,96,0,1,123,3,2,1,0,10,10,1,8,0,65,0,253,15,253,98,11])); } catch(e){ return false; } })();
+  function checked(f){   // a blob: URL of the file, only if it matches its hash
+    return fetch(CDN + f[0], {integrity:f[1], mode:'cors'}).then(function(r){ if (!r.ok) throw new Error('tesseract'); return r.blob(); })
+      .then(function(b){ return URL.createObjectURL(new Blob([b], {type:'text/javascript'})); });
+  }
   var tessP = null;
   function loadTess(){
-    if (window.Tesseract) return Promise.resolve();
-    if (!tessP) tessP = new Promise(function(res, rej){
-      var s = document.createElement('script'); s.src = CDN + 'tesseract.js@7.0.0/dist/tesseract.min.js';
-      s.onload = res; s.onerror = function(){ tessP = null; s.remove(); rej(new Error('tesseract')); };
-      document.head.appendChild(s);
-    });
+    if (!tessP) tessP = Promise.all([
+      new Promise(function(res, rej){
+        if (window.Tesseract) return res();
+        var s = document.createElement('script'); s.src = CDN + TESS.main[0]; s.integrity = TESS.main[1]; s.crossOrigin = 'anonymous';
+        s.onload = res; s.onerror = function(){ s.remove(); rej(new Error('tesseract')); };
+        document.head.appendChild(s);
+      }),
+      checked(TESS.worker), checked(SIMD ? TESS.simd : TESS.plain),
+    ]).then(function(r){ return {worker:r[1], core:r[2] + '#core.js'}; });   // "…js": Tesseract then takes the file as it is
+    tessP.catch(function(){ tessP = null; });
     return tessP;
   }
   function getOcr(lang){
     if (tr.ocr && tr.ocrLang === lang) return tr.ocr;
     stopOcr(); tr.ocrLang = lang;
-    var p = tr.ocr = loadTess().then(function(){
+    var p = tr.ocr = loadTess().then(function(f){
       return Tesseract.createWorker(lang, 1, {   // the language data is kept in the browser after the first time
-        workerPath:CDN + 'tesseract.js@7.0.0/dist/worker.min.js', corePath:CDN + 'tesseract.js-core@7.0.0',
+        workerPath:f.worker, corePath:f.core,
         langPath:CDN + '@tesseract.js-data/' + lang + '@1.0.0/4.0.0_best_int',
         logger:function(m){ if (tr.onLog) tr.onLog(m); },
       });

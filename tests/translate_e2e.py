@@ -213,6 +213,20 @@ async def main(tmp):
         check('browser: nothing to save yet', not c['pdfOn'])
         await pg.screenshot(path=os.path.join(tmp, 'tr-browser.png'), full_page=True)
         await ctx.close()
+
+        # 4. a changed recognition file on the CDN is refused: nothing runs, nothing is sent
+        async def tampered(route):
+            if route.request.url.endswith('/dist/worker.min.js'):
+                return await route.fulfill(body='self.onmessage=()=>{};/* changed */', content_type='application/javascript', headers={'Access-Control-Allow-Origin': '*'})
+            await cdn(route)
+        ctx, pg = await context(browser, TG, letter, worker)
+        await ctx.unroute('https://cdn.jsdelivr.net/npm/**'); await ctx.route('https://cdn.jsdelivr.net/npm/**', tampered)
+        await pg.goto(url); await pg.evaluate("indexedDB.deleteDatabase('dsimya-scan')"); await pg.evaluate(ADD_LETTER); await pg.reload(); await pg.wait_for_timeout(500)
+        n = len(worker.calls)
+        await pg.click('#btn-tr'); await pg.wait_for_function(DONE, timeout=30000)
+        c = await pg.evaluate(CARD)
+        check('a changed file from the CDN is refused, no text leaves the phone', 'Не вдалося розпізнати текст' in c['err'] and len(worker.calls) == n and not await pg.evaluate('!!window.__tessRan'), c['err'])
+        await ctx.close()
         await browser.close()
     print('screenshots:', tmp)
 

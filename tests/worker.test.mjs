@@ -227,6 +227,14 @@ const n1 = aiCalls.length;
 const chk = async () => { const res = await worker.fetch(new Request('https://w.example/translate/check'), envAI); return { status: res.status, body: await res.json() }; };
 r = await chk(); const r2 = await chk();
 t('translate/check: answers with a sample, second call from cache', r.status === 200 && r.body.sample.includes('125,00') && r2.body.sample === r.body.sample && aiCalls.length === n1 + 1, JSON.stringify(r.body));
+{ // a failing model is cached too, and nothing switches thinking on from outside
+  const n2 = aiCalls.length; aiReply = new Error('InferenceUpstreamError');
+  const pageCheck = async (q) => (await worker.fetch(new Request('https://w.example/translate/check' + q), envAI)).status;
+  const s1 = await pageCheck('?page=1&think=1'), s2 = await pageCheck('?page=1&think=1'), s3 = await pageCheck('?page=1');
+  t('translate/check: failures cached, no way to turn thinking on', s1 === 502 && s2 === 502 && s3 === 502 && aiCalls.length === n2 + 1 &&
+    aiCalls[n2].input.chat_template_kwargs.enable_thinking === false, `${s1} ${s2} ${s3} calls ${aiCalls.length - n2}`);
+  aiReply = { choices: [{ message: { content: 'Будь ласка, перекажіть 125,00 € до 24.11.2026.' } }] };
+}
 
 console.log(fails ? `${fails} FAILED` : 'ALL PASS');
 process.exitCode = fails ? 1 : 0;

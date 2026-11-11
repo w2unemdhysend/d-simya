@@ -2,7 +2,7 @@
 
   python3 tests/smittia_e2e.py          (CHROME=/path/to/chrome to use a system browser)
 
-Covers: next pickup and the coming list for the household, the grey-bin rhythm hint, the
+Covers: next pickup and the coming list for the household (district 2), the grey-bin rhythm hint, the
 hazardous-waste date, the switch outside Telegram, and switching reminders on and off in
 Telegram against a simulated Worker (also when the Worker fails). Exits 1 if a check fails.
 """
