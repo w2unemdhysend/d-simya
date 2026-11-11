@@ -100,12 +100,15 @@ details[open] > summary .chev{transform:rotate(180deg)}
 .seg button{border:0;background:transparent;border-radius:9px;min-height:40px;font-weight:600;font-size:15px;cursor:pointer;transition:background-color .2s ease, color .2s ease}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
 
-.deps{list-style:none;margin:10px 0 0;padding:0}
-.dep{display:grid;grid-template-columns:62px minmax(0,1fr);gap:10px;padding:10px 0;border-top:1px solid var(--line);animation:in .25s ease backwards}
+/* one time column for all rows, as wide as the widest time ("зараз" in Unbounded at 18 px needs ~70 px): it never runs
+   into the line badge and every row starts its badge at the same place */
+.deps{list-style:none;margin:10px 0 0;padding:0;display:grid;grid-template-columns:max-content minmax(0,1fr);column-gap:12px}
+.dep{grid-column:1/-1;display:grid;grid-template-columns:subgrid;padding:10px 0;border-top:1px solid var(--line);animation:in .25s ease backwards}
+@supports not (grid-template-columns:subgrid){.dep{grid-template-columns:4.6em minmax(0,1fr);column-gap:12px}}
 .dep:first-child{border-top:0}
 @keyframes in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 .dep .t{font-variant-numeric:tabular-nums;line-height:1.15}
-.dep .t b{display:block;font-family:var(--f-display);font-weight:700;font-size:18px}
+.dep .t b{display:block;font-family:var(--f-display);font-weight:700;font-size:18px;white-space:nowrap}
 .dep .t small{display:block;font-size:13px;color:var(--muted);margin-top:3px}
 .dep .l1{display:flex;align-items:baseline;gap:8px;min-width:0}
 .line{flex:none;min-width:38px;padding:1px 7px;border-radius:7px;font-weight:700;font-size:14.5px;text-align:center;border:1.5px solid var(--ink);transform:translateY(-1px)}
