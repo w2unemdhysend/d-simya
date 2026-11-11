@@ -51,21 +51,31 @@
     var text = current() === 'dark' ? 'Увімкнути світлу тему' : 'Увімкнути темну тему';
     b.setAttribute('aria-label', text); b.setAttribute('title', text);
   }
+  var themeVT = null, themeFade = null, tgPaint = 0;
   function setTheme(t, animate){
-    var apply = function(){ root.setAttribute('data-theme', t); label(); paintTg(); };
+    // Telegram's own header and background can't fade: they switch halfway through the page's fade
+    var apply = function(){ root.setAttribute('data-theme', t); label(); clearTimeout(tgPaint); if (animate && !reduce) tgPaint = setTimeout(paintTg, 200); else paintTg(); };
     if (root.getAttribute('data-theme') === t){ label(); paintTg(); return; }
     if (!animate || reduce){ apply(); return; }
     if (document.startViewTransition){
       try {
         root.classList.add('theme-vt');
         var vt = document.startViewTransition(apply);
-        vt.finished.then(function(){ root.classList.remove('theme-vt'); }, function(){ root.classList.remove('theme-vt'); });
+        themeVT = vt;
+        // a second tap cuts the first fade short: only the last one takes the class away
+        var done = function(){ if (themeVT === vt){ themeVT = null; root.classList.remove('theme-vt'); } };
+        vt.finished.then(done, done);
         return;
       } catch(e){ root.classList.remove('theme-vt'); }
     }
     root.classList.add('theme-fade');
     apply();
-    setTimeout(function(){ root.classList.remove('theme-fade'); }, 480);
+    // The shared fade (.42s) ends on the same clock as the colour transitions: an empty animation that starts in the
+    // same frame they do. A plain setTimeout runs on even when a busy phone starts them late, and taking the class away
+    // before they end let each button finish on its own timing.
+    var token = themeFade = {};
+    var off = function(){ if (themeFade === token){ themeFade = null; root.classList.remove('theme-fade'); } };
+    try { root.animate([{}, {}], { duration: 480 }).finished.then(off, off); } catch(e){ setTimeout(off, 600); }
   }
   function sync(animate){
     var t = saved() || (tg ? (tg.colorScheme === 'dark' ? 'dark' : 'light') : systemTheme());
