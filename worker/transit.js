@@ -15,6 +15,7 @@ const EFA = 'https://openservice.vrr.de/static03/';
 const METEO = 'https://api.open-meteo.com/v1/forecast';
 const STOP_ID = /^de:\d{5}:\d{1,7}$/;
 const memo = new Map();   // per Worker instance; the Cloudflare cache below is shared
+const CACHE_V = 2;         // raise when the shape of an answer changes, so a new version never serves old answers
 
 export function isTransit(path) { return path === '/transit/stops' || path === '/transit/departures' || path === '/weather'; }
 
@@ -58,7 +59,7 @@ async function cached(key, ttl, ctx, cors, origin, make) {
     'Cache-Control': ttl ? `public, max-age=${Math.min(ttl, 60)}` : 'no-store' } });
   if (!ttl) return out(JSON.stringify({ ok: true, ...(await make()) }));
   if (m && m.until > now) return out(m.body);
-  const cache = globalThis.caches && caches.default, ckey = new Request(origin + '/__cache/' + encodeURIComponent(key));
+  const cache = globalThis.caches && caches.default, ckey = new Request(origin + `/__cache/v${CACHE_V}/` + encodeURIComponent(key));
   if (cache) {
     try { const hit = await cache.match(ckey); if (hit) { const body = await hit.text(); remember(key, body, ttl, now); return out(body); } } catch (e) {}
   }
