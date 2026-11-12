@@ -5,8 +5,8 @@
 Covers: sideways swipe switches tabs on the washer page (next, previous), the page and the tab marker follow the
 finger, a short swipe springs back, scrolling up and down never switches, nothing on the first tab to the right,
 the program knob is not a swipe; the new view slides in from the side it comes from; a swipe from the left edge opens
-the menu and a swipe on the menu closes it; the games menu has no tabs (only the edge swipe); pages without tabs only have the
-edge swipe. Also: at the bottom of the washer page, turning the program knob never moves the page.
+the menu and a swipe on the menu closes it; the games menu has no tabs (only the edge swipe); in an A1 chapter a swipe
+changes the part, on the course screen it does nothing; pages without tabs only have the edge swipe. Also: at the bottom of the washer page, turning the program knob never moves the page.
 Exits 1 if a check fails.
 """
 import asyncio, functools, http.server, os, sys, threading
@@ -125,6 +125,18 @@ async def main():
         check('games: a swipe in the middle of the menu does nothing', await pg.is_visible('#view-hub') and not await pg.evaluate("document.getElementById('drawer').classList.contains('open')"))
         await swipe(cdp, 3, 300, 260, 300); await pg.wait_for_timeout(500)
         check('games: the edge swipe opens the menu', await pg.evaluate("document.getElementById('drawer').classList.contains('open')"))
+        await ctx.close()
+
+        # the A1 course: in a chapter a swipe goes to the next part; on the course screen (its tabs are hidden) nothing moves
+        ctx, pg, cdp = await page(browser, base + 'a1/')
+        await swipe(cdp, 300, 500, 80, 500); await pg.wait_for_timeout(600)
+        check('A1: a swipe on the course screen does nothing', await pg.is_visible('#view-hub') and pg.url == base + 'a1/')
+        await pg.goto(base + 'a1/?ch=2'); await pg.wait_for_timeout(500)
+        await swipe(cdp, 300, 500, 80, 500); await pg.wait_for_timeout(700)
+        check('A1: swipe left in a chapter opens «Слова»', await pg.evaluate(TAB) == 'words' and await pg.is_visible('#p-words') and pg.url.endswith('?ch=2&tab=words'))
+        await swipe(cdp, 80, 500, 300, 500); await pg.wait_for_timeout(700)
+        check('A1: swipe right goes back to «Граматика»', await pg.evaluate(TAB) == 'gram' and await pg.is_visible('#p-gram')
+              and await pg.evaluate("[...document.querySelectorAll('.panel')].every(p => !p.style.transform)"))
         await ctx.close()
 
         # home screen: no tabs, only the edge swipe; a swipe in the middle does nothing

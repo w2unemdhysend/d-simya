@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>(function(){try{var s=null;try{s=localStorage.getItem('dsimya-theme')}catch(e){}var w=window.Telegram&&Telegram.WebApp;var tg=w&&w.platform&&w.platform!=='unknown';var t=s||(tg?(w.colorScheme==='dark'?'dark':'light'):(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));document.documentElement.setAttribute('data-theme',t)}catch(e){}})();addEventListener('unhandledrejection',function(e){var r=e.reason;if(r&&/Transition was (aborted|skipped)/.test(r.message||''))e.preventDefault()});</script>
+<title>Німецька A1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@600;700&display=swap">
+<link rel="stylesheet" href="../assets/page.css?v=1">
+<link rel="stylesheet" href="a1.css?v=1">
+<link rel="stylesheet" href="../assets/ui.css?v=17">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="toprow"><button class="menubtn" id="menubtn" type="button" aria-expanded="false" aria-controls="drawer" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Розділи</span></button><button class="themebtn" id="themebtn" type="button" aria-label="Увімкнути темну тему"><svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M5.3 18.7L7 17M17 7l1.7-1.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.6A8.2 8.2 0 0 1 9.4 4a8.2 8.2 0 1 0 10.6 10.6z" fill="currentColor"/></svg></button></div>
+    <button class="backbtn" id="backbtn" type="button" hidden><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>Назад</button>
+    <div class="eyebrow" id="eyebrow">Навчання · Die neue Linie 1</div>
+    <h1 id="title">Німецька A1</h1>
+    <p class="lede" id="lede">Увесь рівень A1: граматика з поясненнями українською, словник з озвученням, діалоги й вправи.</p>
+  </header>
+
+  <main>
+  <section class="view hub" id="view-hub"></section>
+  <section class="view" id="view-ch" hidden>
+    <div class="tabbar">
+      <div class="tabs" role="tablist" aria-label="Частини розділу">
+        <span class="tthumb" aria-hidden="true"></span>
+        <button role="tab" type="button" id="tab-gram" data-tab="gram" aria-controls="p-gram" aria-selected="true">Граматика</button>
+        <button role="tab" type="button" id="tab-words" data-tab="words" aria-controls="p-words" aria-selected="false">Слова</button>
+        <button role="tab" type="button" id="tab-phr" data-tab="phr" aria-controls="p-phr" aria-selected="false">Фрази</button>
+        <button role="tab" type="button" id="tab-tasks" data-tab="tasks" aria-controls="p-tasks" aria-selected="false">Вправи</button>
+      </div>
+    </div>
+    <div id="ch-body"></div>
+  </section>
+  <section class="view" id="view-dict" hidden></section>
+  <section class="view" id="view-gram" hidden></section>
+  </main>
+  <p class="foot">Прогрес зберігається на цьому телефоні та в Telegram. Свайп убік перемикає частини розділу.</p>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<noscript><p class="wrap note">Для курсу потрібен JavaScript.</p></noscript>
+<script src="../assets/ui.js?v=17"></script>
+<script type="module" src="app.js?v=1"></script>
+</body>
+</html>

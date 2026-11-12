@@ -1,4 +1,4 @@
-// The recorded clips: everything the app says aloud (phrasebook and games, listed by tools/speech.mjs) has one, every
+// The recorded clips: everything the app says aloud (phrasebook, games, the A1 dictionary, listed by tools/speech.mjs) has one, every
 // file is there and is an MP3 of a sensible length, no file is left over. Clips are made by tools/tts.py (it needs the
 // voice model, so not here).
 // Run: node tests/speech.test.mjs
@@ -30,6 +30,7 @@ for (const [de, f] of Object.entries(AUDIO)) {
 }
 t('every clip is an MP3 whose length fits its text', !bad.length, bad.join('\n'));
 const total = [...files].reduce((n, f) => n + statSync(new URL(f, dir)).size, 0);
-t('all clips together stay small (under 5 MB)', total < 5e6, total);
+// phrasebook, games and the A1 dictionary (about 1 300 clips, mostly single words); a phone fetches a clip only when it is needed
+t('all clips together stay small (under 12 MB)', total < 12e6, total);
 console.log(fails ? `${fails} FAILED` : 'all passed');
 process.exit(fails ? 1 : 0);

@@ -41,6 +41,7 @@ def static_checks():
             if not rel.startswith('assets/'): check(f'sw.js keeps {rel} (style of {p})', rel in core, rel)
         # the page's modules and, in turn, everything they import
         todo = [(d, m) for m in re.findall(r"from '(\.{1,2}/[^']+)'", html)]
+        todo += [(d, m) for m in re.findall(r'<script type="module" src="(?!https?:)([^"]+)"', html)]
         todo += [(d, m) for m in re.findall(r"fetch\('(\.{0,2}/?[\w/.-]+\.(?:json|ttf))'", html)]
         seen = set()
         while todo:
@@ -49,8 +50,9 @@ def static_checks():
             if rel in seen: continue
             seen.add(rel)
             check(f'sw.js keeps {rel} (used by {p})', rel in core, rel)
-            if rel.endswith('.js') and os.path.exists(os.path.join(ROOT, rel)):
-                todo += [(os.path.dirname(rel), m) for m in re.findall(r"from '(\.{1,2}/[^']+)'", open(os.path.join(ROOT, rel)).read())]
+            path = rel.split('?')[0]
+            if path.endswith('.js') and os.path.exists(os.path.join(ROOT, path)):
+                todo += [(os.path.dirname(path), m) for m in re.findall(r"from '(\.{1,2}/[^']+)'", open(os.path.join(ROOT, path)).read())]
     check('pages use one asset version, and sw.js keeps that one', len(versions) == 3 and all('assets/' + v in core for v in versions), f'{versions} vs {[c for c in core if "?v=" in c]}')
     check('sw.js never keeps the list, translations or searches', not re.search(r'/list|translate|transit/stops', sw.split('const DATA')[1].split('\n')[0]))
 
