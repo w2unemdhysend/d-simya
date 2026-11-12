@@ -1,7 +1,8 @@
-// Skins for the laundry drum. Eight are earned in the German games (and one in December), four are bought with socks.
+// Skins for the laundry drum. Nine are earned in the other games (one of them in December), four are bought with socks.
 // A skin is a set of colours for the drum, an optional picture inside the glass and the emoji that flies up on a tap.
 import { SCENES } from './data/dialog.js';
 import { THEMES } from './data/memory.js';
+import { LEVELS } from './hop/levels.js?v=1';
 
 const SOCK = 'M46 26h7v10q0 7-7 7h-6q-4 0-4-4t4-4h6z';
 const DOTS = [[50, 22], [74, 36], [74, 64], [50, 78], [26, 64], [26, 36]];
@@ -56,6 +57,13 @@ export const SKINS = [
     note: 'Картки, картки, картки.', glow: 'rgba(126,87,194,.24)',
     c: { face: '#2B2440', edge: '#4A3F6B', ring: '#7E57C2', glass: '#3B3160', dots: '#B39DDB', socks: ['#FFB74D', '#4DD0E1', '#F06292'] },
     deco: [[30, 34, -14], [70, 32, 12], [26, 66, 10], [72, 70, -10]].map(([x, y, a]) => `<rect x="${x - 6}" y="${y - 8}" width="12" height="16" rx="2.5" fill="none" stroke="#B39DDB" stroke-width="1.2" opacity=".5" transform="rotate(${a} ${x} ${y})"/>`).join('') },
+
+  { id: 'mandry', name: 'Мандрівниця', emoji: '🧦', game: 'hop', how: `усі ${LEVELS.length} рівнів «Пригод шкарпетки»`, need: (P) => [Object.keys(P.hop || {}).length, LEVELS.length],
+    note: 'Пара знайшлася і тепер крутиться разом.', glow: 'rgba(242,194,48,.26)',
+    c: { face: '#FFFFFF', edge: '#E8D9A8', ring: '#2F5DB3', glass: '#CFE6F7', dots: '#2F5DB3', socks: ['#F2C230', '#2F5DB3', '#D6453A'] },
+    deco: [[41, 56, -14, 1], [60, 54, 14, -1]].map(([x, y, a, f]) => `<g transform="translate(${x} ${y}) rotate(${a}) scale(${f} 1)"><path d="M-5 -14h10v13q0 6-6 6h-8q-5 0-5-5t5-5h4z" fill="#F2C230"/>` +
+      '<rect x="-5" y="-10" width="10" height="2.4" fill="#2F5DB3"/><rect x="-5" y="-5.6" width="10" height="2.4" fill="#2F5DB3"/><rect x="-6" y="-16.5" width="12" height="3" rx="1.5" fill="#2F5DB3"/></g>').join('') +
+      '<path d="M50 32.5c-2.6-3.6-7.4-1.2-5.6 2.4 1.1 2.1 5.6 5.1 5.6 5.1s4.5-3 5.6-5.1c1.8-3.6-3-6-5.6-2.4z" fill="#D6453A"/>' },
 
   { id: 'advent', name: 'Різдвяний ярмарок', emoji: '⭐', how: 'Відкривається в грудні', need: (P) => [P.december, 1],
     note: 'Weihnachtsmarkt, Glühwein і запах смажених мигдалів.', glow: 'rgba(242,201,76,.24)',

@@ -10,11 +10,11 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@600;700&display=swap">
 <style>
-/* Small games behind the quiet icon in the menu. The first screen lists them like the home screen does: five for German
-   (the word garden, der/die/das, sentences, numbers by ear, conversations, memory) and two for a break (the laundry
-   clicker with its skins, waste sorting the way Xanten wants it). Each game opens as its own screen. */
+/* The games, at the bottom of the section menu. The first screen lists them like the home screen does: six for German
+   (the word garden, der/die/das, sentences, numbers by ear, conversations, memory) and three for a break (the sock's 3D
+   adventure, the laundry clicker with its skins, waste sorting the way Xanten wants it). Each game opens as its own screen. */
 :root{
-  padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom);
+  padding-top:var(--sat); padding-bottom:var(--sab);
   --bg:#E7ECEF; --surface:#F6F8F9; --ink:#12181C; --muted:#53616A; --line:#C7D0D5;
   --accent:#9A5800; --accent-soft:#F7E3BF; --ok:#2E7D32; --danger:#B3261E;
   --glass:#BFD8E6; --chrome:#9AA6AD; --der:#1F5FAF; --die:#B3261E; --das:#2E7D32;
@@ -37,7 +37,7 @@
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.5 var(--f-body);
   padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:0 40px}
-body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:var(--sat);z-index:10;background:var(--bg)}
 [hidden]{display:none!important}
 button{font:inherit;color:inherit}
 :focus-visible{outline:2.5px solid var(--accent);outline-offset:2px}
@@ -164,7 +164,7 @@ main{padding-top:14px}
 .dstate:empty{display:none}
 .dstate.on{color:var(--ok)}.dstate.err{color:var(--danger)}
 
-.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom, 0px));transform:translate(-50%, 20px);max-width:min(92vw, 420px);
+.toast{position:fixed;left:50%;bottom:calc(20px + var(--sab));transform:translate(-50%, 20px);max-width:min(92vw, 420px);
   background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:14px;font-weight:600;font-size:15px;opacity:0;pointer-events:none;
   transition:opacity .2s ease, transform .2s ease;z-index:30;text-align:center}
 .toast.show{opacity:1;transform:translate(-50%, 0)}
@@ -174,15 +174,15 @@ body.playing .top .eyebrow,body.playing .top h1,body.playing .top .lede,body.pla
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 @media (min-width:480px){h1{font-size:38px}}
 </style>
-<link rel="stylesheet" href="games.css?v=1">
-<link rel="stylesheet" href="../assets/ui.css?v=18">
+<link rel="stylesheet" href="games.css?v=2">
+<link rel="stylesheet" href="../assets/ui.css?v=19">
 </head>
 <body>
 <div class="wrap">
   <header class="top">
     <div class="toprow"><button class="menubtn" id="menubtn" type="button" aria-expanded="false" aria-controls="drawer" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Розділи</span></button><button class="themebtn" id="themebtn" type="button" aria-label="Увімкнути темну тему"><svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M5.3 18.7L7 17M17 7l1.7-1.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.6A8.2 8.2 0 0 1 9.4 4a8.2 8.2 0 1 0 10.6 10.6z" fill="currentColor"/></svg></button></div>
     <button class="backbtn" id="backbtn" type="button" hidden><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>Усі ігри</button>
-    <div class="eyebrow" id="eyebrow">Секретний розділ</div>
+    <div class="eyebrow" id="eyebrow">Ігри</div>
     <h1 id="title">Мініігри</h1>
     <p class="lede" id="lede">Німецька між справами і просто для перерви.</p>
   </header>
@@ -202,9 +202,13 @@ body.playing .top .eyebrow,body.playing .top h1,body.playing .top .lede,body.pla
       <a class="tile" href="?tab=dialog" data-game="dialog" style="--i:5"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 5h11v7.5h-6.2L5.5 15v-2.5h-2z"/><path d="M17.5 9h3v7.5H19V19l-3-2.5h-4.5V15"/></svg></span><span><b>Розмова</b><small data-status="dialog"></small></span></a>
     </div>
     <div class="group">Для перерви</div>
+    <a class="hcard hopcard" id="h-hop" href="?tab=hop" data-game="hop" style="--i:6">
+      <div class="ch"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.5h6v10a5.5 5.5 0 0 1-5.5 5.5H6a2.5 2.5 0 0 1 0-5h4z"/><path d="M10 7h6"/></svg></span><span class="lab">3D-гра</span><svg class="go" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
+      <div class="big">Пригоди шкарпетки</div><p class="sub" data-status="hop"></p><div id="h-hop-art"></div>
+    </a>
     <div class="grid2">
-      <a class="tile" href="?tab=click" data-game="click" style="--i:6"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2.5"/><circle cx="12" cy="13" r="4.5"/><path d="M7.5 6.5h2"/></svg></span><span><b>Пральня</b><small data-status="click"></small></span></a>
-      <a class="tile" href="?tab=sort" data-game="sort" style="--i:7"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10.5 11v5.5M13.5 11v5.5"/></svg></span><span><b>Сортування</b><small data-status="sort"></small></span></a>
+      <a class="tile" href="?tab=click" data-game="click" style="--i:7"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2.5"/><circle cx="12" cy="13" r="4.5"/><path d="M7.5 6.5h2"/></svg></span><span><b>Пральня</b><small data-status="click"></small></span></a>
+      <a class="tile" href="?tab=sort" data-game="sort" style="--i:8"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10.5 11v5.5M13.5 11v5.5"/></svg></span><span><b>Сортування</b><small data-status="sort"></small></span></a>
     </div>
   </section>
   <section class="view" id="view-garten" hidden></section>
@@ -221,7 +225,7 @@ body.playing .top .eyebrow,body.playing .top h1,body.playing .top .lede,body.pla
     <h2>Покращення</h2>
     <ul class="ups" id="ups"></ul>
     <div class="skinhead"><h2>Скіни</h2><small id="skin-count"></small></div>
-    <p class="note">Вісім скінів відкриваються за досягнення в іграх з німецької, чотири можна купити за шкарпетки.</p>
+    <p class="note">Дев’ять скінів відкриваються за досягнення в інших іграх, чотири можна купити за шкарпетки.</p>
     <div class="skins" id="skins"></div>
     <button class="reset" id="reset" type="button">Почати заново</button>
   </section>
@@ -291,11 +295,12 @@ body.playing .top .eyebrow,body.playing .top h1,body.playing .top .lede,body.pla
   <section class="view" id="view-zahlen" hidden></section>
   <section class="view" id="view-dialog" hidden></section>
   <section class="view" id="view-memory" hidden></section>
+  <section class="view" id="view-hop" hidden></section>
   </main>
   <p class="foot" id="foot">Прогрес зберігається на цьому пристрої.</p>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="../assets/ui.js?v=18"></script>
+<script src="../assets/ui.js?v=19"></script>
 <script type="module">
 import { WORDS, RULES, ruleOf } from './words.js';
 import * as progress from './progress.js';
@@ -304,6 +309,7 @@ import * as satz from './satz.js';
 import * as zahlen from './zahlen.js';
 import * as dialog from './dialog.js';
 import * as memory from './memory.js';
+import * as hop from './hop.js?v=1';
 import { SKINS, SKIN, reach, reached, drumSVG } from './skins.js';
 (function(){
   var $ = function(s, r){ return (r || document).querySelector(s); };
@@ -338,9 +344,9 @@ import { SKINS, SKIN, reach, reached, drumSVG } from './skins.js';
      The German games are modules that build their screen the first time they are opened. */
   var GAMES = {
     garten:{name:'Сад слів', mod:garden}, art:{name:'Артиклі'}, satz:{name:'Збери речення', mod:satz}, zahlen:{name:'Числа на слух', mod:zahlen},
-    dialog:{name:'Розмова', mod:dialog}, memory:{name:'Пам’ять', mod:memory}, click:{name:'Пральня'}, sort:{name:'Сортування'}
+    dialog:{name:'Розмова', mod:dialog}, memory:{name:'Пам’ять', mod:memory}, hop:{name:'Пригоди шкарпетки', mod:hop}, click:{name:'Пральня'}, sort:{name:'Сортування'}
   };
-  var ORDER = ['hub', 'garten', 'art', 'satz', 'zahlen', 'dialog', 'memory', 'click', 'sort'];
+  var ORDER = ['hub', 'garten', 'art', 'satz', 'zahlen', 'dialog', 'memory', 'hop', 'click', 'sort'];
   var views = ORDER.map(function(id){ return $('#view-' + id); });
   var current = null, made = {};
   function instance(id){
@@ -397,7 +403,8 @@ import { SKINS, SKIN, reach, reached, drumSVG } from './skins.js';
     e.preventDefault(); openGame(a.getAttribute('data-game'));
   });
   $('#backbtn').addEventListener('click', function(){ haptic(); home(); });
-  if (tg && tg.BackButton) try { tg.BackButton.onClick(function(){ if (busy(current)) stopGame(current); else home(); }); } catch(e){}
+  // a game may answer Back itself (the 3D game pauses first); otherwise Back ends a round, then goes to the menu
+  if (tg && tg.BackButton) try { tg.BackButton.onClick(function(){ var m = made[current]; if (m && m.back && m.back()) return; if (busy(current)) stopGame(current); else home(); }); } catch(e){}
 
   function points(n){ return {one:'бал', few:'бали', many:'балів'}[plural.select(n)] || 'балів'; }
   function renderHub(){
@@ -407,12 +414,13 @@ import { SKINS, SKIN, reach, reached, drumSVG } from './skins.js';
       : c.planted ? 'Сад полито' : 'Посади перші слова';
     $('#h-g-sub').textContent = c.planted ? c.bloom + ' ' + ({one:'квітка цвіте', few:'квітки цвітуть', many:'квітів цвітуть'}[plural.select(c.bloom)] || 'квітів цвітуть') + ', ' + (c.planted - c.bloom) + ' ростуть. Повторення раз на кілька днів, і слово зацвіте.'
       : 'Кожне німецьке слово стає рослиною. Поливай його короткими повтореннями, і воно зацвіте кольором свого артикля.';
+    if (!$('#h-hop-art').firstChild) $('#h-hop-art').innerHTML = hop.strip(false);
     var pl = garden.sample(9);
     $('#h-g-bed').classList.toggle('empty', !pl.length);
     $('#h-g-bed').innerHTML = pl.length ? pl.map(function(p){ return garden.plantSVG(p.b, p.art, false); }).join('') : ['der', 'die', 'das', 'die', 'der'].map(function(a){ return garden.plantSVG(1, a, false); }).join('');
     var st = {
       art: aBest ? 'Рекорд: ' + aBest + ' ' + points(aBest) : 'der, die, das за 60 секунд',
-      satz: satz.status(), zahlen: zahlen.status(), dialog: dialog.status(), memory: memory.status(),
+      satz: satz.status(), zahlen: zahlen.status(), dialog: dialog.status(), memory: memory.status(), hop: hop.status(),
       click: fmt(S.n) + ' ' + socks(S.n),
       sort: best ? 'Рекорд: ' + best + ' ' + points(best) : 'Куди що викидати в Ксантені'
     };
@@ -908,7 +916,7 @@ import { SKINS, SKIN, reach, reached, drumSVG } from './skins.js';
   show(new URLSearchParams(location.search).get('tab') || 'hub', true);
   window.__games = {state:function(){ return S; }, item:function(){ return item; }, round:function(){ return round; }, ITEMS:ITEMS, BINS:BINS,
     word:function(){ return aWord; }, artRound:function(){ return aRound; }, WORDS:WORDS, RULES:RULES, pickWord:function(){ return aPick([])[0]; },
-    current:function(){ return current; }, show:show, progress:progress, garden:garden, SKINS:SKINS, game:function(id){ return made[id]; }};
+    current:function(){ return current; }, show:show, progress:progress, garden:garden, SKINS:SKINS, game:function(id){ return made[id]; }, hop:hop};
 })();
 </script>
 </body>

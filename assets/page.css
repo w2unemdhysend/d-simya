@@ -1,7 +1,7 @@
 /* Base styles shared by the newer pages (Бот, Екстрено, Розмовник): colours, type, cards, chips, switches.
    The older pages carry their own copy inline; ui.css adds the menu, theme button and transitions on top. */
 :root{
-  padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom);
+  padding-top:var(--sat); padding-bottom:var(--sab);
   --bg:#E7ECEF; --surface:#F6F8F9; --ink:#12181C; --muted:#53616A; --line:#C7D0D5; --accent:#9A5800;
   --accent-soft:#F7E3BF; --on:#2E7D32; --danger:#B3261E; --danger-soft:#F9DEDC;
   --f-display:"Unbounded","Arial Black",system-ui,sans-serif;
@@ -17,7 +17,7 @@
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.5 var(--f-body);overflow-x:clip;
   padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:0 40px}
-body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:var(--sat);z-index:10;background:var(--bg)}
 [hidden]{display:none!important}
 button,input{font:inherit;color:inherit}
 :focus-visible{outline:2.5px solid var(--accent);outline-offset:2px}

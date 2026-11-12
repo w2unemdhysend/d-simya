@@ -2,7 +2,8 @@
 
   python3 tests/offline_e2e.py     (CHROME=/path/to/chrome to use a system browser)
 
-Covers: sw.js keeps every page of the menu and every local file the pages import, with the same asset version the
+Covers: sw.js keeps every page of the menu and every local file the pages import (also what a module loads later,
+like the 3D game and three.js), with the same asset version the
 pages use (so a release never mixes old and new files); after one visit with internet, pages open without internet,
 even ones not opened before, and with a ?query; the last weather answer is shown offline; the "no internet" label
 comes and goes with the connection; the shopping list and translations are never kept. Exits 1 if a check fails.
@@ -52,7 +53,9 @@ def static_checks():
             check(f'sw.js keeps {rel} (used by {p})', rel in core, rel)
             path = rel.split('?')[0]
             if path.endswith('.js') and os.path.exists(os.path.join(ROOT, path)):
-                todo += [(os.path.dirname(path), m) for m in re.findall(r"from '(\.{1,2}/[^']+)'", open(os.path.join(ROOT, path)).read())]
+                src = open(os.path.join(ROOT, path)).read()   # static imports (also minified: from"./x.js") and modules loaded later: import('./x.js')
+                todo += [(os.path.dirname(path), m) for m in re.findall(r"""from\s*["'](\.{1,2}/[^"']+)["']""", src)]
+                todo += [(os.path.dirname(path), m) for m in re.findall(r"""\bimport\(\s*["'](\.{1,2}/[^"']+)["']\s*\)""", src)]
     check('pages use one asset version, and sw.js keeps that one', len(versions) == 3 and all('assets/' + v in core for v in versions), f'{versions} vs {[c for c in core if "?v=" in c]}')
     check('sw.js never keeps the list, translations or searches', not re.search(r'/list|translate|transit/stops', sw.split('const DATA')[1].split('\n')[0]))
 

@@ -85,7 +85,7 @@
 .gplant span{font-size:12px;line-height:1.2;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gplant.thirsty span::after{content:" 💧";font-size:10px}
 .gplant:active{background:var(--bg)}
-.gsheet{position:fixed;inset:0;z-index:25;background:rgba(0,0,0,.4);display:grid;align-items:end;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom, 0px))}
+.gsheet{position:fixed;inset:0;z-index:25;background:rgba(0,0,0,.4);display:grid;align-items:end;padding:16px;padding-bottom:calc(16px + var(--sab))}
 .gsheet > *{max-width:528px;width:100%;margin-inline:auto}
 .gsheet-in{display:flex;align-items:center;gap:14px;background:var(--surface);border-radius:18px 18px 0 0;padding:16px}
 .gsheet-in > div:nth-child(2){flex:1;min-width:0}
@@ -222,3 +222,90 @@
 
 @media (min-width:480px){.board{gap:10px}.face.word{font-size:16px}.board.n16 .face.word{font-size:14px}}
 @media (prefers-reduced-motion: reduce){.mcard{transition:none}}
+
+/* ---------- "Пригоди шкарпетки": the 3D platformer ---------- */
+.hopcard .hop-art{display:block;width:100%;height:76px;margin-top:8px}
+.hop-intro{display:grid;gap:12px}
+.hop-hero .hop-art{display:block;width:100%;height:auto;max-height:140px;margin:4px 0 2px}
+.hop-intro .rules{margin:0}
+.hop-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.hop-lv{display:flex;align-items:center;gap:12px;width:100%;min-height:64px;padding:10px 12px;border-radius:16px;border:1px solid var(--line);background:var(--surface);
+  color:inherit;font:inherit;text-align:left;cursor:pointer;touch-action:manipulation;transition:transform .15s var(--ease-out, ease)}
+.hop-lv:active{transform:scale(.98)}
+.hop-lv .num{flex:none;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:var(--bg);border:1px solid var(--line);font-family:var(--f-display);font-weight:700;font-size:16px}
+.hop-lv .num svg{width:18px;height:18px;color:var(--muted)}
+.hop-lv .t{flex:1;min-width:0}
+.hop-lv b{display:block;font-weight:600;font-size:16px;line-height:1.25}
+.hop-lv small{display:block;color:var(--muted);font-size:13.5px;line-height:1.3;margin-top:2px}
+.hop-lv.locked{cursor:default;background:transparent}
+.hop-lv.locked b{color:var(--muted)}
+.stars{flex:none;display:flex;gap:1px}
+.stars svg{width:18px;height:18px;fill:var(--line)}
+.stars svg.on{fill:#F2B705}
+
+/* the game itself covers the page; the page stays under it */
+.hop-on,.hop-on body{overflow:hidden}
+.hop-on .toast{z-index:60}   /* a new laundry skin, said over the game */
+.hop-stage{position:fixed;inset:0;z-index:45;background:var(--bg);touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
+  overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
+.hop-cv{position:absolute;inset:0;width:100%;height:100%;display:block;outline:none}
+.hop-top{position:absolute;left:0;right:0;top:0;display:flex;align-items:center;gap:10px;pointer-events:none;
+  padding:calc(var(--sat) + 10px) max(12px, env(safe-area-inset-right, 0px)) 0 max(12px, env(safe-area-inset-left, 0px))}
+.hop-b,.hop-time,.hop-word{background:var(--surface);background:color-mix(in srgb, var(--surface) 86%, transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  box-shadow:0 2px 12px rgba(0,0,0,.14);color:var(--ink)}
+.hop-b{pointer-events:auto;flex:none;width:44px;height:44px;border-radius:50%;border:0;padding:0;display:grid;place-items:center;cursor:pointer;touch-action:manipulation}
+.hop-b svg{width:18px;height:18px}
+.hop-b:active{transform:scale(.92)}
+.hop-word{flex:0 1 auto;min-width:0;margin:0 auto;display:flex;align-items:center;gap:8px;height:44px;padding:0 12px 0 14px;border-radius:999px}
+.hop-word .art{font-family:var(--f-display);font-weight:700;font-size:15px}
+.hop-word .slots{display:flex;gap:4px}
+.hop-word i{width:22px;height:28px;border-radius:7px;background:rgba(127,140,150,.22);display:grid;place-items:center;font-style:normal;font-family:var(--f-display);font-weight:700;font-size:14px;color:#FFFFFF}
+.hop-word .art.der ~ .slots i.got{background:#1F5FAF}.hop-word .art.die ~ .slots i.got{background:#B3261E}.hop-word .art.das ~ .slots i.got{background:#2E7D32}
+.hop-word i.pop{animation:slotPop .5s cubic-bezier(.3,1.7,.5,1)}
+@keyframes slotPop{0%{transform:scale(.4)}100%{transform:none}}
+.hop-time{flex:none;min-width:64px;height:44px;border-radius:999px;display:grid;place-items:center;padding:0 12px;font-weight:700;font-size:16px;font-variant-numeric:tabular-nums}
+.hop-msg{position:absolute;left:50%;top:calc(var(--sat) + 66px);max-width:min(88vw, 360px);width:max-content;transform:translate(-50%,-8px);opacity:0;pointer-events:none;
+  background:rgba(18,24,28,.82);color:#FFFFFF;padding:9px 14px;border-radius:14px;font-weight:600;font-size:15px;text-align:center;transition:opacity .2s ease, transform .25s var(--ease-out, ease)}
+.hop-msg.show{opacity:1;transform:translate(-50%,0)}
+.hop-hint{position:absolute;left:0;right:0;bottom:calc(var(--sab) + 132px);display:flex;justify-content:space-between;gap:12px;padding:0 16px;pointer-events:none;transition:opacity .3s ease}
+.hop-hint span{max-width:46%;background:rgba(18,24,28,.78);color:#FFFFFF;border-radius:14px;padding:10px 12px;font-size:14px;line-height:1.35}
+.hop-hint.keys{justify-content:center;bottom:calc(var(--sab) + 32px)}
+.hop-hint.out{opacity:0}
+.hop-joy{position:absolute;left:0;top:0;width:120px;height:120px;pointer-events:none;opacity:0;transition:opacity .15s ease}
+.hop-joy.on{opacity:1}
+.hop-joy .ring{position:absolute;inset:0;border-radius:50%;background:rgba(255,255,255,.16);border:2px solid rgba(255,255,255,.6);box-shadow:0 2px 14px rgba(0,0,0,.12)}
+.hop-joy .knob{position:absolute;left:34px;top:34px;width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.92);box-shadow:0 3px 10px rgba(0,0,0,.25)}
+.hop-pad{position:absolute;left:max(24px, env(safe-area-inset-left, 0px));bottom:calc(var(--sab) + 26px);width:96px;height:96px;border-radius:50%;pointer-events:none;
+  border:2px dashed rgba(255,255,255,.7);background:rgba(255,255,255,.12);transition:opacity .2s ease}
+.hop-joy.on ~ .hop-pad{opacity:0}
+.hop-jump{position:absolute;right:max(22px, env(safe-area-inset-right, 0px));bottom:calc(var(--sab) + 26px);width:86px;height:86px;border-radius:50%;pointer-events:none;
+  background:rgba(255,255,255,.85);color:#12181C;display:grid;place-items:center;box-shadow:0 3px 14px rgba(0,0,0,.2);transition:transform .08s ease, background-color .1s ease}
+.hop-jump.on{transform:scale(.9);background:#FFFFFF}
+.hop-jump svg{width:36px;height:36px}
+.hop-stage:not(.touch) .hop-jump,.hop-stage:not(.touch) .hop-joy,.hop-stage:not(.touch) .hop-pad{display:none}
+.hop-sheet{position:absolute;inset:0;display:grid;place-items:center;padding:calc(var(--sat) + 16px) 16px calc(var(--sab) + 16px);background:rgba(10,14,18,.4);animation:sheetIn .25s ease}
+.hop-card{width:min(100%, 400px);max-height:100%;overflow:auto;overscroll-behavior:contain;touch-action:pan-y;background:var(--bg);color:var(--ink);border-radius:24px;padding:20px 18px 18px;
+  box-shadow:0 14px 44px rgba(0,0,0,.32);animation:cardUp .4s var(--ease-out, cubic-bezier(.22,1,.36,1))}
+.hop-card h2{font-size:22px;margin:0 0 6px;text-align:center}
+.hop-card > .note{margin:0 0 12px;text-align:center}
+.hop-card .btn + .btn{margin-top:8px}
+@keyframes sheetIn{from{opacity:0}to{opacity:1}}
+@keyframes cardUp{from{opacity:0;transform:translateY(24px) scale(.97)}to{opacity:1;transform:none}}
+.hop-stars.big{display:flex;justify-content:center;gap:10px;margin:10px 0 14px}
+.hop-stars.big svg{width:50px;height:50px;fill:var(--line)}
+.hop-stars.big svg.on{fill:#F2B705;animation:starIn .55s cubic-bezier(.3,1.7,.5,1) backwards;animation-delay:calc(.2s + var(--k) * .18s)}
+@keyframes starIn{from{transform:scale(0) rotate(-40deg)}to{transform:none}}
+.hop-goals{list-style:none;margin:0 0 14px;padding:0;display:grid;gap:8px;font-size:15px}
+.hop-goals li{display:flex;align-items:center;gap:10px;color:var(--muted)}
+.hop-goals li::before{content:"";flex:none;width:20px;height:20px;border-radius:50%;box-sizing:border-box;border:2px solid var(--line)}
+.hop-goals li.ok{color:var(--ink)}
+.hop-goals li.ok::before{border:0;background:var(--ok) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 12.5l4 4 8-9' fill='none' stroke='%23fff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/14px no-repeat}
+.hop-goals small{margin-left:auto;color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}
+.hop-wordcard{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:10px 12px;margin-bottom:10px}
+.hop-wordcard b{display:block;font-family:var(--f-display);font-weight:700;font-size:20px;line-height:1.2}
+.hop-wordcard small{display:block;color:var(--muted);font-size:14px}
+.hop-card .note.small{margin:0 0 14px;text-align:center}
+.hop-load{position:absolute;inset:0;display:grid;place-items:center;align-content:center;gap:12px;color:var(--ink);font-weight:600}
+.hop-load .spin{width:38px;height:38px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--ink);animation:hopSpin 1s linear infinite}
+@keyframes hopSpin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion: reduce){.hop-card,.hop-sheet,.hop-stars.big svg.on,.hop-word i.pop{animation:none}}

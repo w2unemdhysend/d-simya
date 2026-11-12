@@ -1,9 +1,10 @@
-// What a player has done across all the games: records, counts, finished scenes and themes. The laundry's skins are
+// What a player has done across all the games: records, counts, finished scenes and themes, the 3D levels (best time
+// in tenths of a second, all letters found, within the par time). The laundry's skins are
 // unlocked from it, the menu shows it. Kept on the device and in Telegram's cloud (the larger of the two counts).
 import { load, store, cloudGet, cloudSet } from './kit.js';
 
 const KEY = 'dsimya-progress';
-const base = () => ({ artRight: 0, artStreak: 0, sortRight: 0, sortBest: 0, satz: [], zahlRight: 0, zahlStreak: 0, dialog: [], dialogPerfect: [], memory: {}, bloom: 0, planted: 0, december: 0 });
+const base = () => ({ artRight: 0, artStreak: 0, sortRight: 0, sortBest: 0, satz: [], zahlRight: 0, zahlStreak: 0, dialog: [], dialogPerfect: [], memory: {}, bloom: 0, planted: 0, december: 0, hop: {}, hopWord: [], hopFast: [] });
 let P = Object.assign(base(), load(KEY) || {});
 const listeners = [];
 let cloudTimer = null;

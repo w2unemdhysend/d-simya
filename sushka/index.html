@@ -12,7 +12,7 @@
 <style>
 /* Layout: one phone-width column; the dryer's white panel parts sit as cards on a cool enamel ground, in the order they appear on the dryer, left to right */
 :root{
-  padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom);
+  padding-top:var(--sat); padding-bottom:var(--sab);
   --bg:#E7ECEF; --surface:#F6F8F9; --ink:#12181C; --muted:#53616A; --line:#C7D0D5;
   --accent:#9A5800; --accent-soft:#F7E3BF;
   --wp:#FBFCFC; --wp-2:#EEF2F3; --wp-ink:#30373D; --wp-muted:#5E6970; --wp-line:#B7C0C5; --wp-edge:#D3DADE;
@@ -45,7 +45,7 @@ body{
   padding-right:max(16px, env(safe-area-inset-right, 0px));
   padding-block:0 40px;
 }
-body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:var(--sat);z-index:10;background:var(--bg)}
 [hidden]{display:none!important}
 button{font:inherit;color:inherit}
 :focus-visible{outline:2.5px solid var(--accent);outline-offset:2px}
@@ -58,7 +58,7 @@ h1{font-family:var(--f-display);font-weight:700;font-size:32px;line-height:1.05;
 .lede{margin:0;color:var(--muted);font-size:16px;max-width:40ch}
 
 /* tabs */
-.tabbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:6;background:var(--bg);padding-block:12px 12px}
+.tabbar{position:sticky;top:var(--sat);z-index:6;background:var(--bg);padding-block:12px 12px}
 .tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:4px}
 .tabs button{border:0;background:transparent;border-radius:10px;min-height:44px;padding:6px 4px;font-weight:600;font-size:14px;line-height:1.15;cursor:pointer}
 .tabs button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
@@ -214,7 +214,7 @@ h2{font-family:var(--f-display);font-weight:600;font-size:17px;line-height:1.2;m
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 @media (min-width:480px){h1{font-size:38px}.machine{padding:18px}}
 </style>
-<link rel="stylesheet" href="../assets/ui.css?v=18">
+<link rel="stylesheet" href="../assets/ui.css?v=19">
 </head>
 <body>
 <div class="wrap">
@@ -336,7 +336,7 @@ h2{font-family:var(--f-display);font-weight:600;font-size:17px;line-height:1.2;m
   <p class="foot">За інструкцією Gorenje до сушарок цієї серії (SP10). <a href="https://img.moebelplus.de/pdf/gorenje_d622cm_bedien.pdf" target="_blank" rel="noopener">Відкрити інструкцію</a>.</p>
 </div>
 
-<script src="../assets/ui.js?v=18"></script>
+<script src="../assets/ui.js?v=19"></script>
 <script>
 (function(){
   var $ = function(s, r){ return (r || document).querySelector(s); };

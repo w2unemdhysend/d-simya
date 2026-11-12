@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@600;700&display=swap">
-<link rel="stylesheet" href="../assets/page.css?v=1">
+<link rel="stylesheet" href="../assets/page.css?v=2">
 <style>
 /* Layout: one column. A search field and situation chips on top, then the phrases of the chosen situation: German
    large (it is what gets said or shown), Ukrainian under it, a button to hear it (a recorded MP3 per phrase: Android's
@@ -31,14 +31,14 @@
 .sayerr{margin:0;color:var(--danger);font-size:15px;font-weight:600}
 .title{margin:6px 2px 0;font-size:14px;color:var(--muted)}
 .title b{color:var(--ink);font-weight:600}
-.bigview{position:fixed;inset:0;z-index:40;background:var(--bg);display:grid;grid-template-rows:1fr auto;padding:max(20px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom))}
+.bigview{position:fixed;inset:0;z-index:40;background:var(--bg);display:grid;grid-template-rows:1fr auto;padding:max(20px, var(--sat)) 20px max(20px, var(--sab))}
 .bigview .words{align-self:center;font-weight:600;font-size:clamp(26px, 8vw, 44px);line-height:1.2;overflow-wrap:anywhere}
 .bigview .uk{margin-top:16px;font-weight:400;font-size:17px;color:var(--muted)}
 .bigview .bar{display:flex;gap:10px}
 .bigview button{flex:1;min-height:54px;border-radius:14px;border:1px solid var(--line);background:var(--surface);font-weight:600;font-size:17px;cursor:pointer}
 .bigview button.main{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 </style>
-<link rel="stylesheet" href="../assets/ui.css?v=18">
+<link rel="stylesheet" href="../assets/ui.css?v=19">
 </head>
 <body>
 <div class="wrap">
@@ -62,7 +62,7 @@
   <div class="words"><div id="big-de" lang="de"></div><div class="uk" id="big-uk"></div></div>
   <div class="bar"><button type="button" id="big-say" class="main">Прослухати</button><button type="button" id="big-close">Закрити</button></div>
 </div>
-<script src="../assets/ui.js?v=18"></script>
+<script src="../assets/ui.js?v=19"></script>
 <script type="module">
 import { SITUATIONS } from './phrases.js';
 import { AUDIO } from '../audio/index.js';

@@ -8,6 +8,7 @@ import { SCENES, REACT, lines } from '../igry/data/dialog.js';
 import { THEMES } from '../igry/data/memory.js';
 import { POOL, INTERVAL, MAX_BOX } from '../igry/data/garten.js';
 import { SKINS, SKIN, reach, reached, drumSVG } from '../igry/skins.js';
+import { LEVELS as HOP } from '../igry/hop/levels.js?v=1';
 
 let fails = 0;
 const t = (name, ok, info = '') => { if (!ok) fails++; console.log(ok ? 'PASS' : 'FAIL', name, ok ? '' : info); };
@@ -74,12 +75,12 @@ t('garden: every word once, with its article and meaning', new Set(POOL.map((w) 
 t('garden: the review steps double (1, 2, 4 … 32 days)', INTERVAL.length === MAX_BOX + 1 && INTERVAL.slice(2).every((d, i) => d === INTERVAL[i + 1] * 2));
 
 /* ---------- skins ---------- */
-const base = { artRight: 0, artStreak: 0, sortRight: 0, sortBest: 0, satz: [], zahlRight: 0, zahlStreak: 0, dialog: [], dialogPerfect: [], memory: {}, bloom: 0, planted: 0, december: 0 };
+const base = { artRight: 0, artStreak: 0, sortRight: 0, sortBest: 0, satz: [], zahlRight: 0, zahlStreak: 0, dialog: [], dialogPerfect: [], memory: {}, bloom: 0, planted: 0, december: 0, hop: {}, hopWord: [], hopFast: [] };
 t('skins: unique ids, classic first and free', new Set(SKINS.map((s) => s.id)).size === SKINS.length && SKINS[0].id === 'classic' && !SKINS[0].price && !SKINS[0].need);
-t('skins: eight earned, four bought, each with a name, a note and an emoji', SKINS.filter((s) => s.need).length === 8 && SKINS.filter((s) => s.price).length === 4 && SKINS.slice(1).every((s) => s.name && s.note && s.emoji && (s.need ? s.how : s.price > 0)));
+t('skins: nine earned, four bought, each with a name, a note and an emoji', SKINS.filter((s) => s.need).length === 9 && SKINS.filter((s) => s.price).length === 4 && SKINS.slice(1).every((s) => s.name && s.note && s.emoji && (s.need ? s.how : s.price > 0)));
 t('skins: none earned at the start', SKINS.filter((s) => s.need).every((s) => !reached(s, base)));
-const full = { ...base, artStreak: 11, satz: Array.from({ length: 20 }, (_, i) => i), bloom: 10, zahlRight: 100, sortBest: 25, dialog: SCENES.map((s) => s.id), memory: Object.fromEntries(THEMES.map((th) => [th.id, 20])), december: 1 };
-t('skins: all eight earned when every goal is met', SKINS.filter((s) => s.need).every((s) => reached(s, full)), SKINS.filter((s) => s.need && !reached(s, full)).map((s) => s.id).join(', '));
+const full = { ...base, artStreak: 11, satz: Array.from({ length: 20 }, (_, i) => i), bloom: 10, zahlRight: 100, sortBest: 25, dialog: SCENES.map((s) => s.id), memory: Object.fromEntries(THEMES.map((th) => [th.id, 20])), december: 1, hop: Object.fromEntries(HOP.map((l) => [l.id, 300])) };
+t('skins: all nine earned when every goal is met', SKINS.filter((s) => s.need).every((s) => reached(s, full)), SKINS.filter((s) => s.need && !reached(s, full)).map((s) => s.id).join(', '));
 t('skins: progress stops at the goal', reach(SKIN.karneval, { ...base, artStreak: 30 }).join('/') === '11/11' && reach(SKIN.bahnhof, { ...base, zahlRight: 37 }).join('/') === '37/100');
 t('skins: prices go up', SKINS.filter((s) => s.price).every((s, i, a) => !i || s.price > a[i - 1].price));
 const svgBad = SKINS.filter((s) => {

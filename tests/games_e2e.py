@@ -58,7 +58,7 @@ async def main():
         # ---------------- the menu ----------------
         await pg.goto(base + 'igry/'); await pg.wait_for_timeout(700)
         tiles = await pg.evaluate("[...document.querySelectorAll('#view-hub [data-game]')].map(a => [a.dataset.game, (a.querySelector('[data-status]') || {}).textContent || ''])")
-        check('menu: the garden card and seven tiles, each with a status line', [t[0] for t in tiles] == ['garten', 'art', 'memory', 'satz', 'zahlen', 'dialog', 'click', 'sort'] and all(t[1] for t in tiles[1:]), str(tiles))
+        check('menu: the garden card, five German games, the 3D game\'s card and two more for a break, each with a status line', [t[0] for t in tiles] == ['garten', 'art', 'memory', 'satz', 'zahlen', 'dialog', 'hop', 'click', 'sort'] and all(t[1] for t in tiles[1:]), str(tiles))
         check('menu: an empty garden invites to plant', await text(pg, '#h-g-big') == 'Посади перші слова' and await pg.evaluate("document.querySelectorAll('#h-g-bed svg').length") == 5)
         check('menu: groups «Німецька» and «Для перерви», title «Мініігри», no Back', await pg.evaluate("[...document.querySelectorAll('#view-hub .group')].map(g => g.textContent).join('|')") == 'Німецька|Для перерви'
               and await text(pg, 'h1') == 'Мініігри' and not await pg.evaluate('Telegram.WebApp.BackButton.shown') and await pg.is_hidden('#backbtn'))
@@ -221,7 +221,7 @@ async def main():
         st = pg.locator('[data-status="click"]')
         check('skins: the laundry tile tells about the new skin', await st.text_content() == 'Новий скін: Карнавал' and 'new' in await st.get_attribute('class'))
         await pg.click('[data-game="click"]'); await pg.wait_for_timeout(500)
-        check('skins: twelve more to get, the new one marked', await text(pg, '#skin-count') == '2 з 13' and 'Нове!' in await text(pg, '[data-skin="karneval"]'), await text(pg, '#skin-count'))
+        check('skins: twelve more to get, the new one marked', await text(pg, '#skin-count') == '2 з 14' and 'Нове!' in await text(pg, '[data-skin="karneval"]'), await text(pg, '#skin-count'))
         await pg.click('[data-skin="karneval"]'); await pg.wait_for_timeout(100)
         check('skins: worn: pressed, the drum in carnival colours', await pg.get_attribute('[data-skin="karneval"]', 'aria-pressed') == 'true' and '#FFF3C4' in await pg.inner_html('#drum')
               and await pg.evaluate(G + '.state().skins.on') == 'karneval' and '11.11' in await text(pg, '#toast'))
@@ -237,7 +237,7 @@ async def main():
         check('skins: buying asks for a second tap', 'Торкнись ще раз' in await text(pg, '[data-skin="nacht"]') and await pg.evaluate(G + '.state().n') >= 6000)
         await pg.click('[data-skin="nacht"]'); await pg.wait_for_timeout(100)
         s = await pg.evaluate(G + '.state()')
-        check('skins: bought for 5 000 socks and worn', s['skins']['bought'] == ['nacht'] and s['skins']['on'] == 'nacht' and 1000 <= s['n'] < 1100 and await text(pg, '#skin-count') == '3 з 13', str(s)[:200])
+        check('skins: bought for 5 000 socks and worn', s['skins']['bought'] == ['nacht'] and s['skins']['on'] == 'nacht' and 1000 <= s['n'] < 1100 and await text(pg, '#skin-count') == '3 з 14', str(s)[:200])
         check('skins: fit 340 px', await fits(pg))
         await shot(pg, 'games-skins.png')
         await pg.click('#backbtn'); await pg.wait_for_timeout(400)

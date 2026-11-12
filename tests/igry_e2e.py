@@ -1,8 +1,10 @@
-"""The secret games section /igry/ and its quiet link in the section menu, in headless Chrome.
+"""The games section /igry/, its place at the bottom of the section menu and the menu's full-screen button, in headless Chrome.
 
   python3 tests/igry_e2e.py            (CHROME=/path/to/chrome to use a system browser)
 
-Covers: the menu link (bottom-left, no label, not among the sections, marks itself on the games page),
+Covers: the menu entry (the last group, «Ігри», marks itself on the games page), the full-screen button next to the
+close button (only in a Telegram that has full screen; it asks Telegram, follows Telegram's answer, gives the page room
+under Telegram's buttons, goes away where Telegram says it cannot),
 the laundry clicker (taps, upgrades and their rising cost, income per second, earnings while away with the
 8-hour cap, a milestone, Ukrainian plural forms, saving, the two-tap reset, the copy kept in Telegram), the
 sorting game (items and bins are consistent, right and wrong answers, the double-points streak, the clock
@@ -57,21 +59,70 @@ async def main():
     async with async_playwright() as p:
         browser = await p.chromium.launch(executable_path=os.environ.get('CHROME') or None, args=['--no-sandbox'])
 
-        # the menu: a quiet icon bottom-left
+        # the menu: «Ігри» is the last group, with the games as a normal entry
         ctx, pg = await context(browser)
         await pg.goto(base); await pg.wait_for_timeout(300)
         await pg.click('#menubtn'); await pg.wait_for_timeout(400)
-        info = await pg.evaluate("""() => { const a = document.querySelector('.drawer-secret'), p = document.querySelector('.drawer-panel');
-          const r = a.getBoundingClientRect(), q = p.getBoundingClientRect();
-          return {href: a.getAttribute('href'), label: a.getAttribute('aria-label'), text: a.textContent.trim(), inList: !!a.closest('nav'),
-            left: r.left - q.left, bottom: q.bottom - r.bottom, w: r.width, h: r.height, opacity: getComputedStyle(a).opacity}; }""")
-        check('menu: games link exists, no visible label, not among the sections', info['href'].endswith('/igry/') and info['label'] == 'Мініігри' and not info['text'] and not info['inList'], str(info))
-        check('menu: bottom-left corner, 44 px target, quiet', info['left'] < 30 and info['bottom'] < 70 and info['w'] >= 44 and info['h'] >= 44 and float(info['opacity']) < 0.6, str(info))
-        await pg.click('.drawer-secret'); await pg.wait_for_url('**/igry/')
-        check('menu link opens the games', await text(pg, 'h1') == 'Мініігри')
+        info = await pg.evaluate("""() => { const g = [...document.querySelectorAll('.drawer-group')].map(x => x.textContent), links = [...document.querySelectorAll('.drawer nav a')];
+          const a = links[links.length - 1];
+          return {groups: g, last: a.querySelector('b').textContent, href: a.getAttribute('href'), note: a.querySelector('small').textContent,
+            secret: !!document.querySelector('.drawer-secret'), full: !!document.querySelector('.fsbtn')}; }""")
+        check('menu: «Ігри» is the last group and the games its entry', info['groups'][-1] == 'Ігри' and info['last'] == 'Мініігри' and info['href'].endswith('/igry/') and '3D' in info['note'] and not info['secret'], str(info))
+        check('menu: no full-screen button in a browser (it would leave full screen on every page)', not info['full'], str(info))
+        await pg.click('.drawer nav a[href$="/igry/"]'); await pg.wait_for_url('**/igry/')
+        check('menu entry opens the games', await text(pg, 'h1') == 'Мініігри')
         await pg.click('#menubtn'); await pg.wait_for_timeout(400)
-        check('on the games page the link is marked current', await pg.get_attribute('.drawer-secret', 'aria-current') == 'page')
+        check('on the games page the entry is marked current', await pg.get_attribute('.drawer nav a[href$="/igry/"]', 'aria-current') == 'page')
         await pg.keyboard.press('Escape'); await ctx.close()
+
+        # full screen in Telegram: the button asks Telegram, Telegram answers with an event
+        FULL = TG.replace("isVersionAtLeast() { return true; },", """isVersionAtLeast() { return true; }, isFullscreen: false, __ev: {},
+  onEvent(n, f) { (this.__ev[n] = this.__ev[n] || []).push(f); },
+  requestFullscreen() { window.__asked = (window.__asked || 0) + 1; setTimeout(() => { if (window.__unsupported) { (this.__ev.fullscreenFailed || []).forEach(f => f.call(this, {error: 'UNSUPPORTED'})); return; }
+    this.isFullscreen = true; document.documentElement.style.setProperty('--tg-safe-area-inset-top', '30px'); document.documentElement.style.setProperty('--tg-content-safe-area-inset-top', '46px');
+    (this.__ev.fullscreenChanged || []).forEach(f => f.call(this)); }, 30); },
+  exitFullscreen() { setTimeout(() => { this.isFullscreen = false; (this.__ev.fullscreenChanged || []).forEach(f => f.call(this)); }, 30); },""").replace("onEvent() {},", "")
+        ctx = await browser.new_context(viewport={'width': 360, 'height': 800})
+        await ctx.route('**/telegram.org/**', lambda r: r.fulfill(body=FULL % '{}', content_type='text/javascript'))
+        await ctx.route('**/*.workers.dev/**', lambda r: r.abort())
+        pg = await ctx.new_page(); pg.on('pageerror', lambda e: fails.append(f'page error: {e}'))
+        await pg.goto(base + 'pogoda/'); await pg.wait_for_timeout(300)
+        await pg.click('#menubtn'); await pg.wait_for_timeout(450)
+        geo = await pg.evaluate("""() => { const b = document.querySelector('.fsbtn'), c = document.querySelector('.drawer-close'), box = document.querySelector('.drawer-acts');
+          const rb = b.getBoundingClientRect(), rc = c.getBoundingClientRect(), rx = box.getBoundingClientRect(), brand = document.querySelector('.drawer-brand').getBoundingClientRect();
+          return {pressed: b.getAttribute('aria-pressed'), label: b.getAttribute('aria-label'), left: rb.right <= rc.left + 1, same: Math.abs(rb.top - rc.top) < 1,
+            size: [rb.width, rb.height, rx.height], beside: rb.left > brand.right, capsule: box.classList.contains('two'), bg: getComputedStyle(box).backgroundColor}; }""")
+        check('full screen: a button left of the close button, in one capsule, beside the title', geo['pressed'] == 'false' and geo['label'] == 'На весь екран' and geo['left'] and geo['same'] and geo['beside'] and geo['capsule'] and geo['size'][2] >= 44, str(geo))
+        await pg.screenshot(path=os.path.join(os.environ.get('SHOTS', '/tmp'), 'menu-fullscreen-off.png'), clip={'x': 0, 'y': 0, 'width': 330, 'height': 120})
+        top0 = await pg.evaluate("parseFloat(getComputedStyle(document.querySelector('.drawer-panel')).paddingTop)")
+        await pg.click('.fsbtn'); await pg.wait_for_timeout(700)
+        st = await pg.evaluate("""() => ({asked: window.__asked, pressed: document.querySelector('.fsbtn').getAttribute('aria-pressed'), cls: document.documentElement.classList.contains('tg-fs'),
+          title: document.querySelector('.fsbtn').title, pad: parseFloat(getComputedStyle(document.querySelector('.drawer-panel')).paddingTop),
+          body: parseFloat(getComputedStyle(document.documentElement).paddingTop) + parseFloat(getComputedStyle(document.body).paddingTop),
+          turned: getComputedStyle(document.querySelector('.fsbtn path')).transform})""")
+        check('full screen: asks Telegram once, then the button shows "back to the usual size"', st['asked'] == 1 and st['pressed'] == 'true' and st['cls'] and st['title'] == 'Звичайний розмір' and st['turned'] != 'none', str(st))
+        check('full screen: the menu and the page move down below the status bar and Telegram\'s buttons (30 + 46 px)', abs(st['pad'] - top0 - 76) < 1 and st['body'] >= 76, f"{top0} → {st}")
+        await pg.screenshot(path=os.path.join(os.environ.get('SHOTS', '/tmp'), 'menu-fullscreen-on.png'), clip={'x': 0, 'y': 0, 'width': 330, 'height': 200})
+        await pg.click('.fsbtn'); await pg.wait_for_timeout(700)
+        st = await pg.evaluate("() => ({pressed: document.querySelector('.fsbtn').getAttribute('aria-pressed'), cls: document.documentElement.classList.contains('tg-fs')})")
+        check('full screen: a second tap goes back to the usual size', st['pressed'] == 'false' and not st['cls'], str(st))
+        # Telegram keeps full screen from page to page: a new page starts in it
+        await pg.evaluate("window.Telegram.WebApp.requestFullscreen()"); await pg.wait_for_timeout(200)   # the menu is still open
+        await ctx.route('**/telegram.org/**', lambda r: r.fulfill(body=(FULL % '{}').replace('isFullscreen: false', 'isFullscreen: true'), content_type='text/javascript'))
+        await pg.click('.drawer nav a[href$="/transport/"]'); await pg.wait_for_url('**/transport/'); await pg.wait_for_timeout(300)
+        st = await pg.evaluate("() => ({cls: document.documentElement.classList.contains('tg-fs')})")
+        await pg.click('#menubtn'); await pg.wait_for_timeout(450)
+        check('full screen: the next page knows it at once', st['cls'] and await pg.get_attribute('.fsbtn', 'aria-pressed') == 'true', str(st))
+        # a Telegram without full screen (a computer): the button goes, the close button stays alone
+        await ctx.route('**/telegram.org/**', lambda r: r.fulfill(body=FULL % '{}', content_type='text/javascript'))
+        await pg.goto(base + 'pogoda/'); await pg.evaluate("window.__unsupported = true"); await pg.wait_for_timeout(200)
+        await pg.click('#menubtn'); await pg.wait_for_timeout(450)
+        await pg.click('.fsbtn'); await pg.wait_for_timeout(300)
+        st = await pg.evaluate("() => ({btn: !!document.querySelector('.fsbtn'), sep: !!document.querySelector('.drawer-acts .sep'), two: document.querySelector('.drawer-acts').classList.contains('two'), close: !!document.querySelector('.drawer-close')})")
+        check('full screen not supported: the button goes, only the close button is left', not st['btn'] and not st['sep'] and not st['two'] and st['close'], str(st))
+        await pg.goto(base + 'transport/'); await pg.wait_for_timeout(200); await pg.click('#menubtn'); await pg.wait_for_timeout(400)
+        check('full screen not supported: and on the next pages too', not await pg.query_selector('.fsbtn'))
+        await ctx.close()
 
         # clicker
         ctx, pg = await context(browser, width=340)

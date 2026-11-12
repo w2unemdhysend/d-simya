@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@600;700&display=swap">
-<link rel="stylesheet" href="../assets/page.css?v=1">
+<link rel="stylesheet" href="../assets/page.css?v=2">
 <style>
 /* Layout: one column. The two numbers for danger to life first and largest, then what to say on the phone (German, to
    read out), then the calmer services: doctor on call, night pharmacy, poison line, hospital, other helplines.
@@ -49,7 +49,7 @@
 /* asking before a call: a sheet at the bottom, the call button where the thumb is */
 .ask{position:fixed;inset:auto 0 0 0;margin:0 auto;width:100%;max-width:560px;max-height:none;border:0;padding:0;background:transparent;color:var(--ink)}
 .ask::backdrop{background:rgba(0,0,0,.45)}
-.ask-in{background:var(--surface);border-radius:22px 22px 0 0;padding:20px 16px calc(16px + env(safe-area-inset-bottom, 0px));display:grid;gap:4px;text-align:center;
+.ask-in{background:var(--surface);border-radius:22px 22px 0 0;padding:20px 16px calc(16px + var(--sab));display:grid;gap:4px;text-align:center;
   box-shadow:0 -8px 30px rgba(0,0,0,.18)}
 .ask[open] .ask-in{animation:askUp .22s cubic-bezier(.22,1,.36,1)}
 @keyframes askUp{from{transform:translateY(24px);opacity:.4}to{transform:none;opacity:1}}
@@ -67,7 +67,7 @@
 .ask-no{min-height:52px;margin-top:6px;border:1px solid var(--line);border-radius:16px;background:transparent;color:var(--ink);font:inherit;font-weight:600;font-size:17px;cursor:pointer}
 @media (prefers-reduced-motion: reduce){.ask[open] .ask-in{animation:none}}
 </style>
-<link rel="stylesheet" href="../assets/ui.css?v=18">
+<link rel="stylesheet" href="../assets/ui.css?v=19">
 </head>
 <body>
 <div class="wrap">
@@ -148,7 +148,7 @@
   </dialog>
   <p class="foot">Номери перевірено в листопаді 2026 за aponet.de, сайтом уряду Німеччини (bundesregierung.de) і довідником лікарень. Якщо номер не набирається натисканням, набери його вручну.</p>
 </div>
-<script src="../assets/ui.js?v=18"></script>
+<script src="../assets/ui.js?v=19"></script>
 <script>
 (function () {
   var tgApp = window.Telegram && window.Telegram.WebApp;

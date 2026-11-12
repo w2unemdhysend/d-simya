@@ -12,7 +12,7 @@
 <style>
 /* Layout: one phone-width column; three steps (pages, corners, look) swap in place; the photo is the hero of every step */
 :root{
-  padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom);
+  padding-top:var(--sat); padding-bottom:var(--sab);
   --bg:#E7ECEF; --surface:#F6F8F9; --ink:#12181C; --muted:#53616A; --line:#C7D0D5;
   --accent:#9A5800; --accent-soft:#F7E3BF; --hl:#E0900C; --paper:#FFFFFF; --stage:#1A1F23; --danger:#B3261E;
   --f-display:"Unbounded","Arial Black",system-ui,sans-serif;
@@ -33,7 +33,7 @@ html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.5 var(--f-body);
   padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:0 40px}
 body.focus{padding-bottom:0}
-body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:var(--sat);z-index:10;background:var(--bg)}
 [hidden]{display:none!important}
 button,label{font:inherit;color:inherit}
 :focus-visible{outline:2.5px solid var(--accent);outline-offset:2px}
@@ -103,7 +103,7 @@ body.focus .eyebrow,body.focus h1,body.focus .lede,body.focus .foot{display:none
 .tool{display:flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 13px;white-space:nowrap;font-weight:600;font-size:14px;cursor:pointer;min-height:44px;transition:transform .12s ease}
 .tool svg{width:18px;height:18px}
 .tool:active{transform:scale(.97)}
-.navrow{display:grid;grid-template-columns:1fr 1.4fr;gap:10px;position:sticky;bottom:0;z-index:5;margin:0 -16px;padding:10px 16px calc(10px + env(safe-area-inset-bottom, 0px));background:var(--bg);box-shadow:0 -1px 0 var(--line)}
+.navrow{display:grid;grid-template-columns:1fr 1.4fr;gap:10px;position:sticky;bottom:0;z-index:5;margin:0 -16px;padding:10px 16px calc(10px + var(--sab));background:var(--bg);box-shadow:0 -1px 0 var(--line)}
 
 /* edit */
 .modes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:4px}
@@ -147,9 +147,9 @@ body.focus .eyebrow,body.focus h1,body.focus .lede,body.focus .foot{display:none
 /* overlays */
 .spinner{width:42px;height:42px;border-radius:50%;border:4px solid rgba(255,255,255,.25);border-top-color:var(--hl);animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.cam{position:fixed;inset:0;z-index:25;background:#000;color:#FFFFFF;display:grid;grid-template-rows:minmax(0,1fr) auto;padding:env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px)}
+.cam{position:fixed;inset:0;z-index:25;background:#000;color:#FFFFFF;display:grid;grid-template-rows:minmax(0,1fr) auto;padding:var(--sat) 0 var(--sab)}
 .cam video{width:100%;height:100%;object-fit:contain;display:block}
-.cam-hint{position:absolute;top:calc(12px + env(safe-area-inset-top, 0px));left:16px;right:16px;margin:0;text-align:center;font-size:15px;text-shadow:0 1px 3px #000}
+.cam-hint{position:absolute;top:calc(12px + var(--sat));left:16px;right:16px;margin:0;text-align:center;font-size:15px;text-shadow:0 1px 3px #000}
 .cam-bar{position:relative;display:grid;place-items:center;padding:16px 0 24px}
 .cam-shot{width:76px;height:76px;border-radius:50%;border:4px solid #FFFFFF;background:#FFFFFF;box-shadow:inset 0 0 0 4px #000;cursor:pointer;transition:transform .12s ease}
 .cam-shot:active{transform:scale(.92)}
@@ -158,15 +158,15 @@ body.focus .eyebrow,body.focus h1,body.focus .lede,body.focus .foot{display:none
 .busy{position:fixed;inset:0;z-index:20;background:rgba(10,12,14,.55);display:grid;place-items:center;align-content:center;gap:14px;color:#FFFFFF;font-weight:600;animation:fadeIn .2s ease}
 .busy p{margin:0}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom, 0px));transform:translateX(-50%);z-index:30;background:var(--ink);color:var(--bg);border-radius:12px;padding:12px 16px;font-weight:600;font-size:15px;max-width:calc(100% - 32px);box-shadow:0 6px 20px rgba(0,0,0,.25);animation:toastIn .3s cubic-bezier(.2,.7,.2,1)}
+.toast{position:fixed;left:50%;bottom:calc(20px + var(--sab));transform:translateX(-50%);z-index:30;background:var(--ink);color:var(--bg);border-radius:12px;padding:12px 16px;font-weight:600;font-size:15px;max-width:calc(100% - 32px);box-shadow:0 6px 20px rgba(0,0,0,.25);animation:toastIn .3s cubic-bezier(.2,.7,.2,1)}
 .toast.out{opacity:0;transform:translate(-50%, 8px);transition:opacity .25s ease, transform .25s ease}
-body.focus .toast{bottom:calc(86px + env(safe-area-inset-bottom, 0px))}
+body.focus .toast{bottom:calc(86px + var(--sab))}
 @keyframes toastIn{from{opacity:0;transform:translate(-50%, 12px)}to{opacity:1;transform:translate(-50%, 0)}}
 .foot{margin-top:24px;font-size:13px;color:var(--muted)}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 @media (min-width:480px){h1{font-size:38px}}
 </style>
-<link rel="stylesheet" href="../assets/ui.css?v=18">
+<link rel="stylesheet" href="../assets/ui.css?v=19">
 </head>
 <body>
 <div class="wrap">
@@ -306,7 +306,7 @@ body.focus .toast{bottom:calc(86px + env(safe-area-inset-bottom, 0px))}
 <div class="busy" id="busy" hidden><div class="spinner"></div><p id="busytext">Обробляю…</p></div>
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
-<script src="../assets/ui.js?v=18"></script>
+<script src="../assets/ui.js?v=19"></script>
 <script>
 (function(){
   'use strict';

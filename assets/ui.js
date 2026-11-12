@@ -13,6 +13,7 @@
     ['Навчання', [['a1/', 'Німецька A1', 'Граматика, словник, вправи', 'book']]],
     ['Інструкції', [['pralka/', 'Пралка', 'Beko: кнопки, програми, проблеми', 'wash'], ['sushka/', 'Сушарка', 'Gorenje SensoCare', 'dry']]],
     ['Telegram', [['bot/', 'Бот', 'Ранкове зведення, команди, сповіщення', 'bell']]],
+    ['Ігри', [['igry/', 'Мініігри', 'Німецька граючись і 3D-шкарпетка', 'game']]],
   ];
   var ICONS = {
     route: '<circle cx="6.500" cy="6.500" r="2.500"/><circle cx="17.500" cy="17.500" r="2.500"/><path d="M9 6.500h6.500a3 3 0 0 1 0 6h-7a3 3 0 0 0 0 6H15"/>',
@@ -31,10 +32,9 @@
     book: '<path d="M12 6.5c-1.800-1.300-4.300-2-7.500-2v13c3.200 0 5.700.700 7.500 2 1.800-1.300 4.300-2 7.500-2v-13c-3.200 0-5.700.700-7.500 2z"/><path d="M12 6.500v13"/>',
     map: '<path d="M9 4.5l-5 2v13l5-2 6 2 5-2v-13l-5 2z"/><path d="M9 4.5v13M15 6.5v13"/>',
     close: '<path d="M6 6l12 12M18 6L6 18"/>',
+    full: '<path d="M4 9.5V4h5.5"/><path d="M14.5 4H20v5.5"/><path d="M20 14.5V20h-5.5"/><path d="M9.5 20H4v-5.5"/>',
     game: '<path d="M7.5 7.5h9a4.5 4.5 0 0 1 4.4 5.4l-.8 3.8a2.4 2.4 0 0 1-4.2 1L14.6 16H9.4l-1.3 1.7a2.4 2.4 0 0 1-4.2-1l-.8-3.8a4.5 4.5 0 0 1 4.4-5.4z"/><path d="M8.5 10.5v3M7 12h3"/><circle cx="15.5" cy="11.2" r=".6"/><circle cx="17" cy="12.8" r=".6"/>',
   };
-  // not in the list on purpose: a quiet icon in the bottom-left corner of the menu
-  var SECRET = 'igry/';
   var SITE = (function(){ try { return new URL('..', document.currentScript.src).href; } catch(e){ return location.href; } })();
   var root = document.documentElement;
   var KEY = 'dsimya-theme';
@@ -174,16 +174,14 @@
     d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-label', 'Розділи');
     d.innerHTML = '<div class="drawer-scrim" data-close></div><div class="drawer-panel">' +
       '<div class="drawer-head"><div><div class="drawer-brand">D-SIM’YA</div><div class="drawer-sub">Помічник для життя в Німеччині</div></div>' +
-      '<button class="drawer-close" type="button" data-close aria-label="Закрити меню">' + svg('close') + '</button></div><nav aria-label="Розділи">' +
+      '<div class="drawer-acts' + (canFull() ? ' two' : '') + '">' + (canFull() ? '<button class="fsbtn" type="button" aria-pressed="false" aria-label="На весь екран" title="На весь екран">' + svg('full') + '</button><span class="sep" aria-hidden="true"></span>' : '') +
+      '<button class="drawer-close" type="button" data-close aria-label="Закрити меню" title="Закрити меню">' + svg('close') + '</button></div></div><nav aria-label="Розділи">' +
       SECTIONS.map(function(g){
         return (g[0] ? '<div class="drawer-group">' + g[0] + '</div>' : '') + '<ul>' + g[1].map(function(it){
           var href = new URL(it[0], SITE).href;
           return '<li><a href="' + href + '"' + (samePage(href) ? ' aria-current="page"' : '') + '><span class="ic">' + svg(it[3]) + '</span><span><b>' + it[1] + '</b><small>' + it[2] + '</small></span></a></li>';
         }).join('') + '</ul>';
-      }).join('') + '</nav>' + (function(){
-        var href = new URL(SECRET, SITE).href;
-        return '<a class="drawer-secret" href="' + href + '" aria-label="Мініігри" title="Мініігри"' + (samePage(href) ? ' aria-current="page"' : '') + '>' + svg('game') + '</a>';
-      })() + '</div>';
+      }).join('') + '</nav></div>';
     document.body.appendChild(d);
     var wrap = document.querySelector('.wrap'), panel = d.querySelector('.drawer-panel');
     var isOpen = function(){ return d.classList.contains('open'); };
@@ -231,8 +229,43 @@
       document.body.classList.remove('page-out');
       if (!(history.state && history.state.menu)) close(true);
     });
+    var fs = d.querySelector('.fsbtn');
+    if (fs) fs.addEventListener('click', function(){
+      try { if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light'); } catch(e){}
+      toggleFull();
+    });
+    paintFull();
     menu = { open: open, close: close, isOpen: isOpen, d: d, panel: panel };
   }
+
+  /* Telegram's full screen (Bot API 8.0): the Mini App takes the whole screen, without Telegram's header. Telegram keeps it
+     from page to page, and its script remembers it, so every page knows at once whether it is in full screen. A browser
+     leaves full screen on every new page, so there the button is not shown. */
+  var FULL_NO = 'dsimya-full-no';
+  function canFull(){
+    if (!tg || typeof tg.requestFullscreen !== 'function' || !(tg.isVersionAtLeast && tg.isVersionAtLeast('8.0'))) return false;
+    try { return sessionStorage.getItem(FULL_NO) !== '1'; } catch(e){ return true; }
+  }
+  function paintFull(){
+    var on = !!(tg && tg.isFullscreen);
+    root.classList.toggle('tg-fs', on);
+    var b = document.querySelector('.fsbtn'); if (!b) return;
+    b.setAttribute('aria-pressed', String(on));
+    b.title = on ? 'Звичайний розмір' : 'На весь екран';
+  }
+  function noFull(){   // this Telegram (on a computer, say) has no full screen: the button goes, here and on the next pages
+    try { sessionStorage.setItem(FULL_NO, '1'); } catch(e){}
+    var b = document.querySelector('.fsbtn'); if (!b) return;
+    var box = b.parentNode; b.nextSibling && b.nextSibling.remove(); b.remove(); box.classList.remove('two');
+    try { if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error'); } catch(e){}
+  }
+  if (tg && tg.onEvent){
+    try {
+      tg.onEvent('fullscreenChanged', paintFull);
+      tg.onEvent('fullscreenFailed', function(e){ if (e && e.error === 'UNSUPPORTED') noFull(); else paintFull(); });
+    } catch(e){}
+  }
+  paintFull();
 
   /* ---------- swipes ----------
      · from the left edge to the right: the menu follows the finger and opens; on the open menu, to the left: it closes
@@ -385,6 +418,9 @@
     window.addEventListener('online', show); window.addEventListener('offline', show); show();
   }
 
-  window.UI = { setTheme: setTheme, sync: sync, tabsThumb: tabsThumb, switchView: switchView, reserve: reserve, reduce: reduce };
+  // full screen for a page's own button (the 3D game's pause): can it, is it on, switch it
+  function toggleFull(){ try { if (tg.isFullscreen) tg.exitFullscreen(); else tg.requestFullscreen(); } catch(e){ noFull(); } }
+  window.UI = { setTheme: setTheme, sync: sync, tabsThumb: tabsThumb, switchView: switchView, reserve: reserve, reduce: reduce,
+    canFull: canFull, isFull: function(){ return !!(tg && tg.isFullscreen); }, toggleFull: toggleFull };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

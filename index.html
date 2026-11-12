@@ -13,7 +13,7 @@
 /* The home screen: what matters today at a glance. Every card leads to its section: weather, the next waste pickup,
    departures from your stop, this week's flyers; then quick actions and, last, the appliance instructions. */
 :root{
-  padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom);
+  padding-top:var(--sat); padding-bottom:var(--sab);
   --bg:#E7ECEF; --surface:#F6F8F9; --ink:#12181C; --muted:#53616A; --line:#C7D0D5; --accent:#9A5800;
   --accent-soft:#F7E3BF; --on:#2E7D32; --danger:#B3261E;
   --f-display:"Unbounded","Arial Black",system-ui,sans-serif;
@@ -29,7 +29,7 @@
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.5 var(--f-body);
   padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:0 40px}
-body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:var(--sat);z-index:10;background:var(--bg)}
 [hidden]{display:none!important}
 button{font:inherit;color:inherit}
 :focus-visible{outline:2.5px solid var(--accent);outline-offset:2px}
@@ -130,7 +130,7 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-top:14px}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 @media (min-width:480px){h1{font-size:36px}}
 </style>
-<link rel="stylesheet" href="assets/ui.css?v=18">
+<link rel="stylesheet" href="assets/ui.css?v=19">
 </head>
 <body>
 <div class="wrap">
@@ -181,7 +181,7 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-top:14px}
   </main>
   <p class="foot">D-SIM’YA — помічник для життя в Німеччині. Свайп від лівого краю відкриває розділи.</p>
 </div>
-<script src="assets/ui.js?v=18"></script>
+<script src="assets/ui.js?v=19"></script>
 <script type="module">
 import { WORKER_URL, PLACES, homePlace, getWeather, getWarnings, warnWhen, wxIcon, wxText, advice, deg } from './pogoda/wx.js';
 import { BINS, binsOn, berlinDay, prefsOf } from './smittia/due.js';

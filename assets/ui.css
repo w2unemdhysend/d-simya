@@ -1,6 +1,11 @@
 /* Shared UI layer for all sections: theme toggle, section menu, sliding tab indicators, soft transitions, swipes.
    Motion uses only transform and opacity (smooth on phones) with one gentle ease-out curve. */
 :root{--ease-out:cubic-bezier(.22,1,.36,1)}
+/* What the edges of the screen cover. In Telegram's full screen there is no Telegram header any more: the phone's status bar
+   and Telegram's own Close and ⋯ buttons lie over the top of the page, so the page moves down by both. */
+:root{--sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px)}
+:root.tg-fs{--sat:calc(max(env(safe-area-inset-top,0px), var(--tg-safe-area-inset-top,0px)) + var(--tg-content-safe-area-inset-top,0px));
+  --sab:calc(max(env(safe-area-inset-bottom,0px), var(--tg-safe-area-inset-bottom,0px)) + var(--tg-content-safe-area-inset-bottom,0px))}
 /* a view sliding in from the side must never make the page scroll sideways for a moment */
 body{overflow-x:clip}
 
@@ -16,7 +21,7 @@ body{overflow-x:clip}
 .drawer.open .drawer-scrim{opacity:1}
 .drawer-panel{position:absolute;top:0;bottom:0;left:0;width:min(320px, 86vw);overflow-y:auto;overscroll-behavior:contain;
   background:var(--bg);border-right:1px solid var(--line);box-shadow:8px 0 32px rgba(0,0,0,.25);
-  padding:calc(14px + env(safe-area-inset-top, 0px)) 12px calc(24px + env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px));
+  padding:calc(14px + var(--sat)) 12px calc(24px + var(--sab)) max(12px, env(safe-area-inset-left, 0px));
   transform:translateX(-102%);transition:transform .34s var(--ease-out);will-change:transform}
 .drawer.open .drawer-panel{transform:none}
 /* while a finger drags the menu, it follows the finger exactly */
@@ -25,8 +30,19 @@ body{overflow-x:clip}
 .drawer-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 0 6px 8px}
 .drawer-brand{font-family:var(--f-display);font-weight:700;font-size:20px;line-height:1.2}
 .drawer-sub{font-size:14px;color:var(--muted)}
-.drawer-close{flex:none;width:44px;height:44px;border-radius:50%;border:0;background:transparent;color:var(--ink);display:grid;place-items:center;cursor:pointer}
-.drawer-close svg{width:22px;height:22px}
+/* top right: "full screen" and "close" in one capsule, like Telegram's own buttons; without full screen only the close button */
+.drawer-acts{flex:none;display:flex;align-items:center;height:48px;padding:0 1px;border-radius:999px;border:1px solid transparent;transition:background-color .2s ease, border-color .2s ease}
+.drawer-acts.two{background:var(--surface);border-color:var(--line)}
+.drawer-acts .sep{width:1px;height:20px;background:var(--line);flex:none}
+.drawer-close,.fsbtn{flex:none;width:44px;height:44px;border-radius:50%;border:0;padding:0;background:transparent;color:var(--ink);display:grid;place-items:center;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:transform .12s ease, background-color .2s ease}
+.drawer-close:active,.fsbtn:active{transform:scale(.9);background:var(--line)}
+.drawer-close svg,.fsbtn svg{width:22px;height:22px}
+/* the four corners turn round: pointing out (make it full screen), pointing in (back to the usual size) */
+.fsbtn path{transform-box:fill-box;transform-origin:center;transition:transform .5s cubic-bezier(.3,1.35,.45,1)}
+.fsbtn path:nth-child(2){transition-delay:.03s}.fsbtn path:nth-child(3){transition-delay:.06s}.fsbtn path:nth-child(4){transition-delay:.09s}
+.fsbtn[aria-pressed="true"] path{transform:rotate(180deg) scale(.92)}
+.fsbtn[aria-pressed="true"]{color:var(--accent, var(--ink))}
 .drawer-group{margin:14px 8px 6px;font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 .drawer ul{list-style:none;margin:0;padding:0;display:grid;gap:4px}
 .drawer a{display:flex;align-items:center;gap:14px;min-height:60px;padding:8px 10px;border-radius:14px;color:var(--ink);text-decoration:none;transition:background-color .2s ease}
@@ -40,11 +56,6 @@ body{overflow-x:clip}
 .drawer a[aria-current="page"] small{color:inherit;opacity:.8}
 .drawer-panel{display:flex;flex-direction:column}
 .drawer nav{flex:none;margin-bottom:24px}
-/* the games: a quiet icon in the bottom-left corner, no label */
-.drawer a.drawer-secret{flex:none;margin-top:auto;align-self:flex-start;width:44px;min-height:44px;height:44px;padding:0;justify-content:center;border-radius:12px;color:var(--muted);opacity:.45;transition:opacity .2s ease, background-color .2s ease}
-.drawer a.drawer-secret:hover,.drawer a.drawer-secret:focus-visible{opacity:1}
-.drawer a.drawer-secret[aria-current="page"]{opacity:1;color:var(--bg)}
-.drawer-secret svg{width:22px;height:22px}
 .menu-open,.menu-open body{overflow:hidden}
 
 /* section tabs with a sliding thumb */
@@ -131,7 +142,7 @@ html.theme-vt .themebtn svg,.theme-fade .themebtn svg{transition:opacity .3s eas
 .dialhint{margin:-6px 0 0;text-align:center;font-size:14px;line-height:1.35;opacity:.72}
 
 /* "no internet" label at the top while the phone is offline */
-.offline{position:fixed;left:50%;top:calc(env(safe-area-inset-top, 0px) + 8px);transform:translateX(-50%);z-index:60;
+.offline{position:fixed;left:50%;top:calc(var(--sat) + 8px);transform:translateX(-50%);z-index:60;
   padding:6px 14px 6px 12px;border-radius:999px;background:var(--ink, #12181C);color:var(--bg, #E7ECEF);font:600 13.5px/1.3 system-ui, sans-serif;
   display:flex;align-items:center;gap:8px;box-shadow:0 4px 16px rgba(0,0,0,.25);animation:ui-off .3s var(--ease-out) both;white-space:nowrap}
 .offline::before{content:"";width:8px;height:8px;border-radius:50%;background:#FF8A80}
