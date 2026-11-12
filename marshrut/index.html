@@ -66,6 +66,9 @@
 .ln.walk{border-style:dashed;font-weight:600;color:var(--muted);border-color:var(--line)}
 .lines .sep{color:var(--muted);font-size:13px}
 .legs{list-style:none;margin:0;padding:0 14px 14px;display:grid;gap:0}
+.onmap{display:flex;align-items:center;justify-content:center;gap:8px;min-height:44px;margin:0 14px 14px;border-radius:12px;border:1px solid var(--line);background:var(--bg);
+  color:var(--ink);font-weight:600;font-size:15px;text-decoration:none}
+.onmap svg{width:18px;height:18px}
 .leg{display:grid;grid-template-columns:3.4em minmax(0,1fr);column-gap:10px;padding:10px 0;border-top:1px solid var(--line)}
 .leg .t{font-weight:600;font-variant-numeric:tabular-nums;font-size:16px;line-height:1.35}
 .leg .t small{display:block;font-weight:600;font-size:12.5px;color:var(--danger)}
@@ -81,7 +84,7 @@
 .skel{height:74px;border-radius:16px;background:linear-gradient(90deg, var(--surface), var(--line), var(--surface));background-size:200% 100%;animation:sk 1.2s linear infinite}
 @keyframes sk{to{background-position:-200% 0}}
 </style>
-<link rel="stylesheet" href="../assets/ui.css?v=17">
+<link rel="stylesheet" href="../assets/ui.css?v=18">
 </head>
 <body>
 <div class="wrap">
@@ -134,7 +137,7 @@
     <p>Маршрути й час наживо: VRR OpenService, без гарантії. Перед поїздкою з пересадкою перевір табло на станції.</p>
   </div>
 </div>
-<script src="../assets/ui.js?v=17"></script>
+<script src="../assets/ui.js?v=18"></script>
 <script type="module">
 import { WORKER_URL } from '../pogoda/wx.js';
 
@@ -268,7 +271,10 @@ function tripHTML(t, i) {
   return `<li><details class="trip${gone ? ' gone' : ''}"${i === 0 ? ' open' : ''}><summary aria-label="${esc(label)}"><div class="times"><span>${hm(t.depEst || t.dep)} → ${hm(t.arrEst || t.arr)}</span>` +
     `<small>${dur(t.mins)} · ${t.changes ? `${t.changes} ${plural(t.changes, 'пересадка', 'пересадки', 'пересадок')}` : 'без пересадок'}</small>` +
     (gone ? '<span class="late">скасовано</span>' : dl >= 1 || al >= 1 ? `<span class="late">+${Math.max(dl, al)} хв</span>` : '') + `</div><div class="lines">${lines}</div></summary>` +
-    (long ? '<p class="warn-long">У цьому маршруті є ICE, IC або EC: Deutschlandticket там не діє.</p>' : '') + `<ol class="legs">${legs}</ol></details></li>`;
+    (long ? '<p class="warn-long">У цьому маршруті є ICE, IC або EC: Deutschlandticket там не діє.</p>' : '') + `<ol class="legs">${legs}</ol>` +
+    // the same connection drawn on the map: the roads, the stops on the way, the walks between
+    `<a class="onmap" href="../mapa/?from=${encodeURIComponent(shown.from.id)}&amp;to=${encodeURIComponent(shown.to.id)}&amp;when=${encodeURIComponent(berlinStamp(new Date(t.dep)))}&amp;dep=${encodeURIComponent(t.dep)}${dticket ? '' : '&amp;long=1'}">` +
+    `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4.5l-5 2v13l5-2 6 2 5-2v-13l-5 2z"/><path d="M9 4.5v13M15 6.5v13"/></svg>Показати на мапі</a></details></li>`;
 }
 const isSaved = () => !!(shown && routes.some((r) => r.from.id === shown.from.id && r.to.id === shown.to.id));
 function renderSave() { const on = isSaved(); $('#save').setAttribute('aria-pressed', String(on)); $('#save').textContent = on ? 'Збережено' : 'Зберегти'; }
@@ -315,8 +321,18 @@ document.addEventListener('click', (e) => {
   const a = e.target.closest('a[target="_blank"]');
   if (a && tg && tg.openLink) { e.preventDefault(); try { tg.openLink(a.href); } catch (err) { location.href = a.href; } }
 });
+// from «Мапа» («Маршрут сюди»): the stop to go to comes in the address; from where it was last time, or my stop
+const fromMap = (function () {
+  const q = new URLSearchParams(location.search), id = q.get('to');
+  if (!id || !/^de:\d{5}:\d{1,7}$/.test(id)) return false;
+  to = { id, name: String(q.get('toName') || id).slice(0, 80) };
+  if (from && from.id === id) from = home.id !== id ? home : null;
+  try { history.replaceState(history.state, '', location.pathname); } catch (e) {}
+  return true;
+})();
 renderEnds(); renderRoutes();
 if (!to) openPick('to');
+else if (fromMap) { if (from) search(''); else openPick('from'); }   // straight to the connections
 </script>
 </body>
 </html>

@@ -20,8 +20,10 @@
  *                          by Gemma 4 on Workers AI (free daily allowance)
  *   GET  /translate/check  translates a fixed sentence (?page=1: a fixed letter): shows the model answers;
  *                          no sign-in, so only fixed texts, and every answer is cached
- *   GET  /transit/stops, /transit/departures, /transit/trip, /weather, /warnings
- *                          public timetable (VRR) and weather (Open-Meteo) data for the pages, see transit.js
+ *   GET  /transit/stops, /transit/departures, /transit/trip, /transit/area, /transit/course, /transit/walk,
+ *        /weather, /warnings
+ *                          public timetable (VRR), walking routes (OSRM) and weather (Open-Meteo) for the pages,
+ *                          see transit.js
  *   cron, every 30 minutes, each job checks the time in Xanten and sends at most once:
  *                          18:00 daily: which bins go out tomorrow · Mondays 08:00: new flyers and closed days ·
  *                          09:00 daily: the word of the day · any time: new DWD warnings for subscribers' places ·

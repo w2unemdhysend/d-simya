@@ -44,7 +44,7 @@ class Worker:
             return await route.fulfill(json=d, headers=cors)
         await route.fulfill(status=404, json={'ok': False}, headers=cors)
 
-async def page(browser, base, store=None, width=340):
+async def page(browser, base, store=None, width=340, path='marshrut/'):
     ctx = await browser.new_context(viewport={'width': width, 'height': 820}, timezone_id='America/New_York')   # a phone set to another zone still shows Xanten time
     await ctx.route('**/telegram.org/**', lambda r: r.fulfill(body='', content_type='text/javascript'))
     await ctx.route('**/fonts.googleapis.com/**', lambda r: r.fulfill(body='', content_type='text/css'))
@@ -52,7 +52,7 @@ async def page(browser, base, store=None, width=340):
     if store: await ctx.add_init_script("if (!sessionStorage.getItem('seeded')) {" + ''.join(f"localStorage.setItem({json.dumps(k)}, {json.dumps(json.dumps(v))});" for k, v in store.items()) + "sessionStorage.setItem('seeded', '1'); }")
     pg = await ctx.new_page(); pg.on('pageerror', lambda e: fails.append(f'page error: {e}'))
     await pg.clock.install(time='2026-11-12T06:00:00Z')
-    await pg.goto(base + 'marshrut/'); await pg.wait_for_timeout(400)
+    await pg.goto(base + path); await pg.wait_for_timeout(400)
     return ctx, pg, w
 
 TRIPS = "() => [...document.querySelectorAll('.trip')].map(t => ({times: t.querySelector('.times span').textContent, sub: t.querySelector('.times small').textContent, lines: [...t.querySelectorAll('.lines .ln')].map(l => l.textContent), open: t.open}))"
@@ -80,6 +80,8 @@ async def main():
         check('legs: stop with platform, line, direction, duration and stops', 'Xanten Bahnhof стоянка 2' in legs and 'автобус у бік Wesel Bahnhof' in legs and '29 хв, 16 зупинок' in legs and 'Duisburg Hbf' in legs, legs[:300])
         check('legs: the change with its minutes and the walk', 'Пересадка: 30 хв, з них 8 хв пішки' in legs, legs)
         check('"now" does not send the phone\'s own clock', 'when' not in call)
+        onmap = await pg.get_attribute('.trip >> nth=0 >> .onmap', 'href')
+        check('«Показати на мапі»: the map gets both ends, the departure in Xanten time and which connection', onmap == '../mapa/?from=de%3A05170%3A37032&to=de%3A05112%3A16032&when=2026-11-12T07%3A29&dep=2026-11-12T06%3A29%3A00Z', onmap)
         await pg.click('#later'); await pg.wait_for_function("document.querySelectorAll('.trip').length === 4")
         call = [c for c in w.calls if c[0] == '/transit/trip'][-1][1]
         check('"Пізніші": asks from one minute after the last departure, in Xanten time', call.get('when') == '2026-11-12T08:30', str(call))
@@ -106,6 +108,12 @@ async def main():
         w.fail = True
         await pg.click('#go'); await pg.wait_for_selector('#rmsg.err')
         check('VRR down: a clear message, the button works again', 'Не вдалося знайти маршрут' in await pg.text_content('#rmsg') and await pg.is_enabled('#go'))
+        await ctx.close()
+
+        ctx, pg, w = await page(browser, base, path='marshrut/?to=de:05112:16032&toName=Duisburg%20Hbf')
+        await pg.wait_for_selector('.trip')
+        check('from «Мапа» («Маршрут сюди»): the stop is the end, searched at once from my stop', await pg.text_content('#to-name') == 'Duisburg Hbf' and await pg.text_content('#from-name') == 'Xanten Bahnhof'
+              and [c for c in w.calls if c[0] == '/transit/trip'][-1][1] == {'from': 'de:05170:37032', 'to': 'de:05112:16032'} and pg.url.endswith('/marshrut/'), str(w.calls[-1]))
         await ctx.close()
 
         ctx, pg, w = await page(browser, base)

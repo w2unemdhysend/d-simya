@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>(function(){try{var s=null;try{s=localStorage.getItem('dsimya-theme')}catch(e){}var w=window.Telegram&&Telegram.WebApp;var tg=w&&w.platform&&w.platform!=='unknown';var t=s||(tg?(w.colorScheme==='dark'?'dark':'light'):(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));document.documentElement.setAttribute('data-theme',t)}catch(e){}})();addEventListener('unhandledrejection',function(e){var r=e.reason;if(r&&/Transition was (aborted|skipped)/.test(r.message||''))e.preventDefault()});</script>
+<title>Мапа</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@600;700&display=swap">
+<link rel="stylesheet" href="../assets/page.css?v=1">
+<link rel="stylesheet" href="../assets/maplibre/maplibre-gl.css?v=5.24.0">
+<link rel="stylesheet" href="mapa.css?v=1">
+<link rel="stylesheet" href="../assets/ui.css?v=18">
+</head>
+<body class="mapapp">
+<div class="wrap mapwrap">
+  <div class="map" id="map" data-noedge role="region" aria-label="Мапа: зупинки, пішки до них і де їде автобус"></div>
+  <p class="mapfail" id="mapfail" hidden>Мапу не вдалося показати на цьому пристрої. Зупинки, відправлення й маршрути нижче працюють.</p>
+
+  <header class="mtop">
+    <button class="menubtn round" id="menubtn" type="button" aria-expanded="false" aria-controls="drawer" aria-haspopup="dialog" aria-label="Розділи"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="vh">Розділи</span></button>
+    <form class="msearch" id="sform" role="search" autocomplete="off">
+      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
+      <input id="q" type="search" enterkeyhint="search" placeholder="Зупинка, вулиця чи адреса" aria-label="Знайти зупинку, вулицю чи адресу" maxlength="60" spellcheck="false">
+      <button class="clear" id="qclear" type="button" aria-label="Очистити пошук" hidden><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 7l10 10M17 7L7 17"/></svg></button>
+    </form>
+    <button class="themebtn" id="themebtn" type="button" aria-label="Увімкнути темну тему"><svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M5.3 18.7L7 17M17 7l1.7-1.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.6A8.2 8.2 0 0 1 9.4 4a8.2 8.2 0 1 0 10.6 10.6z" fill="currentColor"/></svg></button>
+  </header>
+
+  <div class="fabs" id="fabs">
+    <button class="fab" id="locate" type="button" aria-label="Показати, де я"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="7.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22"/></svg></button>
+  </div>
+
+  <section class="sheet" id="sheet" aria-label="Подробиці">
+    <button class="grip" id="grip" type="button" aria-label="Розгорнути" aria-controls="sheet"><span aria-hidden="true"></span></button>
+    <div class="shead" id="shead">
+      <button class="sback" id="sback" type="button" aria-label="Назад" hidden><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+      <div class="stitle"><h1 id="stitle">Мапа</h1><p id="ssub"></p></div>
+    </div>
+    <div class="sbody" id="sbody"></div>
+  </section>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="../assets/ui.js?v=18"></script>
+<script src="../assets/maplibre/maplibre-gl.js?v=5.24.0"></script>
+<script type="module" src="app.js?v=1"></script>
+</body>
+</html>

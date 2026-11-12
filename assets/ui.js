@@ -5,7 +5,7 @@
   // Life in Germany first; the appliance instructions are helpers, so they sit at the bottom. A group without a title has no heading.
   var SECTIONS = [
     ['', [['', 'Головна', 'Усе важливе на сьогодні', 'home']]],
-    ['Щодня', [['transport/', 'Транспорт', 'D-Ticket і відправлення наживо', 'bus'], ['marshrut/', 'Маршрут', 'Як доїхати: час і пересадки', 'route'], ['pogoda/', 'Погода', 'Зараз, на добу й тиждень', 'sun']]],
+    ['Щодня', [['transport/', 'Транспорт', 'D-Ticket і відправлення наживо', 'bus'], ['marshrut/', 'Маршрут', 'Як доїхати: час і пересадки', 'route'], ['mapa/', 'Мапа', 'Зупинки, шлях пішки, де зараз автобус', 'map'], ['pogoda/', 'Погода', 'Зараз, на добу й тиждень', 'sun']]],
     ['Дім', [['smittia/', 'Сміття', 'Вивіз баків і нагадування', 'trash']]],
     ['Покупки', [['spysok/', 'Список покупок', 'Спільний для родини', 'cart'], ['prospekty/', 'Проспекти', 'Акції магазинів Ксантена й Везеля', 'tag']]],
     ['Документи', [['scan/', 'Сканер', 'Фото аркуша в PDF і переклад', 'scan']]],
@@ -29,6 +29,7 @@
     bus: '<rect x="5" y="3.5" width="14" height="14" rx="3"/><path d="M5 11h14M8.5 20.5v-3M15.5 20.5v-3M8.5 14.3h.01M15.5 14.3h.01M9 6.5h6"/>',
     sun: '<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/>',
     book: '<path d="M12 6.5c-1.800-1.300-4.300-2-7.500-2v13c3.200 0 5.700.700 7.500 2 1.800-1.300 4.300-2 7.500-2v-13c-3.200 0-5.700.700-7.500 2z"/><path d="M12 6.500v13"/>',
+    map: '<path d="M9 4.5l-5 2v13l5-2 6 2 5-2v-13l-5 2z"/><path d="M9 4.5v13M15 6.5v13"/>',
     close: '<path d="M6 6l12 12M18 6L6 18"/>',
     game: '<path d="M7.5 7.5h9a4.5 4.5 0 0 1 4.4 5.4l-.8 3.8a2.4 2.4 0 0 1-4.2 1L14.6 16H9.4l-1.3 1.7a2.4 2.4 0 0 1-4.2-1l-.8-3.8a4.5 4.5 0 0 1 4.4-5.4z"/><path d="M8.5 10.5v3M7 12h3"/><circle cx="15.5" cy="11.2" r=".6"/><circle cx="17" cy="12.8" r=".6"/>',
   };
@@ -273,7 +274,7 @@
       if (e.touches.length !== 1) return;
       var t = e.touches[0], kind = null;
       if (menu && menu.isOpen()) kind = 'close';
-      else if (menu && t.clientX <= EDGE) kind = 'open';
+      else if (menu && t.clientX <= EDGE && !(e.target.closest && e.target.closest('[data-noedge]'))) kind = 'open';   // not on the map: there the finger moves the map
       else if (tabs && !blocked(e.target) && e.target.closest('main, .view')) kind = 'tabs';
       if (kind) g = { kind: kind, x: t.clientX, y: t.clientY, t: Date.now(), dx: 0, lock: null };
     }, { passive: true });

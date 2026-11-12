@@ -1,5 +1,5 @@
-// Checks the Worker's public routes for the Транспорт and Погода pages: input checks, trimming of the VRR and
-// Open-Meteo answers, notice text cleaned of HTML, caching, and that upstream failures are reported, not kept.
+// Checks the Worker's public routes for the Транспорт, Маршрут, Мапа and Погода pages: input checks, trimming of the
+// VRR, OSRM and Open-Meteo answers, notice text cleaned of HTML, caching, and that upstream failures are reported, not kept.
 // Run: node tests/transit.test.mjs   (Node 22+, no packages needed; upstream answers come from tests/fixtures)
 import { readFileSync } from 'node:fs';
 import worker from '../worker/send-scan.js';
@@ -8,6 +8,7 @@ import { plain } from '../worker/transit.js';
 const fx = (n) => JSON.parse(readFileSync(new URL('./fixtures/' + n, import.meta.url)));
 const TRIP = fx('efa-trip.json');
 const DM = fx('efa-dm.json'), SF = fx('efa-sf.json'), METEO = fx('meteo.json'), COORD = fx('efa-coord.json');
+const AREA = fx('efa-area.json'), SEQ = fx('efa-stopseq.json'), FOOT = fx('osrm-foot.json');
 // what the stop finder says for a street and for an address (no stop has that name)
 const STREET = { locations: [{ type: 'street', id: 'streetID:1', name: 'Xanten, Sonsbecker Straße', matchQuality: 250, coord: [51.6531, 6.4402] },
   { type: 'stop', id: 'de:05170:99001', name: 'Sonsbeck, Markt', disassembledName: 'Markt', matchQuality: 120, productClasses: [5], parent: { name: 'Sonsbeck' } }] };
@@ -21,7 +22,9 @@ globalThis.fetch = async (url) => {
     const q = u.searchParams.get('name_sf');
     return Response.json(/Sonsbecker/.test(q) ? STREET : /\d/.test(q) ? HOUSE : SF);
   }
-  if (u.hostname === 'openservice.vrr.de' && u.pathname.endsWith('XML_COORD_REQUEST')) return Response.json(COORD);
+  if (u.hostname === 'openservice.vrr.de' && u.pathname.endsWith('XML_COORD_REQUEST')) return Response.json(u.searchParams.get('radius_1') === '1300' ? AREA : COORD);
+  if (u.hostname === 'openservice.vrr.de' && u.pathname.endsWith('XML_STOPSEQCOORD_REQUEST')) return Response.json(SEQ);
+  if (u.hostname === 'routing.openstreetmap.de') return Response.json(FOOT);
   if (u.hostname === 'openservice.vrr.de' && u.pathname.endsWith('XML_DM_REQUEST')) {
     // the look-alike check asks each stop for its own name
     const id = u.searchParams.get('name_dm');
@@ -29,7 +32,13 @@ globalThis.fetch = async (url) => {
     if (id === 'de:05170:36246') return Response.json({ locations: [{ name: 'Xanten, Lüttingen Schule' }], stopEvents: DM.stopEvents.slice(0, 2) });
     return Response.json(DM);
   }
-  if (u.hostname === 'openservice.vrr.de' && u.pathname.endsWith('XML_TRIP_REQUEST2')) return Response.json(TRIP);
+  if (u.hostname === 'openservice.vrr.de' && u.pathname.endsWith('XML_TRIP_REQUEST2')) {
+    if (u.searchParams.get('genC') !== '1') return Response.json(TRIP);
+    // with paths: every leg gets the road of the course fixture and its stops
+    const withPaths = structuredClone(TRIP);
+    for (const j of withPaths.journeys) for (const l of j.legs) { l.coords = SEQ.leg.coords.slice(0, 200); l.stopSequence = SEQ.leg.stopSequence.slice(0, 5); }
+    return Response.json(withPaths);
+  }
   if (u.hostname === 'api.open-meteo.com') return Response.json(METEO);
   return new Response('unexpected ' + u, { status: 599 });
 };
@@ -146,6 +155,56 @@ t('trip: bad ids, the same stop twice or a bad time are refused', (await get('/t
 const nTrip = calls.filter((u) => u.pathname.endsWith('XML_TRIP_REQUEST2')).length;
 await get('/transit/trip?from=de:05170:37032&to=de:05112:16032&when=2026-11-12T08:00');
 t('trip: the same question within a minute is answered from the cache', calls.filter((u) => u.pathname.endsWith('XML_TRIP_REQUEST2')).length === nTrip);
+
+// the map: stops of a grid cell
+r = await get('/transit/area?lat=51.66237&lon=6.45491');
+const ac = calls.filter((u) => u.pathname.endsWith('XML_COORD_REQUEST')).pop();
+t('area: asks VRR around the grid point (two decimals), 1.3 km, many stops', ac.searchParams.get('coord') === '6.45:51.66:WGS84[dd.ddddd]' && ac.searchParams.get('radius_1') === '1300' && Number(ac.searchParams.get('max')) >= 100, ac.search);
+t('area: the cell and its stops with names, places, modes and coordinates', r.status === 200 && r.body.cell.join() === '51.66,6.45' && r.body.stops.length === 16
+  && r.body.stops.every((x) => /^de:\d{5}:\d+$/.test(x.id) && x.name && x.coord && x.coord[0] > 51 && x.coord[1] > 6 && x.modes.length), JSON.stringify(r.body.stops[0]));
+const na = calls.length;
+await get('/transit/area?lat=51.6581&lon=6.4512');
+t('area: another spot in the same cell comes from the cache, kept a day', calls.length === na);
+t('area: outside Germany or without a spot is refused', (await get('/transit/area?lat=48.85&lon=2.35')).status === 400 && (await get('/transit/area?lat=51.66')).status === 400);
+
+// the map: where one trip goes
+r = await get('/transit/departures?stop=de:05170:37032');
+t('departures: each trip says how to ask where it goes', r.body.deps[0].ref && r.body.deps[0].ref.line === 'nia:25036: :H:j26' && r.body.deps[0].ref.trip === '27', JSON.stringify(r.body.deps[0].ref));
+t('departures: a stop coordinate that is not on Earth is left out', r.body.stop.coord === null, JSON.stringify(r.body.stop));
+r = await get('/transit/course?line=' + encodeURIComponent('bvr:88X28:W:R:j26') + '&trip=33&stop=de:05170:37032&when=2026-11-12T15:28');
+const sc = calls.filter((u) => u.pathname.endsWith('XML_STOPSEQCOORD_REQUEST')).pop();
+t('course: asks VRR for the trip with date and time in Xanten time, live', sc.searchParams.get('line') === 'bvr:88X28:W:R:j26' && sc.searchParams.get('tripCode') === '33'
+  && sc.searchParams.get('date') === '20261112' && sc.searchParams.get('time') === '1528' && sc.searchParams.get('useRealtime') === '1', sc.search);
+const co = r.body;
+t('course: line, destination, mode and live', r.status === 200 && co.line === 'X28' && co.dest === 'Goch Bahnhof' && co.mode === 'bus' && co.live === true, JSON.stringify({ ...co, stops: 0, path: 0 }));
+t('course: 39 stops with stop ids (not platforms), names and coordinates', co.stops.length === 39 && co.stops.every((x) => /^de:\d{5}:\d+$/.test(x.id) && x.name && x.coord)
+  && co.stops[0].name === 'Wesel Bahnhof' && co.stops[38].name === 'Goch Bahnhof', JSON.stringify(co.stops[0]));
+t('course: planned and live times; none to arrive at the first stop, none to leave the last', co.stops[0].dep && !co.stops[0].arr && co.stops[38].arr && !co.stops[38].dep && co.stops[38].arrEst === '2026-11-12T15:19:00Z', JSON.stringify(co.stops[38]));
+t('course: the road, made smaller, starts and ends where the trip does', co.path.length > 50 && co.path.length < SEQ.leg.coords.length / 2
+  && Math.abs(co.path[0][0] - 51.65543) < 1e-4 && Math.abs(co.path[co.path.length - 1][1] - SEQ.leg.coords[SEQ.leg.coords.length - 1][1]) < 1e-4, co.path.length);
+t('course: small enough for a phone', JSON.stringify(co).length < 16000, JSON.stringify(co).length);
+t('course: made-up ids, a missing trip code or time are refused', (await get('/transit/course?line=x&trip=33&stop=de:05170:37032&when=2026-11-12T15:28')).status === 400
+  && (await get('/transit/course?line=' + encodeURIComponent('bvr:88X28:W:R:j26') + '&stop=de:05170:37032&when=2026-11-12T15:28')).status === 400
+  && (await get('/transit/course?line=' + encodeURIComponent('bvr:88X28:W:R:j26') + '&trip=33&stop=de:05170:37032')).status === 400);
+
+// the map: on foot
+const nw = calls.length;
+r = await get('/transit/walk?from=51.6620,6.4500&to=51.659537,6.445924');
+const fc = calls.filter((u) => u.hostname === 'routing.openstreetmap.de').pop();
+t('walk: asks the foot router with lon,lat pairs, the whole path', fc && fc.pathname.startsWith('/routed-foot/route/v1/') && fc.pathname.endsWith('/6.45,51.662;6.445924,51.659537') && fc.searchParams.get('overview') === 'full', fc && String(fc));
+t('walk: metres, minutes and the path as lat,lon', r.status === 200 && r.body.m === 445 && r.body.min === 6 && r.body.path.length >= 2 && r.body.path[0][0] > 51 && r.body.path[0][1] < 7, JSON.stringify(r.body));
+await get('/transit/walk?from=51.6620,6.4500&to=51.659537,6.445924');
+t('walk: never kept (the spot is someone\'s)', calls.length === nw + 2);
+t('walk: bad points, outside Germany or farther than 15 km are refused', (await get('/transit/walk?from=51.66&to=51.65,6.44')).status === 400
+  && (await get('/transit/walk?from=48.85,2.35&to=51.65,6.44')).status === 400 && (await get('/transit/walk?from=51.66,6.45&to=51.45,6.75')).status === 400);
+
+// the map: a connection with its roads
+r = await get('/transit/trip?from=de:05170:37032&to=de:05112:16032&when=2026-11-12T08:00&paths=1');
+const pc = calls.filter((u) => u.pathname.endsWith('XML_TRIP_REQUEST2')).pop();
+t('trip with paths: VRR is asked for coordinates, kept apart from the plain answer', pc.searchParams.get('genC') === '1' && r.body.trips[0].legs.every((l) => Array.isArray(l.path) && l.path.length > 10 && Array.isArray(l.on)), JSON.stringify(r.body.trips[0].legs[0]).slice(0, 200));
+t('trip with paths: the stops on the way have names and coordinates', r.body.trips[0].legs[0].on.length === 5 && r.body.trips[0].legs[0].on.every((x) => x.name && x.coord));
+r = await get('/transit/trip?from=de:05170:37032&to=de:05112:16032&when=2026-11-12T08:00');
+t('trip without paths: still without them', !('path' in r.body.trips[0].legs[0]));
 
 // HTML to text
 t('plain: tags, entities, line breaks', plain('<div>Ab <strong>Montag</strong>&nbsp;f&uuml;r&#160;alle<br/>Linie&nbsp;&#x41;</div><script>x</script>') === 'Ab Montag für alle\nLinie A\nx');

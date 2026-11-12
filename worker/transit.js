@@ -7,7 +7,14 @@
 //   GET /transit/departures?stop=<id>    next departures from a stop, with live times and notices
 //   GET /transit/trip?from=<id>&to=<id>  connections between two stops: times, changes, each leg with line, platform
 //        [&when=YYYY-MM-DDTHH:MM]        and delay; when: departure time in Xanten time (default: now);
-//        [&long=1]                       long=1 also allows ICE/IC/EC, where the Deutschlandticket is not valid
+//        [&long=1]                       long=1 also allows ICE/IC/EC, where the Deutschlandticket is not valid;
+//        [&paths=1]                      paths=1: each leg also with its path and the stops on the way (for the map)
+//   GET /transit/area?lat=<..>&lon=<..>  the stops around a point of a 0.01° grid (about a kilometre), for the map
+//   GET /transit/course?line=<id>&trip=<code>&stop=<id>&when=YYYY-MM-DDTHH:MM
+//                                        where one bus or train goes: its stops with times (live where VRR has them)
+//                                        and its path on the roads; line and trip come with every departure
+//   GET /transit/walk?from=<lat,lon>&to=<lat,lon>  a walking route: metres, minutes and the path (OSRM on the
+//                                        FOSSGIS server, © OpenStreetMap contributors); the spots are never kept
 //   GET /weather?lat=<..>&lon=<..>       now, next 24 hours and 7 days (Open-Meteo)
 //   GET /warnings?lat=<..>&lon=<..>      official weather warnings of the Deutscher Wetterdienst (through Bright Sky)
 //
@@ -17,13 +24,19 @@
 
 const EFA = 'https://openservice.vrr.de/static03/';
 const METEO = 'https://api.open-meteo.com/v1/forecast';
+const FOOT = 'https://routing.openstreetmap.de/routed-foot/route/v1/driving/';
 export const STOP_ID = /^de:\d{5}:\d{1,7}$/;
+// a VRR trip: line id ("bvr:88X28:W:R:j26", "nia:25BSO: :R:j26") and trip code, as departures carry them
+export const LINE_ID = /^[a-z0-9]{2,8}:[A-Za-z0-9 ]{1,12}:[A-Za-z0-9 _-]{1,4}:[A-Z]{1,2}:j\d{2}$/;
+const STAMP = /^20\d\d-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d$/;
 const memo = new Map();   // per Worker instance; the Cloudflare cache below is shared
-const CACHE_V = 2;         // raise when the shape of an answer changes, so a new version never serves old answers
+const CACHE_V = 3;         // raise when the shape of an answer changes, so a new version never serves old answers
+const inGermany = (lat, lon) => lat >= 47 && lat <= 55.2 && lon >= 5.8 && lon <= 15.1;
 
 import { fetchWarnings } from './warn.js';
 
-export function isTransit(path) { return path === '/transit/stops' || path === '/transit/departures' || path === '/transit/trip' || path === '/weather' || path === '/warnings'; }
+const PATHS = ['/transit/stops', '/transit/departures', '/transit/trip', '/transit/area', '/transit/course', '/transit/walk', '/weather', '/warnings'];
+export function isTransit(path) { return PATHS.includes(path); }
 
 export async function transit(request, env, ctx, reply, cors) {
   if (request.method !== 'GET') return reply(405, { ok: false, error: 'GET only' });
@@ -32,7 +45,7 @@ export async function transit(request, env, ctx, reply, cors) {
     if (url.pathname === '/transit/stops') {
       if (p.has('lat') || p.has('lon')) {
         const lat = Number(p.get('lat')), lon = Number(p.get('lon'));
-        if (!(lat >= 47 && lat <= 55.2 && lon >= 5.8 && lon <= 15.1)) return reply(400, { ok: false, error: 'lat and lon in Germany' });
+        if (!inGermany(lat, lon)) return reply(400, { ok: false, error: 'lat and lon in Germany' });
         // about 100 m is enough to find the nearest stop; the spot is neither kept nor written to the log
         return await cached('', 0, ctx, cors, url.origin, async () => ({ stops: [], near: await nearby([lat.toFixed(3), lon.toFixed(3)], '', 'here'), nearFirst: true }));
       }
@@ -47,12 +60,31 @@ export async function transit(request, env, ctx, reply, cors) {
       return await cached(`dep:${stop}`, 30, ctx, cors, url.origin, () => departures(stop));
     }
     if (url.pathname === '/transit/trip') {
-      const from = String(p.get('from') || ''), to = String(p.get('to') || ''), when = String(p.get('when') || ''), long = p.get('long') === '1';
+      const from = String(p.get('from') || ''), to = String(p.get('to') || ''), when = String(p.get('when') || ''), long = p.get('long') === '1', paths = p.get('paths') === '1';
       if (!STOP_ID.test(from) || !STOP_ID.test(to) || from === to) return reply(400, { ok: false, error: 'from and to: two different stop ids' });
-      if (when && !/^20\d\d-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d$/.test(when)) return reply(400, { ok: false, error: 'when: YYYY-MM-DDTHH:MM' });
+      if (when && !STAMP.test(when)) return reply(400, { ok: false, error: 'when: YYYY-MM-DDTHH:MM' });
       // "now" is kept by the minute it was asked in, a chosen time a little longer
       const stamp = when || berlinStamp(new Date());
-      return await cached(`trip:${from}:${to}:${stamp}:${long ? 1 : 0}`, when ? 60 : 30, ctx, cors, url.origin, () => trip(from, to, stamp, long));
+      return await cached(`trip:${from}:${to}:${stamp}:${long ? 1 : 0}:${paths ? 1 : 0}`, when ? 60 : 30, ctx, cors, url.origin, () => trip(from, to, stamp, long, paths));
+    }
+    if (url.pathname === '/transit/area') {
+      const lat = Number(p.get('lat')), lon = Number(p.get('lon'));
+      if (p.get('lat') === null || p.get('lon') === null || !inGermany(lat, lon)) return reply(400, { ok: false, error: 'lat and lon in Germany' });
+      // the map asks by grid cell: the same cells for everyone, so they can be kept a day, and the spot is only a cell
+      const la = lat.toFixed(2), lo = lon.toFixed(2);
+      return await cached(`area:${la},${lo}`, 86400, ctx, cors, url.origin, () => area(la, lo));
+    }
+    if (url.pathname === '/transit/course') {
+      const line = String(p.get('line') || ''), code = String(p.get('trip') || ''), stop = String(p.get('stop') || ''), when = String(p.get('when') || '');
+      if (!LINE_ID.test(line) || !/^\d{1,6}$/.test(code) || !STOP_ID.test(stop) || !STAMP.test(when)) return reply(400, { ok: false, error: 'line, trip, stop and when as a departure gives them' });
+      return await cached(`course:${line}:${code}:${stop}:${when}`, 30, ctx, cors, url.origin, () => course(line, code, stop, when));
+    }
+    if (url.pathname === '/transit/walk') {
+      const a = String(p.get('from') || '').split(',').map(Number), b = String(p.get('to') || '').split(',').map(Number);
+      const ok = (c) => c.length === 2 && c.every((n) => Number.isFinite(n)) && inGermany(c[0], c[1]);
+      if (!ok(a) || !ok(b)) return reply(400, { ok: false, error: 'from and to: lat,lon in Germany' });
+      if (metres(a, b) > 15000) return reply(400, { ok: false, error: 'too far to walk' });
+      return await cached('', 0, ctx, cors, url.origin, () => walk(a, b));
     }
     const lat = Number(p.get('lat')), lon = Number(p.get('lon'));
     if (!(Math.abs(lat) <= 90 && Math.abs(lon) <= 180) || p.get('lat') === null || p.get('lon') === null)
@@ -140,7 +172,77 @@ async function nearby([lat, lon], name, kind) {
   const list = (d.locations || []).filter((l) => l.type === 'stop' && STOP_ID.test(l.id || ''))
     .map((l) => ({ ...stopOf(l), dist: Math.round(Number(l.properties && l.properties.distance) || 0) }))
     .sort((a, b) => a.dist - b.dist).slice(0, 6);
-  return { name, kind, stops: await lookAlikes(list) };
+  return { name, kind, coord: [Number(lat), Number(lon)], stops: await lookAlikes(list) };
+}
+
+// Every stop around a grid point (1.3 km: the cells overlap, so a stop near the edge of one is in the next one too)
+async function area(lat, lon) {
+  const u = new URL(EFA + 'XML_COORD_REQUEST');
+  Object.entries({ outputFormat: 'rapidJSON', coordOutputFormat: 'WGS84[dd.ddddd]', inclFilter: '1', type_1: 'STOP', radius_1: '1300', max: '150',
+    coord: `${lon}:${lat}:WGS84[dd.ddddd]` }).forEach(([k, v]) => u.searchParams.set(k, v));
+  const d = await getJson(u);
+  const stops = (d.locations || []).filter((l) => l.type === 'stop' && STOP_ID.test(l.id || '') && Array.isArray(l.coord)).map(stopOf);
+  return { cell: [Number(lat), Number(lon)], stops };
+}
+
+// One trip from first stop to last: the stops with planned and live times, and the road it takes
+async function course(line, code, stop, stamp) {
+  const u = new URL(EFA + 'XML_STOPSEQCOORD_REQUEST');
+  Object.entries({ outputFormat: 'rapidJSON', coordOutputFormat: 'WGS84[dd.ddddd]', line, stop, tripCode: code,
+    date: stamp.slice(0, 10).replace(/-/g, ''), time: stamp.slice(11).replace(':', ''), tStOTType: 'all', useRealtime: '1' }).forEach(([k, v]) => u.searchParams.set(k, v));
+  const d = await getJson(u);
+  const l = d.leg;
+  if (!l || !Array.isArray(l.stopSequence) || l.stopSequence.length < 2) throw new Error('course: no stops');
+  const t = l.transportation || {}, prod = t.product || {};
+  return {
+    line: clip(t.disassembledName || t.number || prod.name, 24), mode: modeOf(prod.class), dest: clip(t.destination && t.destination.name, 80),
+    live: (l.realtimeStatus || []).includes('MONITORED'),
+    stops: l.stopSequence.map(seqStop),
+    path: simplify(l.coords || [], 4),
+    at: new Date().toISOString(),
+  };
+}
+// a stop of a stop sequence: the stop's id (not its platform), name, place and times
+function seqStop(s) {
+  const pid = s.parent && STOP_ID.test(s.parent.id || '') ? s.parent.id : (String(s.id || '').match(/^de:\d{5}:\d{1,7}/) || [''])[0];
+  return { id: pid, name: clip(s.parent && s.parent.name ? s.parent.name : s.name, 80), coord: round5(s.coord),
+    arr: s.arrivalTimePlanned || null, arrEst: s.arrivalTimeEstimated || null, dep: s.departureTimePlanned || null, depEst: s.departureTimeEstimated || null };
+}
+// [lat, lon] to five decimals (about a metre); anything that is not a point on Earth (old answers had other coordinates) is null
+const round5 = (c) => (Array.isArray(c) && c.length >= 2 && Math.abs(c[0]) <= 90 && Math.abs(c[1]) <= 180 ? [c[0], c[1]].map((n) => Math.round(n * 1e5) / 1e5) : null);
+
+// On foot from a to b along footpaths: OSRM's "foot" profile on the FOSSGIS server (about 4.5 km/h)
+async function walk(a, b) {
+  const d = await getJson(`${FOOT}${a[1]},${a[0]};${b[1]},${b[0]}?overview=full&geometries=geojson&steps=false&alternatives=false`);
+  const r = d && d.code === 'Ok' && (d.routes || [])[0];
+  if (!r) throw new Error('walk: no route');
+  return { m: Math.round(r.distance), min: Math.max(1, Math.round(r.duration / 60)), path: simplify(r.geometry.coordinates.map(([lo, la]) => [la, lo]), 2) };
+}
+
+// metres between two [lat, lon] (flat-earth: good enough for a town)
+export function metres(a, b) {
+  const k = Math.cos((a[0] + b[0]) * Math.PI / 360);
+  return Math.hypot((a[0] - b[0]) * 111320, (a[1] - b[1]) * 111320 * k);
+}
+// A line of [lat, lon] with fewer points: those within tol metres of the straight line between their neighbours go
+// (Douglas–Peucker); the shape on the map stays the same, the answer gets much smaller
+export function simplify(pts, tol) {
+  const p = pts.filter((c) => Array.isArray(c) && c.length >= 2 && Number.isFinite(c[0]) && Number.isFinite(c[1]));
+  if (p.length < 3) return p.map(round5);
+  const k = Math.cos(p[0][0] * Math.PI / 180), xy = p.map(([la, lo]) => [lo * 111320 * k, la * 111320]);
+  const keep = new Uint8Array(p.length); keep[0] = keep[p.length - 1] = 1;
+  const stack = [[0, p.length - 1]];
+  while (stack.length) {
+    const [i, j] = stack.pop();
+    const [x1, y1] = xy[i], [x2, y2] = xy[j], dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy) || 1;
+    let far = -1, best = tol;
+    for (let n = i + 1; n < j; n++) {
+      const dist = Math.abs(dy * xy[n][0] - dx * xy[n][1] + x2 * y1 - y2 * x1) / len;
+      if (dist > best) { best = dist; far = n; }
+    }
+    if (far > 0) { keep[far] = 1; stack.push([i, far], [far, j]); }
+  }
+  return p.filter((c, n) => keep[n]).map(round5);
 }
 
 // The finder also matches old names: "Lüttingen Schule" can be a stop now called Hagelkreuzstraße, and two stops on
@@ -194,9 +296,11 @@ export async function departures(stop, limit = 40) {
       gone: !!e.isCancelled || status.includes('TRIP_CANCELLED') || status.includes('CANCELLED'),
       plat: clip(props.platformName || props.platform, 12), platOld: props.plannedPlatformName && props.plannedPlatformName !== props.platformName ? clip(props.plannedPlatformName, 12) : '',
       notes: (e.infos || []).map(noteOf), hints: (e.hints || []).filter((h) => h.type !== 'RTSTATUS').map(hintOf).filter((n) => n >= 0),
+      // what the map needs to ask where this bus goes (/transit/course)
+      ref: LINE_ID.test(t.id || '') && /^\d{1,6}$/.test(String((t.properties || {}).tripCode)) ? { line: t.id, trip: String(t.properties.tripCode) } : null,
     };
   }).filter((x) => x.plan);
-  return { stop: { id: stop, name: clip(loc.name || loc.disassembledName, 120) }, at: new Date().toISOString(), deps, notices, hints };
+  return { stop: { id: stop, name: clip(loc.name || loc.disassembledName, 120), coord: round5(loc.coord) }, at: new Date().toISOString(), deps, notices, hints };
 }
 
 // 'YYYY-MM-DDTHH:MM' in Xanten time for a moment
@@ -210,11 +314,11 @@ function berlinStamp(date) {
 // the Deutschlandticket is not valid on them. The answer from VRR is large (alternatives for every leg); only what
 // the page shows is passed on.
 const LONG = [14, 15, 16], WALK = [99, 100];
-export async function trip(from, to, stamp, long = false) {
+export async function trip(from, to, stamp, long = false, paths = false) {
   const u = new URL(EFA + 'XML_TRIP_REQUEST2');
   Object.entries({ outputFormat: 'rapidJSON', coordOutputFormat: 'WGS84[dd.ddddd]', type_origin: 'any', name_origin: from, type_destination: 'any', name_destination: to,
     itdDateTimeDepArr: 'dep', itdDate: stamp.slice(0, 10).replace(/-/g, ''), itdTime: stamp.slice(11).replace(':', ''), calcNumberOfTrips: '4', useRealtime: '1',
-    routeType: 'LEASTTIME', useProxFootSearch: '0', locationServerActive: '1', genC: '0', genMaps: '0', genP: '0',
+    routeType: 'LEASTTIME', useProxFootSearch: '0', locationServerActive: '1', genC: paths ? '1' : '0', genMaps: '0', genP: '0',
     ...(long ? {} : { excludedMeans: 'checkbox', exclMOT_14: '1', exclMOT_15: '1', exclMOT_16: '1' }) }).forEach(([k, v]) => u.searchParams.set(k, v));
   const d = await getJson(u);
   const stopName = (l) => clip(l.type === 'platform' && l.parent ? l.parent.name : l.name, 80);
@@ -234,6 +338,7 @@ export async function trip(from, to, stamp, long = false) {
         mins: Math.round((l.duration || 0) / 60), stops: Math.max(0, (l.stopSequence || []).length - 1), walkAfter: after ? Math.round(after.duration / 60) : 0,
         gone: !!l.isCancelled || status.includes('TRIP_CANCELLED') || status.includes('CANCELLED'),
         notes: (l.infos || []).map((i) => clip(((i.infoLinks || [])[0] || {}).title || ((i.infoLinks || [])[0] || {}).urlText, 160)).filter(Boolean).slice(0, 2),
+        ...(paths ? { path: simplify(l.coords || [], 4), on: (l.stopSequence || []).map(seqStop).filter((x) => x.coord).map((x) => ({ name: x.name, coord: x.coord })) } : {}),
       };
     }).filter((l) => l.from.plan && l.to.plan);
     if (!legs.length) return null;

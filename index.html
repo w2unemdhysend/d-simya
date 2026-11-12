@@ -125,11 +125,12 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-top:14px}
 .group{margin:10px 2px -2px;font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 .tile.quiet{min-height:0;flex-direction:row;align-items:center;justify-content:flex-start;gap:12px;padding:12px}
 .tile.quiet .ic{flex:none;width:34px;height:34px}
+.grid2 > .tile.quiet:last-child:nth-child(odd){grid-column:1/-1}
 .foot{margin-top:20px;font-size:13px;color:var(--muted)}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 @media (min-width:480px){h1{font-size:36px}}
 </style>
-<link rel="stylesheet" href="assets/ui.css?v=17">
+<link rel="stylesheet" href="assets/ui.css?v=18">
 </head>
 <body>
 <div class="wrap">
@@ -163,23 +164,24 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-top:14px}
     <div class="grid2">
       <a class="tile dt" id="t-dticket" href="https://play.google.com/store/apps/details?id=mentz.com.vrr_cibo_app" target="_blank" rel="noopener" style="--i:5">
         <span class="ic" aria-hidden="true">D</span><span><b>Мій D-Ticket</b><small id="dt-sub">Відкрити VRR App</small></span></a>
-      <a class="tile" href="scan/" style="--i:6"><span class="ic" data-icon="scan"></span><span><b>Сканер</b><small>Фото документа в PDF і переклад</small></span></a>
-      <a class="tile" href="ekstreno/" style="--i:7"><span class="ic" data-icon="sos"></span><span><b>Екстрено</b><small>112, черговий лікар, аптека</small></span></a>
-      <a class="tile" href="rozmovnyk/" style="--i:8"><span class="ic" data-icon="talk"></span><span><b>Розмовник</b><small>Фрази для лікаря й установ</small></span></a>
+      <a class="tile" href="mapa/" style="--i:6"><span class="ic" data-icon="map"></span><span><b>Мапа</b><small>Зупинки, пішки, де автобус</small></span></a>
+      <a class="tile" href="scan/" style="--i:7"><span class="ic" data-icon="scan"></span><span><b>Сканер</b><small>Фото документа в PDF і переклад</small></span></a>
+      <a class="tile" href="ekstreno/" style="--i:8"><span class="ic" data-icon="sos"></span><span><b>Екстрено</b><small>112, черговий лікар, аптека</small></span></a>
+      <a class="tile quiet" href="rozmovnyk/" style="--i:9"><span class="ic" data-icon="talk"></span><span><b>Розмовник</b><small>Фрази для лікаря й установ</small></span></a>
     </div>
     <div class="group">Навчання</div>
-    <a class="tile quiet" href="a1/" style="--i:9"><span class="ic" data-icon="book"></span><span><b>Німецька A1</b><small id="a1-sub">Граматика, словник з озвученням, вправи</small></span></a>
+    <a class="tile quiet" href="a1/" style="--i:10"><span class="ic" data-icon="book"></span><span><b>Німецька A1</b><small id="a1-sub">Граматика, словник з озвученням, вправи</small></span></a>
     <div class="group">Інструкції</div>
     <div class="grid2">
-      <a class="tile quiet" href="pralka/" style="--i:10"><span class="ic" data-icon="wash"></span><span><b>Пралка</b><small>Beko</small></span></a>
-      <a class="tile quiet" href="sushka/" style="--i:11"><span class="ic" data-icon="dry"></span><span><b>Сушарка</b><small>Gorenje</small></span></a>
+      <a class="tile quiet" href="pralka/" style="--i:11"><span class="ic" data-icon="wash"></span><span><b>Пралка</b><small>Beko</small></span></a>
+      <a class="tile quiet" href="sushka/" style="--i:12"><span class="ic" data-icon="dry"></span><span><b>Сушарка</b><small>Gorenje</small></span></a>
     </div>
     <div class="group">Telegram</div>
-    <a class="tile quiet" href="bot/" style="--i:12"><span class="ic" data-icon="bell"></span><span><b>Бот</b><small>Ранкове зведення, команди в чаті, сповіщення</small></span></a>
+    <a class="tile quiet" href="bot/" style="--i:13"><span class="ic" data-icon="bell"></span><span><b>Бот</b><small>Ранкове зведення, команди в чаті, сповіщення</small></span></a>
   </main>
   <p class="foot">D-SIM’YA — помічник для життя в Німеччині. Свайп від лівого краю відкриває розділи.</p>
 </div>
-<script src="assets/ui.js?v=17"></script>
+<script src="assets/ui.js?v=18"></script>
 <script type="module">
 import { WORKER_URL, PLACES, homePlace, getWeather, getWarnings, warnWhen, wxIcon, wxText, advice, deg } from './pogoda/wx.js';
 import { BINS, binsOn, berlinDay, prefsOf } from './smittia/due.js';
@@ -205,6 +207,7 @@ const ICON = {
   talk: '<path d="M4.5 5.5h15v10h-8l-4.5 3.5v-3.5h-2.5z"/><path d="M8.5 9.5h7M8.5 12.2h4.5"/>',
   bell: '<path d="M6.5 16.5v-5.5a5.5 5.5 0 0 1 11 0v5.5l1.5 1.500h-14z"/><path d="M10.2 20.5a2 2 0 0 0 3.6 0"/>',
   book: '<path d="M12 6.5c-1.8-1.3-4.3-2-7.5-2v13c3.2 0 5.7.7 7.5 2 1.8-1.3 4.3-2 7.5-2v-13c-3.2 0-5.7.7-7.5 2z"/><path d="M12 6.5v13"/>',
+  map: '<path d="M9 4.5l-5 2v13l5-2 6 2 5-2v-13l-5 2z"/><path d="M9 4.5v13M15 6.5v13"/>',
   cart: '<path d="M3 4h2.2l2.2 10.2a1.5 1.5 0 0 0 1.5 1.2h8.3a1.5 1.5 0 0 0 1.5-1.1L20.5 8H6.2"/><circle cx="9.5" cy="19.5" r="1.3"/><circle cx="17" cy="19.5" r="1.3"/>',
 };
 document.querySelectorAll('[data-icon]').forEach((el) => {

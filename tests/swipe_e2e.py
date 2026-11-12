@@ -6,7 +6,7 @@ Covers: sideways swipe switches tabs on the washer page (next, previous), the pa
 finger, a short swipe springs back, scrolling up and down never switches, nothing on the first tab to the right,
 the program knob is not a swipe; the new view slides in from the side it comes from; a swipe from the left edge opens
 the menu and a swipe on the menu closes it; the games menu has no tabs (only the edge swipe); in an A1 chapter a swipe
-changes the part, on the course screen it does nothing; pages without tabs only have the edge swipe. Also: at the bottom of the washer page, turning the program knob never moves the page.
+changes the part, on the course screen it does nothing; on the map the edge swipe moves the map, not the menu; pages without tabs only have the edge swipe. Also: at the bottom of the washer page, turning the program knob never moves the page.
 Exits 1 if a check fails.
 """
 import asyncio, functools, http.server, os, sys, threading
@@ -137,6 +137,14 @@ async def main():
         await swipe(cdp, 80, 500, 300, 500); await pg.wait_for_timeout(700)
         check('A1: swipe right goes back to «Граматика»', await pg.evaluate(TAB) == 'gram' and await pg.is_visible('#p-gram')
               and await pg.evaluate("[...document.querySelectorAll('.panel')].every(p => !p.style.transform)"))
+        await ctx.close()
+
+        # the map: a finger starting at the left edge moves the map, it does not pull out the menu (the button still opens it)
+        ctx, pg, cdp = await page(browser, base + 'mapa/')
+        await swipe(cdp, 3, 300, 260, 300); await pg.wait_for_timeout(500)
+        check('map: an edge swipe on the map leaves the menu closed', not await pg.evaluate("document.getElementById('drawer').classList.contains('open')"))
+        await pg.click('#menubtn'); await pg.wait_for_timeout(400)
+        check('map: the menu button opens the menu', await pg.evaluate("document.getElementById('drawer').classList.contains('open')"))
         await ctx.close()
 
         # home screen: no tabs, only the edge swipe; a swipe in the middle does nothing

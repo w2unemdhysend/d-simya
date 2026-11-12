@@ -1,0 +1,183 @@
+/* «Мапа»: the map fills the screen; on top of it a search row, a button for "where am I" and a sheet from the bottom
+   with what is chosen (stops around, a stop with its departures, where a bus goes, a connection). The sheet can be
+   dragged by its handle or title: low, half, high. Colours, cards and line badges as on the other pages. */
+:root{--walk:#1F6FD1;--sheet-h:46vh;--top-h:72px}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--walk:#8AB4F8}}
+:root[data-theme="dark"]{--walk:#8AB4F8}
+html,body.mapapp{height:100%;overflow:hidden;overscroll-behavior:none}
+body.mapapp{padding:0}
+body.mapapp::before{display:none}
+.wrap.mapwrap{max-width:none;margin:0;position:fixed;inset:0}
+.vh{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.map{position:absolute;inset:0;background:var(--bg)}
+.mapfail{position:absolute;left:16px;right:16px;top:calc(env(safe-area-inset-top,0px) + 76px);margin:0;padding:12px 14px;border-radius:14px;background:var(--surface);
+  border:1px solid var(--line);color:var(--muted);font-size:15px;z-index:2}
+
+/* top: menu, search, theme */
+.mtop{position:absolute;left:0;right:0;top:0;z-index:5;display:flex;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top,0px) + 12px) max(12px, env(safe-area-inset-right,0px)) 0 max(12px, env(safe-area-inset-left,0px));pointer-events:none}
+.mtop > *{pointer-events:auto}
+.mtop .toprow{display:contents}
+.menubtn.round{flex:none;width:44px;height:44px;padding:0;justify-content:center;box-shadow:0 2px 10px rgba(0,0,0,.14)}
+.mtop .themebtn{flex:none;box-shadow:0 2px 10px rgba(0,0,0,.14)}
+.msearch{flex:1;min-width:0;display:flex;align-items:center;gap:8px;height:44px;padding:0 6px 0 14px;border-radius:999px;background:var(--surface);border:1px solid var(--line);
+  box-shadow:0 2px 10px rgba(0,0,0,.14)}
+.msearch > svg{flex:none;width:18px;height:18px;color:var(--muted)}
+.msearch input{flex:1;min-width:0;height:100%;border:0;background:transparent;color:var(--ink);font:inherit;font-size:16px;padding:0;outline:none}
+.msearch input::-webkit-search-cancel-button{display:none}
+.msearch:focus-within{border-color:var(--ink)}
+.msearch .clear{flex:none;width:34px;height:34px;border-radius:50%;border:0;background:var(--bg);display:grid;place-items:center;cursor:pointer;color:var(--muted)}
+.msearch .clear svg{width:16px;height:16px}
+
+/* floating "where am I" above the sheet */
+.fabs{position:absolute;right:max(12px, env(safe-area-inset-right,0px));bottom:calc(var(--sheet-h) + 12px);z-index:4;display:grid;gap:10px;transition:bottom .28s var(--ease-out, ease)}
+.sheet.drag ~ .fabs,.fabs.now{transition:none}
+.fab{width:48px;height:48px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--ink);display:grid;place-items:center;cursor:pointer;
+  box-shadow:0 2px 10px rgba(0,0,0,.16);touch-action:manipulation}
+.fab svg{width:22px;height:22px}
+.fab[aria-pressed="true"]{color:var(--walk)}
+.fab.busy svg{animation:pulse 1s ease-in-out infinite alternate}
+@keyframes pulse{to{opacity:.35}}
+.maplibregl-ctrl-bottom-left,.maplibregl-ctrl-bottom-right{bottom:calc(var(--sheet-h) + 2px);transition:bottom .28s var(--ease-out, ease)}
+.maplibregl-ctrl-attrib{font:12px/1.4 var(--f-body)}
+.maplibregl-ctrl-attrib.maplibregl-compact{background:var(--surface);color:var(--muted)}
+.maplibregl-ctrl-attrib a{color:inherit}
+:root[data-theme="dark"] .maplibregl-ctrl-attrib-button{filter:invert(1)}
+
+/* the sheet */
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:6;height:var(--sheet-h);max-width:600px;margin:0 auto;display:flex;flex-direction:column;background:var(--surface);
+  border:1px solid var(--line);border-bottom:0;border-radius:20px 20px 0 0;box-shadow:0 -6px 24px rgba(0,0,0,.14);transition:height .28s var(--ease-out, ease);
+  padding-bottom:env(safe-area-inset-bottom,0px)}
+.sheet.drag{transition:none}
+.grip{flex:none;display:grid;place-items:center;height:22px;border:0;background:transparent;cursor:grab;touch-action:none;padding:0}
+.grip span{width:40px;height:5px;border-radius:999px;background:var(--line)}
+.shead{flex:none;display:flex;align-items:flex-start;gap:6px;padding:0 16px 10px;touch-action:none;cursor:grab}
+.sback{flex:none;width:40px;height:40px;margin:-4px 0 0 -10px;border-radius:12px;border:0;background:transparent;display:grid;place-items:center;cursor:pointer;color:var(--ink)}
+.sback svg{width:22px;height:22px}
+.sback:active{background:var(--bg)}
+.stitle{flex:1;min-width:0}
+.stitle h1{font-family:var(--f-display);font-weight:700;font-size:20px;line-height:1.2;margin:0;overflow-wrap:anywhere}
+.stitle p{margin:3px 0 0;color:var(--muted);font-size:14px;line-height:1.35}
+.stitle p:empty{display:none}
+.sbody{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:0 16px 18px;-webkit-overflow-scrolling:touch}
+.sbody > * + *{margin-top:12px}
+.sbody .note{margin:0;font-size:14px}
+.sbody .src{margin-top:16px;font-size:12.5px;color:var(--muted);line-height:1.4}
+h3.sub{margin:16px 0 0;font:600 12px/1.4 var(--f-body);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.sbody > h3.sub:first-child{margin-top:4px}
+
+/* rows: stops around, search results, departures, stops of a course */
+.rows{list-style:none;margin:0;padding:0}
+.row{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:9px 0;border:0;border-top:1px solid var(--line);background:transparent;text-align:left;cursor:pointer;color:inherit;font:inherit;touch-action:manipulation}
+.rows li:first-child .row{border-top:0}
+.row:active{background:var(--bg)}
+.row .ic{flex:none;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--bg);border:1px solid var(--line);color:var(--accent)}
+.row .ic.rail{color:var(--ink)}
+.row .ic.place{color:var(--walk)}
+.row .ic svg{width:18px;height:18px}
+.row .t{flex:1;min-width:0}
+.row b{display:block;font-weight:600;font-size:16px;line-height:1.3;overflow-wrap:anywhere}
+.row small{display:block;color:var(--muted);font-size:13.5px;line-height:1.35;margin-top:1px}
+.row .end{flex:none;text-align:right;font-variant-numeric:tabular-nums;line-height:1.2}
+.row .end b{font-size:15px}
+.row .end small{font-size:12.5px}
+.row .go{flex:none;width:18px;height:18px;color:var(--muted)}
+
+/* actions of a stop */
+.acts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.acts > :only-child,.acts > .walk{grid-column:1/-1}
+.act{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:44px;padding:0 10px;min-width:0;white-space:nowrap;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);
+  font-weight:600;font-size:15px;cursor:pointer;text-decoration:none;touch-action:manipulation}
+.act svg{width:18px;height:18px;flex:none}
+.act.main{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.act.walk{color:var(--walk);border-color:currentColor;background:transparent}
+.act.walk[aria-pressed="true"]{background:var(--walk);color:var(--surface);border-color:var(--walk)}
+.act:disabled{opacity:.55;cursor:default}
+.act.done{color:var(--on);border-color:currentColor;background:transparent}
+.ask{padding:12px 14px;border-radius:14px;background:var(--bg);border:1px solid var(--line)}
+.ask p{margin:0 0 10px;font-size:15px;line-height:1.45}
+.ask.err p{color:var(--danger);font-weight:600;margin:0}
+
+/* departures (as on Транспорт) */
+.deps{list-style:none;margin:0;padding:0}
+.dep{display:grid;grid-template-columns:4.4em minmax(0,1fr) auto;align-items:center;column-gap:12px;width:100%;padding:10px 0;border:0;border-top:1px solid var(--line);
+  background:transparent;text-align:left;cursor:pointer;color:inherit;font:inherit;touch-action:manipulation}
+.deps li:first-child .dep{border-top:0}
+.dep:active{background:var(--bg)}
+.dep:disabled{cursor:default}
+.dep .tm{font-variant-numeric:tabular-nums;line-height:1.15}
+.dep .tm b{display:block;font-family:var(--f-display);font-weight:700;font-size:17px;white-space:nowrap}
+.dep .tm small{display:block;font-size:12.5px;color:var(--muted);margin-top:2px}
+.dep.soon .tm b{color:var(--accent)}
+.dep .l1{display:flex;align-items:baseline;gap:8px;min-width:0}
+.dep .l2{margin-top:3px;font-size:13.5px;color:var(--muted);display:flex;flex-wrap:wrap;column-gap:8px}
+.dep .l2 .ok{color:var(--on);font-weight:600}
+.dep .l2 .late{color:var(--danger);font-weight:600}
+.dep.gone .tm b,.dep.gone .dest{text-decoration:line-through;color:var(--muted)}
+.dep .go{width:18px;height:18px;color:var(--muted)}
+.line{flex:none;min-width:38px;padding:1px 7px;border-radius:7px;font-weight:700;font-size:14.5px;text-align:center;border:1.5px solid var(--ink);transform:translateY(-1px)}
+.line.train,.line.tram{background:var(--ink);color:var(--bg)}
+.line.sev{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.line.walk{border-color:var(--walk);color:var(--walk)}
+.dest{font-weight:600;min-width:0;overflow-wrap:anywhere}
+.live{display:inline-flex;align-items:center;gap:6px;color:var(--on);font-weight:600}
+.live::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor;animation:blink 2s ease-in-out infinite}
+@keyframes blink{50%{opacity:.35}}
+
+/* where a bus is: a status card and the stops as a line with dots */
+/* the status stays on top while the stops scroll under it */
+.now{position:sticky;top:0;z-index:2;padding:10px 14px;border-radius:14px;background:var(--accent-soft);font-size:15px;line-height:1.45;box-shadow:0 6px 10px -8px rgba(0,0,0,.25)}
+.now b{font-weight:700}
+.now small{display:block;margin-top:4px;color:var(--muted);font-size:13px}
+.course{list-style:none;margin:0;padding:0;position:relative}
+.cs{position:relative;display:grid;grid-template-columns:3.6em 22px minmax(0,1fr);align-items:start;column-gap:8px;min-height:40px;padding:4px 0;cursor:pointer}
+.cs .tm{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;font-size:14.5px;line-height:1.3}
+.cs .tm small{display:block;font-size:12px;font-weight:600}
+.cs .tm small.late{color:var(--danger)}
+.cs .dot{position:relative;align-self:stretch}
+.cs .dot::before{content:"";position:absolute;left:9px;top:-4px;bottom:-4px;width:4px;background:var(--accent)}
+.cs:first-child .dot::before{top:10px}
+.cs:last-child .dot::before{bottom:calc(100% - 12px)}
+.cs .dot::after{content:"";position:absolute;left:4px;top:5px;width:10px;height:10px;border-radius:50%;background:var(--surface);border:2.5px solid var(--accent)}
+.cs.past .dot::before{background:var(--line)}
+.cs.past .dot::after{border-color:var(--muted)}
+.cs.past .tm,.cs.past .nm{color:var(--muted)}
+.cs.mine .nm{font-weight:700}
+.cs.mine .dot::after{width:14px;height:14px;left:2px;top:3px;background:var(--accent)}
+.cs .nm{font-size:15px;line-height:1.35;overflow-wrap:anywhere;padding-top:1px}
+.course.train .cs .dot::before{background:var(--ink)}
+.course.train .cs .dot::after{border-color:var(--ink)}
+.busrow{display:grid;grid-template-columns:3.6em 22px minmax(0,1fr);column-gap:8px;align-items:center;padding:2px 0;color:var(--accent);font-weight:700;font-size:14px}
+.busrow .bi{width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--surface);display:grid;place-items:center}
+.busrow .bi svg{width:14px;height:14px}
+.course .gapcs{padding:2px 0 2px calc(3.6em + 38px);font-size:13px;color:var(--muted)}
+
+/* a connection: its legs */
+.legs{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.leg{display:grid;grid-template-columns:3.6em minmax(0,1fr);column-gap:10px;padding:10px 12px;border-radius:14px;background:var(--bg);border:1px solid var(--line);cursor:pointer}
+.leg .tm{font-variant-numeric:tabular-nums;font-weight:700;line-height:1.35}
+.leg .tm small{display:block;font-weight:600;font-size:13px;color:var(--muted)}
+.leg .b > div{line-height:1.35;overflow-wrap:anywhere}
+.leg .b small{display:block;color:var(--muted);font-size:13.5px;margin-top:3px}
+.leg .ride{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px 8px;margin-top:4px;font-size:14px;color:var(--muted)}
+
+/* markers on the map: me, a searched place, the bus */
+.me{width:20px;height:20px;border-radius:50%;background:var(--walk);border:3px solid #FFFFFF;box-shadow:0 0 0 1px rgba(0,0,0,.18), 0 2px 6px rgba(0,0,0,.3)}
+.me::after{content:"";position:absolute;inset:-3px;border-radius:50%;border:3px solid var(--walk);animation:ping 2.2s ease-out infinite}
+@keyframes ping{from{transform:scale(1);opacity:.6}to{transform:scale(2.6);opacity:0}}
+.pin{width:30px;height:40px;transform-origin:50% 100%}
+.pin svg{width:30px;height:40px;display:block;filter:drop-shadow(0 2px 3px rgba(0,0,0,.3))}
+.busmk{display:flex;align-items:center;gap:4px;padding:3px 8px 3px 4px;border-radius:999px;background:var(--accent);color:var(--surface);font:700 13px/1 var(--f-body);
+  box-shadow:0 2px 8px rgba(0,0,0,.3);border:2px solid var(--surface);white-space:nowrap}
+.busmk svg{width:16px;height:16px}
+.busmk.train{background:var(--ink);color:var(--bg)}
+.busmk.plan{opacity:.85;border-style:dashed}
+
+.skel{height:56px;border-radius:12px;background:linear-gradient(90deg,var(--bg),var(--line),var(--bg));background-size:200% 100%;animation:sk 1.2s linear infinite}
+@keyframes sk{to{background-position:-200% 0}}
+.toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 68px);transform:translate(-50%,-10px);max-width:min(92vw,420px);width:max-content;
+  background:var(--ink);color:var(--bg);padding:11px 16px;border-radius:14px;font-weight:600;font-size:15px;opacity:0;pointer-events:none;
+  transition:opacity .2s ease,transform .2s ease;z-index:30;text-align:center}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+@media (min-width:700px){.sheet{left:16px;right:auto;width:420px;margin:0;bottom:16px;border-radius:20px;border-bottom:1px solid var(--line)}
+  .fabs{bottom:28px}.maplibregl-ctrl-bottom-left{bottom:0;left:450px}}
+@media (prefers-reduced-motion: reduce){.me::after{animation:none}}
