@@ -29,7 +29,8 @@ def serve():
     return f'http://127.0.0.1:{srv.server_address[1]}/'
 
 TG = """window.__opened = []; window.Telegram = {WebApp: {platform: 'android', colorScheme: 'light', initData: 'user=%7B%22id%22%3A1%7D&hash=x', ready() {}, expand() {}, onEvent() {},
-  setHeaderColor() {}, setBackgroundColor() {}, openLink(u) { window.__opened.push(u); }, HapticFeedback: {selectionChanged() {}, impactOccurred() {}, notificationOccurred() {}}, BackButton: {show() {}, hide() {}, onClick() {}}}};"""
+  setHeaderColor() {}, setBackgroundColor() {}, openLink(u) { window.__opened.push(u); }, HapticFeedback: {selectionChanged() {}, impactOccurred() {}, notificationOccurred() {}},
+  BackButton: {shown: false, show() { this.shown = true; }, hide() { this.shown = false; }, onClick(f) { window.__back = f; }}}};"""
 
 class Worker:
     """Stands in for the Cloudflare Worker: remembers every form it gets and what is switched on."""
@@ -146,6 +147,36 @@ async def main():
         check('emergency: the address is still there after reload', await pg.input_value('#addr') == 'Musterweg 7')
         await pg.click('a.go >> nth=1'); await pg.wait_for_timeout(100)
         check('emergency: the night pharmacy for 46509 opens outside Telegram\'s window', await pg.evaluate('window.__opened') == ['https://www.aponet.de/notdienstsuche/46509-Xanten'])
+
+        # a tap on a number asks first; only «Зателефонувати» calls (here the call is caught and written down)
+        await pg.evaluate("""window.__dial = []; document.addEventListener('click', (e) => { const a = e.target.closest('a[href^="tel:"]');
+          if (a) { window.__dial.push(a.getAttribute('href') + (e.defaultPrevented ? ' (held)' : '')); e.preventDefault(); } })""")
+        await pg.click('a.num[href="tel:112"]'); await pg.wait_for_timeout(100)
+        check('call: a tap on 112 opens the question, nothing is dialled', await pg.is_visible('#ask') and await pg.evaluate('window.__dial') == ['tel:112 (held)'], str(await pg.evaluate('window.__dial')))
+        check('call: the sheet shows the number, what it is for, red for life-threatening', await pg.text_content('#ask-n') == '112' and await pg.text_content('#ask-what') == 'Швидка й пожежна'
+              and 'Feuerwehr' in await pg.text_content('#ask-note') and 'sos' in await pg.get_attribute('#ask', 'class') and await pg.get_attribute('#ask-go', 'href') == 'tel:112')
+        check('call: «Скасувати» has the focus (Enter does not call); Telegram Back shown', await pg.evaluate("document.activeElement.id") == 'ask-no' and await pg.evaluate('Telegram.WebApp.BackButton.shown'))
+        await pg.click('#ask-no'); await pg.wait_for_timeout(100)
+        check('call: «Скасувати» closes it, nothing dialled, Back hidden', not await pg.is_visible('#ask') and await pg.evaluate('window.__dial') == ['tel:112 (held)'] and not await pg.evaluate('Telegram.WebApp.BackButton.shown'))
+        await pg.click('a.num[href="tel:116117"]'); await pg.click('#ask-go', force=True)
+        check('call: the same tap landing on «Зателефонувати» at once does nothing', await pg.is_visible('#ask') and (await pg.evaluate('window.__dial'))[1:] == ['tel:116117 (held)', 'tel:116117 (held)'], str(await pg.evaluate('window.__dial')))
+        check('call: a calm number in the usual colour', 'sos' not in await pg.get_attribute('#ask', 'class') and await pg.text_content('#ask-n') == '116 117')
+        if OUT: await pg.screenshot(path=os.path.join(OUT, 'ekstreno-ask.png'))
+        await pg.wait_for_timeout(450); await pg.click('#ask-go'); await pg.wait_for_timeout(400)
+        check('call: «Зателефонувати» calls the number, then the sheet goes', (await pg.evaluate('window.__dial'))[-1] == 'tel:116117' and not await pg.is_visible('#ask'), str(await pg.evaluate('window.__dial')))
+        await pg.click('a.num[href="tel:110"]'); await pg.wait_for_timeout(100)
+        await pg.keyboard.press('Escape'); await pg.wait_for_timeout(100)
+        check('call: Esc closes the question too', not await pg.is_visible('#ask') and not await pg.evaluate('Telegram.WebApp.BackButton.shown'))
+        await pg.click('a.num[href="tel:110"]'); await pg.wait_for_timeout(100)
+        await pg.evaluate('window.__back()'); await pg.wait_for_timeout(100)
+        check("call: Telegram's Back closes it", not await pg.is_visible('#ask'))
+        await pg.click('a.num[href="tel:110"]'); await pg.wait_for_timeout(100)
+        await pg.mouse.click(170, 40); await pg.wait_for_timeout(100)
+        check('call: a tap on the dimmed page closes it', not await pg.is_visible('#ask') and (await pg.evaluate('window.__dial'))[-1] == 'tel:110 (held)')
+        await pg.set_viewport_size({'width': 340, 'height': 700})
+        await pg.click('a.num[href="tel:08005002250"]'); await pg.wait_for_timeout(300)
+        check('call: the longest number fits the sheet at 340 px', await pg.evaluate("(() => { const d = document.getElementById('ask'), r = document.getElementById('ask-n').getBoundingClientRect(); return d.scrollWidth <= d.clientWidth && r.right <= 340 && r.left >= 0; })()"))
+        await pg.click('#ask-no')
         check('emergency: fits 340 px', await pg.evaluate(fits))
         if OUT: await pg.screenshot(path=os.path.join(OUT, 'ekstreno.png'), full_page=True)
         await ctx.close()

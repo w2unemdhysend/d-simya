@@ -13,7 +13,9 @@
 <style>
 /* Layout: one column. The two numbers for danger to life first and largest, then what to say on the phone (German, to
    read out), then the calmer services: doctor on call, night pharmacy, poison line, hospital, other helplines.
-   Nothing here needs the network, so the page works from the kept copy. */
+   Nothing here needs the network, so the page works from the kept copy.
+   A tap on a number does not call yet: a sheet shows the number and what it is for, and «Зателефонувати» there starts
+   the call. A pocket tap or a slip of the finger costs nothing. */
 .sos{border-color:var(--danger);background:var(--danger-soft)}
 .sos h2{color:var(--danger)}
 /* a number: the digits on their own line (long ones need the width), what it is for under them, the call button right */
@@ -43,6 +45,27 @@
 .go{display:flex;align-items:center;justify-content:center;gap:8px;min-height:50px;margin-top:12px;padding:0 16px;border-radius:14px;background:var(--ink);color:var(--bg);font-weight:600;font-size:16px;text-decoration:none}
 .go svg{width:18px;height:18px}
 .steps{margin:10px 0 0;padding-left:1.2em;font-size:15.5px;display:grid;gap:4px}
+
+/* asking before a call: a sheet at the bottom, the call button where the thumb is */
+.ask{position:fixed;inset:auto 0 0 0;margin:0 auto;width:100%;max-width:560px;max-height:none;border:0;padding:0;background:transparent;color:var(--ink)}
+.ask::backdrop{background:rgba(0,0,0,.45)}
+.ask-in{background:var(--surface);border-radius:22px 22px 0 0;padding:20px 16px calc(16px + env(safe-area-inset-bottom, 0px));display:grid;gap:4px;text-align:center;
+  box-shadow:0 -8px 30px rgba(0,0,0,.18)}
+.ask[open] .ask-in{animation:askUp .22s cubic-bezier(.22,1,.36,1)}
+@keyframes askUp{from{transform:translateY(24px);opacity:.4}to{transform:none;opacity:1}}
+.ask-q{margin:0;font-size:14px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.ask-in > *{min-width:0}
+.ask-n{font-family:var(--f-display);font-weight:700;font-size:clamp(26px, 8.5vw, 40px);line-height:1.15;margin-top:4px;white-space:nowrap}
+.ask.sos .ask-n{color:var(--danger)}
+.ask-in b{font-weight:600;font-size:18px;line-height:1.3}
+.ask-in small{color:var(--muted);font-size:14.5px;line-height:1.4;max-width:42ch;margin:0 auto}
+.ask-go{display:flex;align-items:center;justify-content:center;gap:10px;min-height:58px;margin-top:14px;border-radius:16px;background:var(--ink);color:var(--bg);
+  font-weight:700;font-size:18px;text-decoration:none}
+.ask.sos .ask-go{background:var(--danger);color:#fff}
+:root[data-theme="dark"] .ask.sos .ask-go{color:#2A0B08}
+.ask-go svg{width:22px;height:22px}
+.ask-no{min-height:52px;margin-top:6px;border:1px solid var(--line);border-radius:16px;background:transparent;color:var(--ink);font:inherit;font-weight:600;font-size:17px;cursor:pointer}
+@media (prefers-reduced-motion: reduce){.ask[open] .ask-in{animation:none}}
 </style>
 <link rel="stylesheet" href="../assets/ui.css?v=16">
 </head>
@@ -113,6 +136,16 @@
       <a class="num" href="tel:116111"><span class="n">116 111</span><span class="t"><b>Для дітей і підлітків</b><small><span lang="de">Kinder- und Jugendtelefon</span>: безкоштовно й анонімно.</small></span><span class="call" data-icon="phone"></span></a>
     </section>
   </main>
+  <dialog class="ask" id="ask" aria-labelledby="ask-n" aria-describedby="ask-what">
+    <div class="ask-in">
+      <p class="ask-q">Зателефонувати?</p>
+      <div class="ask-n" id="ask-n"></div>
+      <b id="ask-what"></b>
+      <small id="ask-note"></small>
+      <a class="ask-go" id="ask-go" href="#"><span data-icon="phone"></span>Зателефонувати</a>
+      <button class="ask-no" id="ask-no" type="button" autofocus>Скасувати</button>
+    </div>
+  </dialog>
   <p class="foot">Номери перевірено в листопаді 2026 за aponet.de, сайтом уряду Німеччини (bundesregierung.de) і довідником лікарень. Якщо номер не набирається натисканням, набери його вручну.</p>
 </div>
 <script src="../assets/ui.js?v=16"></script>
@@ -143,6 +176,41 @@
     var a = e.target.closest('a[target="_blank"]');
     if (a && tg && tg.openLink) { e.preventDefault(); try { tg.openLink(a.href); } catch (err) { location.href = a.href; } }
   });
+
+  // Asking before a call. The number, what it is for and its note are shown once more; only «Зателефонувати» calls.
+  // A tap that lands on the sheet's button in the first moment (the same tap twice) does nothing.
+  var ask = document.getElementById('ask'), go = document.getElementById('ask-go'), openedAt = 0;
+  function haptic() { try { tg && tg.HapticFeedback && tg.HapticFeedback.impactOccurred('medium'); } catch (e) {} }
+  function close() {
+    if (ask.open) ask.close();
+    if (tg && tg.BackButton) try { tg.BackButton.hide(); } catch (e) {}
+  }
+  if (tg && tg.BackButton) try { tg.BackButton.onClick(close); } catch (e) {}
+  document.querySelectorAll('a.num').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      if (!ask.showModal) return;   // a very old browser: the link calls as before
+      e.preventDefault();
+      var n = a.querySelector('.n').textContent, what = a.querySelector('.t b').textContent, note = a.querySelector('.t small');
+      document.getElementById('ask-n').textContent = n;
+      document.getElementById('ask-what').textContent = what;
+      document.getElementById('ask-note').textContent = note ? note.textContent : '';
+      go.href = a.getAttribute('href');
+      go.setAttribute('aria-label', 'Зателефонувати: ' + n + ', ' + what);
+      ask.classList.toggle('sos', !!a.closest('.sos'));
+      openedAt = Date.now();
+      ask.showModal();
+      document.getElementById('ask-no').focus();
+      if (tg && tg.BackButton) try { tg.BackButton.show(); } catch (err) {}
+      haptic();
+    });
+  });
+  go.addEventListener('click', function (e) {
+    if (Date.now() - openedAt < 400) { e.preventDefault(); return; }
+    setTimeout(close, 300);   // the call goes out through the link itself; the sheet goes away behind it
+  });
+  document.getElementById('ask-no').addEventListener('click', close);
+  ask.addEventListener('click', function (e) { if (e.target === ask) close(); });   // a tap on the dimmed page
+  ask.addEventListener('close', function () { if (tg && tg.BackButton) try { tg.BackButton.hide(); } catch (err) {} });
 })();
 </script>
 </body>

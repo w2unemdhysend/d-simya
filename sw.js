@@ -10,7 +10,7 @@
    Nothing else is kept: not the shopping list, not translations, not searches.
    When the asset version (?v=) changes, update it here too (tests/offline_e2e.py checks that they match). */
 
-const VERSION = '2026-11-12.6';
+const VERSION = '2026-11-12.7';
 const CORE_CACHE = 'dsimya-core-' + VERSION, DATA_CACHE = 'dsimya-data', STATIC_CACHE = 'dsimya-static', AUDIO_CACHE = 'dsimya-audio';
 const CORE = [
   './', 'pralka/', 'sushka/', 'scan/', 'smittia/', 'prospekty/', 'spysok/', 'transport/', 'pogoda/', 'igry/', 'bot/', 'ekstreno/', 'rozmovnyk/', 'marshrut/',
