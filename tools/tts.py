@@ -31,11 +31,34 @@ FIX = {
     'allergisch': 'alˈɛɾɡɪʃ', 'Kassenbon': 'kˈasənbˌɔŋ', 'abgeholt': 'ˈapɡəhˌoːlt', 'Halsschmerzen': 'hˈalsʃmˌɛɾtsən',
     'Telefonnummer': 'tˌeːləfˈoːnnˌʊmɜ', 'Haltestelle': 'hˈaltəʃtˌɛlə', 'rezeptfrei': 'reːtsˈɛptfrˌaɪ', 'zuzahlen': 'tsˈuːtsˌɑːlən',
     'Pfandflaschen': 'pfˈantʰflˌaʃən', 'Nachbarin': 'nˈaxbɑːrˌɪn', 'Unterlagen': 'ˈʊntɜlˌɑːɡən', 'etwas': 'ˈɛtvas',
+    # the A1 dictionary: stress (Toilette, Tablette, kaputt, Studentin…), long vowels (Blume, Tafel, Spanien), loanwords
+    # (Chefin with "sch", Ingenieur and Orange with "zh", T-Shirt, Cousin), "st" as "scht" in
+    # Werkstatt and Innenstadt, "ch" in Sprechstunde
+    'Toilette': 'toalˈɛtə', 'Tablette': 'tablˈɛtə', 'Karotte': 'karˈɔtə', 'Marmelade': 'maɾməlˈɑːdə', 'Rabatt': 'rabˈat',
+    'kaputt': 'kapˈʊt', 'Werkstatt': 'vˈɛɾkʃtat', 'Innenstadt': 'ˈɪnənʃtat', 'Stadtplan': 'ʃtˈatplɑːn', 'Sprechstunde': 'ʃprˈɛçʃtʊndə',
+    'Enkelin': 'ˈɛŋkəlɪn', 'Studentin': 'ʃtuːdˈɛntɪn', 'Friseurin': 'friːzˈøːrɪn', 'Programmiererin': 'proːɡramˈiːrərɪn',
+    'Chefin': 'ʃˈɛfɪn', 'Ingenieur': 'ɪnʒeːnjˈøːɾ', 'Ingenieurin': 'ɪnʒeːnjˈøːrɪn', 'Orange': 'oːrˈɑ̃ːʒə', 'Cousin': 'kuːzˈɛ̃ː',
+    'T-Shirt': 'tˈiːʃœɾt', 'Handynummer': 'hˈɛndinˌʊmɜ',
+    'Blume': 'blˈuːmə', 'Bluse': 'blˈuːzə', 'Tafel': 'tˈɑːfəl', 'Datum': 'dˈɑːtʊm', 'Spanien': 'ʃpˈɑːnɪʲən', 'Spanisch': 'ʃpˈɑːnɪʃ',
+    'Arabisch': 'arˈɑːbɪʃ', 'Badewanne': 'bˈɑːdəvˌanə', 'Spaziergang': 'ʃpatsˈiːɾɡaŋ', 'Wurst': 'vˈʊɾst', 'Appetit': 'apeːtˈiːt',
+    'Erdbeere': 'ˈeːɾtbeːrə', 'Unterkunft': 'ˈʊntɜkʊnft', 'Quadratmeter': 'kvadrˈɑːtmˌeːtɜ', 'Radiergummi': 'radˈiːɾɡʊmiː',
+    'Wiedersehen': 'vˈiːdɜzˌeːən', 'heiraten': 'hˈaɪrɑːtən', 'zusagen': 'tsˈuːzɑːɡən', 'Speisekarte': 'ʃpˈaɪzəkˌaɾtə',
+    'Joghurt': 'jˈoːɡʊɾt', 'Einladung': 'ˈaɪnlˌɑːdʊŋ', 'Straßenbahn': 'ʃtrˈɑːsənbˌɑːn', 'geradeaus': 'ɡərɑːdəʔˈaʊs',
+    'Pflegekraft': 'pflˈeːɡəkrˌaft', 'Bäckerei': 'bɛkərˈaɪ', 'Metzgerei': 'mɛtsɡərˈaɪ', 'Kopfschmerzen': 'kˈɔpfʃmˌɛɾtsən',
+    'Bauchschmerzen': 'bˈaʊxʃmˌɛɾtsən', 'Rathaus': 'rˈɑːthˌaʊs', 'Kakao': 'kakˈaʊ', 'Mineralwasser': 'mineːrˈɑːlvasɜ',
+    'Wochenende': 'vˈɔxənʔˌɛndə', 'Mittagessen': 'mˈɪtɑːkʔˌɛsən', 'Bleistift': 'blˈaɪʃtɪft', 'Arzt': 'ˈɑːɾtst', 'Ärztin': 'ˈɛːɾtstɪn',
+    'Kurs': 'kˈʊɾs', 'Hotel': 'hoːtˈɛl', 'Unterricht': 'ˈʊntɜrɪçt', 'Nachbar': 'nˈaxbɑːɾ', 'Ehemann': 'ˈeːəmˌan', 'Ehefrau': 'ˈeːəfrˌaʊ',
+    'Nationalität': 'natsjoːnaliːtˈɛːt', 'Hochzeit': 'hˈɔxtsaɪt', 'verheiratet': 'fɛɾhˈaɪrɑːtət', 'Schlafzimmer': 'ʃlˈɑːftsˌɪmɜ',
+    'Erdgeschoss': 'ˈeːɾtɡəʃˌɔs', 'Fußball': 'fˈuːsbal', 'Fitnessstudio': 'fˈɪtnɛsʃtˌuːdioː', 'damals': 'dˈɑːmɑːls', 'Müsli': 'mˈyːsliː',
+    'Hals': 'hˈals', 'Wartezimmer': 'vˈaɾtətsˌɪmɜ', 'Notfall': 'nˈoːtfal', 'Februar': 'fˈeːbruːˌɑːɾ', 'August': 'aʊɡˈʊst',
+    'Jahreszeit': 'jˈɑːrəstsˌaɪt', 'kennenlernen': 'kˈɛnənlˌɛɾnən', 'Weihnachten': 'vˈaɪnaxtən', 'Weihnachtsmarkt': 'vˈaɪnaxtsmˌaɾkt',
+    'Silvester': 'zɪlvˈɛstɜ', 'Pullover': 'pʊlˈoːvɜ', 'orange': 'oːrˈɑ̃ːʒə',
 }
 
 # Words that come out clearer when written another way (checked with Whisper: three takes out of three right).
 # "acht Cent" run together is heard as "achtzehn"; a breath between the two words keeps it 0,08 €.
-RESPELL = {'Versichertenkarte': 'Versicherten-Karte', 'acht Cent': 'acht, Cent'}
+# "USA" is said letter by letter.
+RESPELL = {'Versichertenkarte': 'Versicherten-Karte', 'acht Cent': 'acht, Cent', 'USA': 'U-S-A'}
 # Whisper cannot write some words it hears right ("Kassenbon" said [bɔŋ] comes back as "Kassenbogen"; "gern" as "gerne"):
 # letters it may miss in a phrase with such a word
 SPELLING = {'Kassenbon': 3, 'gern': 1, 'Herrn': 1}
