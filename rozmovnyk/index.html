@@ -65,7 +65,7 @@
 <script src="../assets/ui.js?v=16"></script>
 <script type="module">
 import { SITUATIONS } from './phrases.js';
-import { AUDIO } from './audio.js';
+import { AUDIO } from '../audio/index.js';
 
 const $ = (s, r) => (r || document).querySelector(s);
 const tgApp = window.Telegram && window.Telegram.WebApp;
@@ -76,7 +76,7 @@ const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({'&':'&amp;', '<':'&lt;'
 const SPEAKER = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 9.5v5h3.2l4.3 3.5v-12L7.700 9.500z"/><path d="M15.500 9a4.200 4.200 0 0 1 0 6M18 6.500a7.800 7.800 0 0 1 0 11"/></svg>';
 
 /* ---------- speaking: a recorded MP3 per phrase (tools/tts.py); the phone's own voice only for a phrase without one ---------- */
-const DIR = new URL('./audio/', import.meta.url);
+const DIR = new URL('../audio/', import.meta.url);
 const synth = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window ? window.speechSynthesis : null;
 let voice = null;
 function pickVoice() { if (synth) voice = synth.getVoices().find((v) => /^de(-|_)DE/i.test(v.lang)) || synth.getVoices().find((v) => /^de/i.test(v.lang)) || null; }

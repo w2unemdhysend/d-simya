@@ -76,7 +76,7 @@ async def page(browser, base, path, tg='', worker=None, store=None, width=340, s
 HOME = {'smittia-prefs': {'district': '2', 'place': 'Lüttingen', 'bins': ['rest', 'papier', 'gelb'], 'rhythm': '14'},
         'transport-stops': {'list': [{'id': 'de:05170:37032', 'name': 'Xanten, Bahnhof'}], 'active': 'de:05170:37032'}}
 fits = "document.documentElement.scrollWidth <= innerWidth"
-AUDIO = json.loads(__import__('subprocess').check_output(['node', '--input-type=module', '-e', "import('./rozmovnyk/audio.js').then(m => console.log(JSON.stringify(m.AUDIO)))"], cwd=ROOT))
+AUDIO = json.loads(__import__('subprocess').check_output(['node', '--input-type=module', '-e', "import('./audio/index.js').then(m => console.log(JSON.stringify(m.AUDIO)))"], cwd=ROOT))
 
 async def main():
     base = serve()
@@ -171,21 +171,21 @@ async def main():
         # Telegram on Android: its WebView has no speech synthesis at all; the recorded clips are played instead
         ctx, pg, w = await page(browser, base, 'rozmovnyk/', tg=TG)
         audio_req = []
-        pg.on('request', lambda r: audio_req.append(r.url) if '/rozmovnyk/audio/' in r.url else None)
+        pg.on('request', lambda r: audio_req.append(r.url) if '/audio/' in r.url and r.url.endswith('.mp3') else None)
         await pg.click('#sits [data-sit="arzt"]'); await pg.wait_for_timeout(600)
         check('Android (no speech synthesis): every phrase still has a speaker button', await pg.locator('.ph .say').count() == await pg.locator('.ph').count() > 0)
         check('the clips of the phrases on screen are fetched ahead', len(audio_req) >= 10 and all(u.endswith('.mp3') for u in audio_req), str(len(audio_req)))
         await pg.click('.ph .say >> nth=2'); await pg.wait_for_timeout(150)
         played = await pg.evaluate('window.__played')
-        check('a tap plays the clip of that phrase (the copy fetched ahead)', len(played) == 1 and played[0].endswith('/rozmovnyk/audio/' + AUDIO['Hier ist meine Versichertenkarte.']), str(played))
+        check('a tap plays the clip of that phrase (the copy fetched ahead)', len(played) == 1 and played[0].endswith('/audio/' + AUDIO['Hier ist meine Versichertenkarte.']), str(played))
         check('… and the button shows it is playing', await pg.locator('.ph .say.on').count() == 1)
         await pg.click('.ph .txt >> nth=0'); await pg.wait_for_timeout(100)
         check('the big view has "Прослухати" too', await pg.is_visible('#big') and await pg.is_visible('#big-say'))
         await pg.click('#big-say'); await pg.wait_for_timeout(100)
         check('… and it plays the clip', len(await pg.evaluate('window.__played')) == 2)
         for f in sorted(set(AUDIO.values()))[:5]:
-            r = await pg.request.get(base + 'rozmovnyk/audio/' + f)
-            check(f'clip {f} is served as audio', r.status == 200 and len(await r.body()) > 3000)
+            r = await pg.request.get(base + 'audio/' + f)
+            check(f'clip {f} is served as audio', r.status == 200 and len(await r.body()) > 1500 and 'audio' in r.headers.get('content-type', ''))
         await ctx.close()
         await browser.close()
     print('ALL PASS' if not fails else f'{len(fails)} FAILED: {fails}')

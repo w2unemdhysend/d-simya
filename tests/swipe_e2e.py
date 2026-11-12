@@ -5,7 +5,7 @@
 Covers: sideways swipe switches tabs on the washer page (next, previous), the page and the tab marker follow the
 finger, a short swipe springs back, scrolling up and down never switches, nothing on the first tab to the right,
 the program knob is not a swipe; the new view slides in from the side it comes from; a swipe from the left edge opens
-the menu and a swipe on the menu closes it; no tab swipes while a game round runs; pages without tabs only have the
+the menu and a swipe on the menu closes it; the games menu has no tabs (only the edge swipe); pages without tabs only have the
 edge swipe. Also: at the bottom of the washer page, turning the program knob never moves the page.
 Exits 1 if a check fails.
 """
@@ -119,15 +119,12 @@ async def main():
         check('dryer: swipe left goes to «Що сушити»', await pg.evaluate(TAB) == 'choose')
         await ctx.close()
 
-        # games: no tab swipes while a round runs
+        # games: the menu has no tabs, so a swipe in the middle stays put
         ctx, pg, cdp = await page(browser, base + 'igry/')
-        t0 = await pg.evaluate(TAB)
-        await pg.evaluate("document.body.classList.add('playing')")
         await swipe(cdp, 300, 500, 80, 500); await pg.wait_for_timeout(600)
-        check('games: no tab swipe during a round', await pg.evaluate(TAB) == t0)
-        await pg.evaluate("document.body.classList.remove('playing')")
-        await swipe(cdp, 300, 500, 80, 500); await pg.wait_for_timeout(600)
-        check('games: swipe works between rounds', await pg.evaluate(TAB) != t0)
+        check('games: a swipe in the middle of the menu does nothing', await pg.is_visible('#view-hub') and not await pg.evaluate("document.getElementById('drawer').classList.contains('open')"))
+        await swipe(cdp, 3, 300, 260, 300); await pg.wait_for_timeout(500)
+        check('games: the edge swipe opens the menu', await pg.evaluate("document.getElementById('drawer').classList.contains('open')"))
         await ctx.close()
 
         # home screen: no tabs, only the edge swipe; a swipe in the middle does nothing

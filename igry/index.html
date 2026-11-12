@@ -10,8 +10,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@600;700&display=swap">
 <style>
-/* Small games behind the quiet icon in the menu: a laundry clicker, waste sorting the way Xanten wants it,
-   and der/die/das with everyday German words (swipe the card or tap the article) */
+/* Small games behind the quiet icon in the menu. The first screen lists them like the home screen does: five for German
+   (the word garden, der/die/das, sentences, numbers by ear, conversations, memory) and two for a break (the laundry
+   clicker with its skins, waste sorting the way Xanten wants it). Each game opens as its own screen. */
 :root{
   padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom);
   --bg:#E7ECEF; --surface:#F6F8F9; --ink:#12181C; --muted:#53616A; --line:#C7D0D5;
@@ -46,7 +47,7 @@ button{font:inherit;color:inherit}
 h1{font-family:var(--f-display);font-weight:700;font-size:32px;line-height:1.05;margin:6px 0 8px;letter-spacing:-.01em}
 .lede{margin:0;color:var(--muted);font-size:16px;max-width:40ch}
 h2{font-family:var(--f-display);font-weight:600;font-size:17px;line-height:1.2;margin:0}
-main{padding-top:4px}
+main{padding-top:14px}
 .view{display:grid;gap:16px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px}
 .note{margin:0;color:var(--muted);font-size:15px}
@@ -55,9 +56,6 @@ main{padding-top:4px}
 .btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .btn:active{transform:scale(.98)}
 
-.tabbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:6;background:var(--bg);padding-block:12px}
-.tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:4px}
-.tabs button{border:0;background:transparent;border-radius:10px;min-height:44px;padding:6px 4px;font-weight:600;font-size:15px;cursor:pointer}
 
 /* clicker */
 .score{text-align:center;padding-block:14px}
@@ -176,56 +174,59 @@ body.playing .top .eyebrow,body.playing .top h1,body.playing .top .lede,body.pla
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 @media (min-width:480px){h1{font-size:38px}}
 </style>
+<link rel="stylesheet" href="games.css?v=1">
 <link rel="stylesheet" href="../assets/ui.css?v=16">
 </head>
 <body>
 <div class="wrap">
   <header class="top">
     <div class="toprow"><button class="menubtn" id="menubtn" type="button" aria-expanded="false" aria-controls="drawer" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Розділи</span></button><button class="themebtn" id="themebtn" type="button" aria-label="Увімкнути темну тему"><svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M5.3 18.7L7 17M17 7l1.7-1.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.6A8.2 8.2 0 0 1 9.4 4a8.2 8.2 0 1 0 10.6 10.6z" fill="currentColor"/></svg></button></div>
-    <div class="eyebrow">Секретний розділ</div>
-    <h1>Мініігри</h1>
-    <p class="lede">Для перерви між справами.</p>
+    <button class="backbtn" id="backbtn" type="button" hidden><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>Усі ігри</button>
+    <div class="eyebrow" id="eyebrow">Секретний розділ</div>
+    <h1 id="title">Мініігри</h1>
+    <p class="lede" id="lede">Німецька між справами і просто для перерви.</p>
   </header>
 
-  <div class="tabbar">
-    <div class="tabs" role="tablist" aria-label="Ігри">
-      <span class="tthumb" aria-hidden="true"></span>
-      <button role="tab" id="tab-click" data-tab="click" aria-controls="view-click" aria-selected="true">Пральня</button>
-      <button role="tab" id="tab-sort" data-tab="sort" aria-controls="view-sort" aria-selected="false">Сортування</button>
-      <button role="tab" id="tab-art" data-tab="art" aria-controls="view-art" aria-selected="false">Артиклі</button>
-    </div>
-  </div>
-
   <main>
-  <section class="view" id="view-click" role="tabpanel" aria-labelledby="tab-click">
+  <section class="view hub" id="view-hub">
+    <a class="hcard" id="h-g" href="?tab=garten" data-game="garten" style="--i:0">
+      <div class="ch"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21v-8"/><path d="M12 13c0-4 3-6.5 7-6.5 0 4-3 6.5-7 6.5z"/><path d="M12 16c0-3-2.4-5-5.5-5 0 3 2.4 5 5.5 5z"/><path d="M7.5 21h9"/></svg></span><span class="lab">Сад слів</span><svg class="go" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
+      <div class="big" id="h-g-big"></div><p class="sub" id="h-g-sub"></p><div class="minibed" id="h-g-bed" aria-hidden="true"></div>
+    </a>
+    <div class="group">Німецька</div>
+    <div class="grid2">
+      <a class="tile" href="?tab=art" data-game="art" style="--i:1"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.2" cy="12" r="3.3" fill="var(--der)" stroke="none"/><circle cx="12" cy="12" r="3.3" fill="var(--die)" stroke="none"/><circle cx="18.8" cy="12" r="3.3" fill="var(--das)" stroke="none"/></svg></span><span><b>Артиклі</b><small data-status="art"></small></span></a>
+      <a class="tile" href="?tab=memory" data-game="memory" style="--i:2"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="9" height="13" rx="2"/><path d="M14.8 6.2l3.9 1a2 2 0 0 1 1.4 2.5l-2.3 8.8a2 2 0 0 1-2.4 1.4l-2.4-.6"/></svg></span><span><b>Пам’ять</b><small data-status="memory"></small></span></a>
+      <a class="tile" href="?tab=satz" data-game="satz" style="--i:3"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7.5" width="6.5" height="5.5" rx="1.4"/><rect x="11" y="7.5" width="4" height="5.5" rx="1.4"/><rect x="16.5" y="7.5" width="4.5" height="5.5" rx="1.4"/><path d="M4 17h10"/></svg></span><span><b>Збери речення</b><small data-status="satz"></small></span></a>
+      <a class="tile" href="?tab=zahlen" data-game="zahlen" style="--i:4"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 9.5a4.5 4.5 0 1 1 8.4 2.3c-.9 1.4-2.4 2.1-2.4 4a2.5 2.5 0 0 1-4.8 1"/><path d="M10.2 9.8a1.8 1.8 0 0 1 3.6 0c0 1-.8 1.5-1.4 2.2"/></svg></span><span><b>Числа на слух</b><small data-status="zahlen"></small></span></a>
+      <a class="tile" href="?tab=dialog" data-game="dialog" style="--i:5"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 5h11v7.5h-6.2L5.5 15v-2.5h-2z"/><path d="M17.5 9h3v7.5H19V19l-3-2.5h-4.5V15"/></svg></span><span><b>Розмова</b><small data-status="dialog"></small></span></a>
+    </div>
+    <div class="group">Для перерви</div>
+    <div class="grid2">
+      <a class="tile" href="?tab=click" data-game="click" style="--i:6"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2.5"/><circle cx="12" cy="13" r="4.5"/><path d="M7.5 6.5h2"/></svg></span><span><b>Пральня</b><small data-status="click"></small></span></a>
+      <a class="tile" href="?tab=sort" data-game="sort" style="--i:7"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10.5 11v5.5M13.5 11v5.5"/></svg></span><span><b>Сортування</b><small data-status="sort"></small></span></a>
+    </div>
+  </section>
+  <section class="view" id="view-garten" hidden></section>
+  <section class="view" id="view-click" hidden>
     <div class="card score">
       <div class="count" id="count" aria-live="polite">0</div>
       <div class="unit" id="unit">шкарпеток</div>
       <div class="rates"><span id="per-tap">+1 за натиск</span> · <span id="per-sec">0 за секунду</span></div>
     </div>
     <div class="drumwrap" id="drumwrap">
-      <button class="drum" id="drum" type="button" aria-label="Крутити барабан">
-        <svg viewBox="0 0 100 100" aria-hidden="true">
-          <circle cx="50" cy="50" r="48" fill="var(--surface)" stroke="var(--line)" stroke-width="1.5"/>
-          <circle cx="50" cy="50" r="41" fill="none" stroke="var(--chrome)" stroke-width="6"/>
-          <circle cx="50" cy="50" r="37" fill="var(--glass)"/>
-          <g class="spin" id="spin">
-            <g fill="var(--chrome)" opacity=".55"><circle cx="50" cy="22" r="1.6"/><circle cx="74" cy="36" r="1.6"/><circle cx="74" cy="64" r="1.6"/><circle cx="50" cy="78" r="1.6"/><circle cx="26" cy="64" r="1.6"/><circle cx="26" cy="36" r="1.6"/></g>
-            <path d="M46 26h7v10q0 7-7 7h-6q-4 0-4-4t4-4h6z" fill="#E8C10A"/>
-            <path d="M46 26h7v10q0 7-7 7h-6q-4 0-4-4t4-4h6z" fill="#C8402C" transform="rotate(120 50 50)"/>
-            <path d="M46 26h7v10q0 7-7 7h-6q-4 0-4-4t4-4h6z" fill="#2F5DB3" transform="rotate(240 50 50)"/>
-          </g>
-          <path d="M28 30a30 30 0 0 1 16-12" fill="none" stroke="#FFFFFF" stroke-opacity=".55" stroke-width="3" stroke-linecap="round"/>
-        </svg>
-      </button>
+      <button class="drum" id="drum" type="button" aria-label="Крутити барабан"></button>
     </div>
     <p class="note center">Тисни на барабан, а за шкарпетки купуй покращення. Пральня працює й тоді, коли тебе немає (до 8 годин).</p>
     <h2>Покращення</h2>
     <ul class="ups" id="ups"></ul>
+    <div class="skinhead"><h2>Скіни</h2><small id="skin-count"></small></div>
+    <p class="note">Вісім скінів відкриваються за досягнення в іграх з німецької, чотири можна купити за шкарпетки.</p>
+    <div class="skins" id="skins"></div>
     <button class="reset" id="reset" type="button">Почати заново</button>
   </section>
 
-  <section class="view" id="view-sort" role="tabpanel" aria-labelledby="tab-sort" hidden>
+  <section class="view" id="view-sort" hidden>
     <div class="card" id="s-start">
       <h2>Куди це викинути?</h2>
       <p class="note rules">За 60 секунд розклади по баках якомога більше речей, за правилами Ксантена. Кожна річ підписана й німецькою, з артиклем. Якщо помилишся, гра покаже, куди правильно і чому. П’ять правильних поспіль дають подвійні бали.</p>
@@ -249,7 +250,7 @@ body.playing .top .eyebrow,body.playing .top h1,body.playing .top .lede,body.pla
     </div>
   </section>
 
-  <section class="view" id="view-art" role="tabpanel" aria-labelledby="tab-art" hidden>
+  <section class="view" id="view-art" hidden>
     <div class="card" id="a-start">
       <h2>Der, die чи das?</h2>
       <p class="note rules">60 секунд на слова з життя в Німеччині. Вибирай артикль кнопкою або свайпом картки: вліво — der, вгору — die, вправо — das. Якщо помилишся, гра покаже правильний артикль і правило, а це слово потім трапиться частіше. П’ять правильних поспіль дають подвійні бали.</p>
@@ -286,6 +287,10 @@ body.playing .top .eyebrow,body.playing .top h1,body.playing .top .lede,body.pla
       <button class="btn primary" id="a-again" type="button">Ще раз</button>
     </div>
   </section>
+  <section class="view" id="view-satz" hidden></section>
+  <section class="view" id="view-zahlen" hidden></section>
+  <section class="view" id="view-dialog" hidden></section>
+  <section class="view" id="view-memory" hidden></section>
   </main>
   <p class="foot" id="foot">Прогрес зберігається на цьому пристрої.</p>
 </div>
@@ -293,6 +298,13 @@ body.playing .top .eyebrow,body.playing .top h1,body.playing .top .lede,body.pla
 <script src="../assets/ui.js?v=16"></script>
 <script type="module">
 import { WORDS, RULES, ruleOf } from './words.js';
+import * as progress from './progress.js';
+import * as garden from './garten.js';
+import * as satz from './satz.js';
+import * as zahlen from './zahlen.js';
+import * as dialog from './dialog.js';
+import * as memory from './memory.js';
+import { SKINS, SKIN, reach, reached, drumSVG } from './skins.js';
 (function(){
   var $ = function(s, r){ return (r || document).querySelector(s); };
   var tgApp = window.Telegram && window.Telegram.WebApp;
@@ -321,19 +333,93 @@ import { WORDS, RULES, ruleOf } from './words.js';
   var plural = new Intl.PluralRules('uk-UA');
   function socks(n){ n = Math.floor(n); if (n >= 10000) return 'шкарпеток'; return {one:'шкарпетка', few:'шкарпетки', many:'шкарпеток'}[plural.select(n)] || 'шкарпетки'; }
 
-  /* ---------------- tabs ---------------- */
-  var views = [$('#view-click'), $('#view-sort'), $('#view-art')];
-  function tab(t, instant){
-    document.querySelectorAll('.tabs [role="tab"]').forEach(function(b){ b.setAttribute('aria-selected', b.getAttribute('data-tab') === t ? 'true' : 'false'); });
-    if (window.UI){ UI.tabsThumb(instant); UI.switchView(views, $('#view-' + t), {instant:instant, keepScroll:true}); }
-    else views.forEach(function(v){ v.hidden = v.id !== 'view-' + t; });
-    try { localStorage.setItem('dsimya-igry-tab', t); } catch(e){}
-    if (t !== 'sort' && round) stopRound();
-    if (t !== 'art' && aRound) aStop();
+  /* ---------------- the menu and the games ----------------
+     The first screen lists the games; a game opens as its own screen with "Усі ігри" (and Telegram's Back) to return.
+     The German games are modules that build their screen the first time they are opened. */
+  var GAMES = {
+    garten:{name:'Сад слів', mod:garden}, art:{name:'Артиклі'}, satz:{name:'Збери речення', mod:satz}, zahlen:{name:'Числа на слух', mod:zahlen},
+    dialog:{name:'Розмова', mod:dialog}, memory:{name:'Пам’ять', mod:memory}, click:{name:'Пральня'}, sort:{name:'Сортування'}
+  };
+  var ORDER = ['hub', 'garten', 'art', 'satz', 'zahlen', 'dialog', 'memory', 'click', 'sort'];
+  var views = ORDER.map(function(id){ return $('#view-' + id); });
+  var current = null, made = {};
+  function instance(id){
+    var g = GAMES[id]; if (!g || !g.mod) return null;
+    if (!made[id]) made[id] = g.mod.create($('#view-' + id));
+    return made[id];
   }
-  document.querySelectorAll('.tabs [role="tab"]').forEach(function(b){
-    b.addEventListener('click', function(){ if (b.getAttribute('aria-selected') !== 'true'){ haptic(); tab(b.getAttribute('data-tab')); } });
+  function busy(id){
+    if (id === 'art') return !!aRound;
+    if (id === 'sort') return !!round;
+    var m = made[id]; return !!(m && m.busy && m.busy());
+  }
+  function stopGame(id){   // a running round ends, the game goes back to its first screen
+    if (id === 'sort') stopRound();
+    else if (id === 'art') aStop();
+    else if (made[id] && made[id].close) made[id].close();
+  }
+  function header(id){
+    var hub = id === 'hub';
+    $('#backbtn').hidden = hub; $('#eyebrow').hidden = !hub; $('#lede').hidden = !hub;
+    $('#title').textContent = hub ? 'Мініігри' : GAMES[id].name;
+    document.title = hub ? 'Мініігри' : GAMES[id].name + ' · Мініігри';
+  }
+  function show(id, instant){
+    if (!GAMES[id]) id = 'hub';
+    if (id === current) return;
+    var prev = current; current = id;
+    if (prev && prev !== 'hub') stopGame(prev);
+    if (prev === 'click') leaveLaundry();
+    header(id);
+    if (id === 'hub') renderHub();
+    else { var m = instance(id); if (m && m.open) m.open(); }
+    if (id === 'click') enterLaundry();
+    if (id === 'art') aShowBest();
+    if (window.UI) UI.switchView(views, $('#view-' + id), {instant:!!instant});
+    else { views.forEach(function(v){ v.hidden = v.id !== 'view-' + id; }); window.scrollTo(0, 0); }
+    if (tg && tg.BackButton) try { if (id === 'hub') tg.BackButton.hide(); else tg.BackButton.show(); } catch(e){}
+  }
+  // from the menu a game is a step in the history, so the phone's Back returns to the menu
+  function openGame(id){
+    try { history.pushState({game:id, fromHub:1}, '', '?tab=' + id); } catch(e){}
+    haptic(); show(id);
+  }
+  function home(){
+    if (history.state && history.state.fromHub) history.back();
+    else { try { history.replaceState(null, '', location.pathname); } catch(e){} show('hub'); }
+  }
+  window.addEventListener('popstate', function(e){
+    var st = e.state; if (st && st.menu) return;   // the section menu's own step
+    show(st && st.game ? st.game : new URLSearchParams(location.search).get('tab') || 'hub');
   });
+  $('#view-hub').addEventListener('click', function(e){
+    var a = e.target.closest('[data-game]'); if (!a || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    e.preventDefault(); openGame(a.getAttribute('data-game'));
+  });
+  $('#backbtn').addEventListener('click', function(){ haptic(); home(); });
+  if (tg && tg.BackButton) try { tg.BackButton.onClick(function(){ if (busy(current)) stopGame(current); else home(); }); } catch(e){}
+
+  function points(n){ return {one:'бал', few:'бали', many:'балів'}[plural.select(n)] || 'балів'; }
+  function renderHub(){
+    var c = garden.counts(), t = c.thirsty;
+    $('#h-g').classList.toggle('due', t > 0);
+    $('#h-g-big').textContent = t ? '💧 ' + t + ' ' + ({one:'рослина хоче', few:'рослини хочуть', many:'рослин хочуть'}[plural.select(t)] || 'рослин хочуть') + ' пити'
+      : c.planted ? 'Сад полито' : 'Посади перші слова';
+    $('#h-g-sub').textContent = c.planted ? c.bloom + ' ' + ({one:'квітка цвіте', few:'квітки цвітуть', many:'квітів цвітуть'}[plural.select(c.bloom)] || 'квітів цвітуть') + ', ' + (c.planted - c.bloom) + ' ростуть. Повторення раз на кілька днів, і слово зацвіте.'
+      : 'Кожне німецьке слово стає рослиною. Поливай його короткими повтореннями, і воно зацвіте кольором свого артикля.';
+    var pl = garden.sample(9);
+    $('#h-g-bed').classList.toggle('empty', !pl.length);
+    $('#h-g-bed').innerHTML = pl.length ? pl.map(function(p){ return garden.plantSVG(p.b, p.art, false); }).join('') : ['der', 'die', 'das', 'die', 'der'].map(function(a){ return garden.plantSVG(1, a, false); }).join('');
+    var st = {
+      art: aBest ? 'Рекорд: ' + aBest + ' ' + points(aBest) : 'der, die, das за 60 секунд',
+      satz: satz.status(), zahlen: zahlen.status(), dialog: dialog.status(), memory: memory.status(),
+      click: fmt(S.n) + ' ' + socks(S.n),
+      sort: best ? 'Рекорд: ' + best + ' ' + points(best) : 'Куди що викидати в Ксантені'
+    };
+    Object.keys(st).forEach(function(k){ var el = $('[data-status="' + k + '"]'); el.textContent = st[k]; el.classList.remove('new'); });
+    var fresh = S.skins.fresh.length;
+    if (fresh){ var el = $('[data-status="click"]'); el.textContent = fresh > 1 ? 'Нові скіни: ' + fresh : 'Новий скін: ' + SKIN[S.skins.fresh[0]].name; el.classList.add('new'); }
+  }
 
   /* ---------------- laundry clicker ---------------- */
   var UPS = [
@@ -347,9 +433,15 @@ import { WORDS, RULES, ruleOf } from './words.js';
   var MILESTONES = [[100, 'Перша сотня шкарпеток!'], [1000, 'Тисяча шкарпеток!'], [10000, '10 тисяч. Ціла гора прання.'],
     [100000, '100 тисяч. Пралка просить відпустку.'], [1000000, 'Мільйон шкарпеток!'], [10000000, '10 мільйонів. А пари до всіх знайшлися?']];
   var KEY = 'dsimya-kliker', OFFLINE_MAX = 8 * 3600 * 1000;
-  function fresh(){ return {n:0, total:0, lv:{}, m:0, t:Date.now()}; }
+  function fresh(){ return {n:0, total:0, lv:{}, m:0, t:Date.now(), skins:{on:'classic', bought:[], seen:[], fresh:[]}}; }
   function valid(s){ return s && typeof s.n === 'number' && typeof s.total === 'number' && s.lv && typeof s.lv === 'object'; }
-  var S = valid(load(KEY)) ? load(KEY) : fresh();
+  function norm(s){   // saves from before the skins have none
+    if (!s.skins || typeof s.skins !== 'object') s.skins = {};
+    ['bought', 'seen', 'fresh'].forEach(function(k){ if (!Array.isArray(s.skins[k])) s.skins[k] = []; });
+    if (!SKIN[s.skins.on]) s.skins.on = 'classic';
+    return s;
+  }
+  var S = norm(valid(load(KEY)) ? load(KEY) : fresh());
   var lv = function(u){ return S.lv[u.id] || 0; };
   function perTap(){ return UPS.reduce(function(a, u){ return a + (u.tap || 0) * lv(u); }, 1); }
   function perSec(){ return UPS.reduce(function(a, u){ return a + (u.sec || 0) * lv(u); }, 0); }
@@ -373,20 +465,91 @@ import { WORDS, RULES, ruleOf } from './words.js';
       b.setAttribute('aria-label', 'Купити «' + u.name + '» за ' + fmt(c));
       $('[data-note="' + u.id + '"]', ups).textContent = (u.tap ? '+' + u.tap + ' за натиск' : '+' + u.sec + ' за секунду') + (l ? ' · куплено ' + l : '');
     });
+    if (inLaundry) renderSkins();
   }
   var dirty = false, cloudDirty = false;
   function save(toCloud){ S.t = Date.now(); store(KEY, S); dirty = false; if (toCloud && cloudDirty){ cloudSet('kliker', S); cloudDirty = false; } }
   function adopt(s, quiet){   // a save (this device or Telegram): add what the laundry did while nobody looked
-    S = s;
+    var had = S && S.skins ? S.skins : null;
+    S = norm(s);
+    if (had) ['bought', 'seen'].forEach(function(k){ had[k].forEach(function(id){ if (S.skins[k].indexOf(id) < 0) S.skins[k].push(id); }); });
     var away = Math.min(Math.max(0, Date.now() - (S.t || Date.now())), OFFLINE_MAX), gain = perSec() * away / 1000;
     if (gain >= 1){ earn(gain); if (!quiet && away >= 60000) toast('Поки тебе не було, випралось ' + fmt(gain) + ' ' + socks(gain), 4000); }
     last = Date.now(); render(); save(false);
+    if (skinsEl){ drawDrum(); renderSkins(); }   // a later save from Telegram may wear another skin
+    if (current === 'hub') renderHub();
   }
   var last = Date.now();
   adopt(S);
   cloudGet('kliker', function(c){ if (valid(c) && c.total > S.total) adopt(c); });
 
-  var angle = 0, lastBuzz = 0;
+  /* ---------------- skins ----------------
+     Earned skins come from what is done in the other games (progress.js); bought ones cost socks. */
+  var angle = 0, lastBuzz = 0, lastEmo = 0;
+  function skin(){ return SKIN[S.skins.on] || SKIN.classic; }
+  function owns(sk){ return sk.id === 'classic' || (sk.price ? S.skins.bought.indexOf(sk.id) >= 0 : reached(sk, progress.get())); }
+  function drawDrum(){
+    var sk = skin();
+    $('#drum').innerHTML = drumSVG(sk, true);
+    $('#spin').style.transition = 'none'; $('#spin').style.transform = 'rotate(' + angle + 'deg)'; void $('#spin').getBoundingClientRect(); $('#spin').style.transition = '';
+    $('#drumwrap').style.setProperty('--d-glow', sk.glow || 'transparent');
+    $('#drum').setAttribute('aria-label', 'Крутити барабан' + (sk.id === 'classic' ? '' : ' (скін «' + sk.name + '»)'));
+  }
+  var skinsEl = $('#skins'), armed = null, armTimer = null, skinSig = '', inLaundry = false;
+  function skinState(sk){
+    var P = progress.get();
+    if (S.skins.on === sk.id) return {cls:'', text:'Увімкнено', pressed:true};
+    if (owns(sk)) return {cls:'', text:(inLaundry && S.skins.fresh.indexOf(sk.id) >= 0 ? 'Нове! ' : '') + 'Торкнись, щоб увімкнути'};
+    if (sk.price) return armed === sk.id ? {cls:' armed', text:'Купити за ' + fmt(sk.price) + '? Торкнись ще раз'} : {cls:' locked', text:fmt(sk.price) + ' ' + socks(sk.price) + (S.n >= sk.price ? ' · можна купити' : '')};
+    var r = reach(sk, P);
+    return {cls:' locked', text:sk.how, bar:r[1] > 1 ? r[0] / r[1] : null, of:r};
+  }
+  function renderSkins(){
+    var states = SKINS.map(skinState);
+    var sig = states.map(function(x){ return x.text + (x.bar || ''); }).join('|');
+    if (sig === skinSig) return;
+    skinSig = sig;
+    skinsEl.innerHTML = SKINS.map(function(sk, i){
+      var st = states[i];
+      return '<button class="skin' + st.cls + '" type="button" data-skin="' + sk.id + '" aria-pressed="' + (st.pressed ? 'true' : 'false') + '">' + drumSVG(sk, false) +
+        '<b>' + sk.name + '</b><small>' + st.text + '</small>' + (st.bar != null ? '<span class="bar" aria-label="' + st.of[0] + ' з ' + st.of[1] + '"><i style="width:' + Math.round(st.bar * 100) + '%"></i></span>' : '') + '</button>';
+    }).join('');
+    var have = SKINS.filter(owns).length;
+    $('#skin-count').textContent = have + ' з ' + SKINS.length;
+  }
+  skinsEl.addEventListener('click', function(e){
+    var b = e.target.closest('.skin'); if (!b) return;
+    var sk = SKIN[b.getAttribute('data-skin')];
+    if (owns(sk)){
+      if (S.skins.on !== sk.id){ S.skins.on = sk.id; dirty = cloudDirty = true; save(false); drawDrum(); haptic('ok'); toast((sk.emoji ? sk.emoji + ' ' : '') + sk.name + '. ' + sk.note, 3200); }
+      renderSkins(); return;
+    }
+    if (sk.price){
+      if (S.n < sk.price){ haptic('error'); toast('Ще ' + fmt(sk.price - S.n) + ' ' + socks(sk.price - S.n) + ', і «' + sk.name + '» твій.'); return; }
+      if (armed !== sk.id){ armed = sk.id; clearTimeout(armTimer); armTimer = setTimeout(function(){ armed = null; renderSkins(); }, 3500); haptic(); renderSkins(); return; }
+      clearTimeout(armTimer); armed = null;
+      S.n -= sk.price; S.skins.bought.push(sk.id); S.skins.on = sk.id; dirty = cloudDirty = true;
+      render(); save(true); drawDrum(); renderSkins(); haptic('ok'); toast(sk.emoji + ' «' + sk.name + '» тепер твій. ' + sk.note, 3600);
+      return;
+    }
+    var r = reach(sk, progress.get());
+    toast(sk.name + ': ' + sk.how + (r[1] > 1 ? '. Зараз ' + r[0] + ' з ' + r[1] + '.' : '.'), 3600);
+  });
+  // a skin earned in another game: a toast there, and "new" on the laundry until it is visited
+  function checkUnlocks(quiet){
+    var P = progress.get(), got = SKINS.filter(function(sk){ return sk.need && reached(sk, P) && S.skins.seen.indexOf(sk.id) < 0; });
+    if (!got.length) return;
+    got.forEach(function(sk){ S.skins.seen.push(sk.id); S.skins.fresh.push(sk.id); });
+    dirty = cloudDirty = true; save(false); renderSkins();
+    if (!quiet){ toast(got[0].emoji + ' Новий скін для пральні: «' + got[0].name + '»', 3600); haptic('ok'); }
+    if (current === 'hub') renderHub();
+  }
+  function enterLaundry(){ inLaundry = true; skinSig = ''; renderSkins(); }
+  function leaveLaundry(){ inLaundry = false; if (S.skins.fresh.length){ S.skins.fresh = []; dirty = cloudDirty = true; save(false); } skinSig = ''; }
+  drawDrum(); renderSkins(); checkUnlocks(true);
+  progress.on(function(){ checkUnlocks(false); if (current === 'hub') renderHub(); });
+  garden.onChange(function(){ if (current === 'hub') renderHub(); });   // e.g. the garden from Telegram arrives
+
   $('#drum').addEventListener('click', function(e){
     var k = perTap(); earn(k); dirty = cloudDirty = true; render();
     angle += 40; $('#spin').style.transform = 'rotate(' + angle + 'deg)';
@@ -396,6 +559,14 @@ import { WORDS, RULES, ruleOf } from './words.js';
     var x = e.clientX ? e.clientX - r.left : r.width / 2, y = e.clientY ? e.clientY - r.top : r.height / 2;
     p.className = 'plus'; p.textContent = '+' + fmt(k); p.style.left = x + 'px'; p.style.top = y + 'px';
     wrap.appendChild(p); setTimeout(function(){ p.remove(); }, 800);
+    var sk = skin();
+    if (sk.emoji && now - lastEmo > 140){
+      lastEmo = now;
+      var q = document.createElement('span'); q.className = 'emo'; q.textContent = sk.emoji; q.setAttribute('aria-hidden', 'true');
+      q.style.left = (x + (Math.random() * 40 - 20)) + 'px'; q.style.top = y + 'px';
+      q.style.setProperty('--ex', (Math.random() * 60 - 30) + 'px'); q.style.setProperty('--er', (Math.random() * 50 - 25) + 'deg');
+      wrap.appendChild(q); setTimeout(function(){ q.remove(); }, 950);
+    }
   });
   ups.addEventListener('click', function(e){
     var b = e.target.closest('.buy'); if (!b || b.disabled) return;
@@ -412,7 +583,7 @@ import { WORDS, RULES, ruleOf } from './words.js';
       return;
     }
     clearTimeout(resetTimer); b.classList.remove('armed'); b.textContent = 'Почати заново';
-    S = fresh(); cloudDirty = true; render(); save(true); toast('Пральня знову порожня');
+    var keep = S.skins; S = fresh(); S.skins = keep; cloudDirty = true; render(); save(true); toast('Пральня знову порожня. Скіни лишилися.');
   });
   setInterval(function(){
     var now = Date.now(), dt = Math.min(now - last, OFFLINE_MAX); last = now;
@@ -482,8 +653,8 @@ import { WORDS, RULES, ruleOf } from './words.js';
   var ROUND_MS = 60000, BEST = 'dsimya-sort-best', round = null, item = null;
   var best = Number(load(BEST)) || 0;
   function showBest(){ $('#s-best').textContent = best ? 'Твій рекорд: ' + best + ' балів' : 'Рекорду ще немає. Час його поставити.'; }
-  showBest();
-  cloudGet('sort_best', function(c){ if (typeof c === 'number' && c > best){ best = c; store(BEST, best); showBest(); } });
+  showBest(); if (best) progress.max('sortBest', best);
+  cloudGet('sort_best', function(c){ if (typeof c === 'number' && c > best){ best = c; store(BEST, best); showBest(); progress.max('sortBest', best); } });
   $('#s-bins').innerHTML = ORDER.map(function(k, i){
     var b = BINS[k];
     return '<button class="binbtn' + (b.dark ? ' dark' : '') + '" type="button" data-bin="' + k + '" style="background:' + b.color + '" aria-keyshortcuts="' + (i + 1) + '">' + b.uk + '<small>' + b.de + '</small></button>';
@@ -498,7 +669,6 @@ import { WORDS, RULES, ruleOf } from './words.js';
     void el.offsetWidth; el.classList.add('in');
     document.querySelectorAll('.binbtn').forEach(function(b){ b.classList.remove('dim', 'right'); b.disabled = false; });
   }
-  function points(n){ return {one:'бал', few:'бали', many:'балів'}[plural.select(n)] || 'балів'; }
   function hud(){
     $('#s-score').textContent = round.score; $('#s-pw').textContent = points(round.score);
     $('#s-streak').textContent = round.streak >= 5 ? 'Серія ' + round.streak + ' · ×2' : round.streak >= 2 ? 'Серія ' + round.streak : '';
@@ -517,17 +687,15 @@ import { WORDS, RULES, ruleOf } from './words.js';
       round.last = now; hud();
       if (round.left <= 0) endRound();
     }, 100);
-    if (tg && tg.BackButton) try { tg.BackButton.show(); } catch(e){}
   }
   function stopRound(){
     if (!round) return;
     clearInterval(round.timer); round = null; document.body.classList.remove('playing');
     $('#s-play').hidden = true; $('#s-end').hidden = true; $('#s-start').hidden = false;
-    if (tg && tg.BackButton) try { tg.BackButton.hide(); } catch(e){}
   }
   function endRound(){
     var r = round; clearInterval(r.timer); round = null; document.body.classList.remove('playing');
-    if (tg && tg.BackButton) try { tg.BackButton.hide(); } catch(e){}
+    progress.max('sortBest', r.score);
     var record = r.score > best;
     if (record){ best = r.score; store(BEST, best); cloudSet('sort_best', best); showBest(); }
     $('#s-play').hidden = true; $('#s-end').hidden = false;
@@ -547,7 +715,7 @@ import { WORDS, RULES, ruleOf } from './words.js';
     var el = $('#s-item');
     if (bin === item[3]){
       round.right++; round.streak++; round.score += round.streak >= 5 ? 2 : 1;
-      el.classList.add('good'); haptic(); hud();
+      el.classList.add('good'); haptic(); hud(); progress.add('sortRight');
       var r = round; r.busy = true;   // a short green flash; the clock keeps running
       setTimeout(function(){ if (round === r){ r.busy = false; nextItem(); } }, 160);
     } else {
@@ -621,17 +789,14 @@ import { WORDS, RULES, ruleOf } from './words.js';
       aRound.last = now; aHud();
       if (aRound.left <= 0) aEnd();
     }, 100);
-    if (tg && tg.BackButton) try { tg.BackButton.show(); } catch(e){}
   }
   function aStop(){
     if (!aRound) return;
     clearInterval(aRound.timer); aRound = null; document.body.classList.remove('playing'); vSwipes(true);
     $('#a-play').hidden = true; $('#a-end').hidden = true; $('#a-start').hidden = false; aShowBest();
-    if (tg && tg.BackButton) try { tg.BackButton.hide(); } catch(e){}
   }
   function aEnd(){
     var r = aRound; clearInterval(r.timer); aRound = null; document.body.classList.remove('playing'); vSwipes(true);
-    if (tg && tg.BackButton) try { tg.BackButton.hide(); } catch(e){}
     var record = r.score > aBest;
     if (record){ aBest = r.score; store(A_BEST, aBest); cloudSet('artikel_best', aBest); }
     aShowBest();
@@ -656,6 +821,7 @@ import { WORDS, RULES, ruleOf } from './words.js';
       aRound.right++; aRound.streak++; aRound.score += aRound.streak >= 5 ? 2 : 1;
       if (aMiss[w[0]]){ aMiss[w[0]]--; if (!aMiss[w[0]]) delete aMiss[w[0]]; store(A_MISS, aMiss); }
       haptic(); aHud();
+      progress.add('artRight'); progress.max('artStreak', aRound.streak); garden.water(w[0]);   // a right article also waters its plant, if it is due
       var r = aRound; r.busy = true;
       card.classList.remove('in', 'back', 'lean-der', 'lean-die', 'lean-das'); card.classList.add('good');
       if (!reduce){ card.classList.add('fly'); card.style.transform = DIR[art]; }
@@ -714,8 +880,6 @@ import { WORDS, RULES, ruleOf } from './words.js';
     if (art){ e.preventDefault(); aAnswer(art); }
   });
 
-  if (tg && tg.BackButton) try { tg.BackButton.onClick(function(){ if (aRound) aStop(); else stopRound(); }); } catch(e){}
-
   /* the bot's word of the day (POST /reminders, kind=wort) */
   var dsw = $('#d-sw'), dstate = $('#d-state'), WORKER = 'https://d-simya.whysends.workers.dev/';
   function dShow(on, text, cls){ dsw.setAttribute('aria-checked', String(on)); dstate.textContent = text || ''; dstate.className = 'dstate' + (cls ? ' ' + cls : ''); }
@@ -739,13 +903,12 @@ import { WORDS, RULES, ruleOf } from './words.js';
     dShow(false, 'Увімкнути можна, якщо відкрити гру через бота в Telegram.');
   }
 
-  // ?tab=art (the bot's word of the day opens the articles straight away), else the tab used last
-  var t0 = 'click', tUrl = new URLSearchParams(location.search).get('tab');
-  try { var tSaved = localStorage.getItem('dsimya-igry-tab'); if (tSaved === 'sort' || tSaved === 'art') t0 = tSaved; } catch(e){}
-  if (tUrl === 'sort' || tUrl === 'art' || tUrl === 'click') t0 = tUrl;
-  tab(t0, true);
+  // ?tab=art (the bot's word of the day opens the articles straight away) or another game; otherwise the menu
+  try { localStorage.removeItem('dsimya-igry-tab'); } catch(e){}
+  show(new URLSearchParams(location.search).get('tab') || 'hub', true);
   window.__games = {state:function(){ return S; }, item:function(){ return item; }, round:function(){ return round; }, ITEMS:ITEMS, BINS:BINS,
-    word:function(){ return aWord; }, artRound:function(){ return aRound; }, WORDS:WORDS, RULES:RULES, pickWord:function(){ return aPick([])[0]; }};
+    word:function(){ return aWord; }, artRound:function(){ return aRound; }, WORDS:WORDS, RULES:RULES, pickWord:function(){ return aPick([])[0]; },
+    current:function(){ return current; }, show:show, progress:progress, garden:garden, SKINS:SKINS, game:function(id){ return made[id]; }};
 })();
 </script>
 </body>

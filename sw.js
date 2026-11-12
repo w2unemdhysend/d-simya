@@ -6,16 +6,18 @@
    · weather, warnings, departures from our Worker: the network first; without it the last answer (each page shows
      "оновлено о …", so an old answer is never mistaken for a new one)
    · fonts: kept once, used from then on
-   · the phrasebook's spoken clips: kept once fetched
+   · the spoken clips (phrasebook and games): kept once fetched
    Nothing else is kept: not the shopping list, not translations, not searches.
    When the asset version (?v=) changes, update it here too (tests/offline_e2e.py checks that they match). */
 
-const VERSION = '2026-11-12.4';
+const VERSION = '2026-11-12.5';
 const CORE_CACHE = 'dsimya-core-' + VERSION, DATA_CACHE = 'dsimya-data', STATIC_CACHE = 'dsimya-static', AUDIO_CACHE = 'dsimya-audio';
 const CORE = [
   './', 'pralka/', 'sushka/', 'scan/', 'smittia/', 'prospekty/', 'spysok/', 'transport/', 'pogoda/', 'igry/', 'bot/', 'ekstreno/', 'rozmovnyk/', 'marshrut/',
-  'assets/ui.css?v=16', 'assets/ui.js?v=16', 'assets/page.css?v=1', 'rozmovnyk/phrases.js', 'rozmovnyk/audio.js', 'assets/fonts/noto-sans.ttf',
-  'smittia/kalender.json', 'smittia/due.js', 'smittia/wohin.js', 'prospekty/week.js', 'pogoda/wx.js', 'igry/words.js',
+  'assets/ui.css?v=16', 'assets/ui.js?v=16', 'assets/page.css?v=1', 'rozmovnyk/phrases.js', 'audio/index.js', 'audio/say.js', 'assets/fonts/noto-sans.ttf',
+  'smittia/kalender.json', 'smittia/due.js', 'smittia/wohin.js', 'prospekty/week.js', 'pogoda/wx.js', 'igry/words.js', 'igry/games.css?v=1',
+  'igry/kit.js', 'igry/progress.js', 'igry/garten.js', 'igry/satz.js', 'igry/zahlen.js', 'igry/dialog.js', 'igry/memory.js', 'igry/skins.js',
+  'igry/data/garten.js', 'igry/data/satz.js', 'igry/data/zahlen.js', 'igry/data/dialog.js', 'igry/data/memory.js',
 ];
 const DATA = /^\/(weather|warnings|transit\/departures)$/;
 const MAX_DATA = 40;
@@ -36,8 +38,8 @@ self.addEventListener('fetch', (e) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin === self.location.origin) {
-    // the phrasebook's clips: kept once played or fetched ahead; the name changes when a clip changes, so never stale
-    if (url.pathname.includes('/rozmovnyk/audio/') && url.pathname.endsWith('.mp3')) return e.respondWith(audio(url.href));
+    // the spoken clips: kept once played or fetched ahead; the name changes when a clip changes, so never stale
+    if (url.pathname.includes('/audio/') && url.pathname.endsWith('.mp3')) return e.respondWith(audio(url.href));
     if (req.mode === 'navigate' || req.destination === 'document') e.respondWith(networkFirst(req, CORE_CACHE, 4000, true));
     else e.respondWith(staleWhileRevalidate(req, CORE_CACHE));
   } else if (url.hostname.endsWith('.workers.dev') && DATA.test(url.pathname)) {

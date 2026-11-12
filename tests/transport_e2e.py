@@ -230,6 +230,8 @@ async def main():
         ctx, pg, w = await page(browser, url, tg=tg_js('ios', '', {'transport': json.dumps({'list': [{'id': 'de:05170:36229', 'name': 'Xanten, Hagelkreuzstraße'}], 'active': 'de:05170:36229'})}))
         await pg.wait_for_timeout(400)
         check('iPhone: App Store link', (await pg.get_attribute('#tk-open', 'href')).startswith('https://apps.apple.com/de/app/') and 'App Store' in await pg.inner_text('#tk-how'))
+        try: await pg.wait_for_function("document.getElementById('dep-title').innerText === 'Xanten Hagelkreuzstraße'", timeout=4000)   # the cloud answers later on a busy machine
+        except Exception: pass
         check('new phone: stops from the cloud replace the suggestion', await pg.inner_text('#dep-title') == 'Xanten Hagelkreuzstraße', await pg.inner_text('#dep-title'))
         await ctx.close()
 

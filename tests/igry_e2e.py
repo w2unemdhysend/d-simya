@@ -7,7 +7,7 @@ the laundry clicker (taps, upgrades and their rising cost, income per second, ea
 8-hour cap, a milestone, Ukrainian plural forms, saving, the two-tap reset, the copy kept in Telegram), the
 sorting game (items and bins are consistent, right and wrong answers, the double-points streak, the clock
 standing still while a mistake is explained, digit keys, Telegram's Back button, the end of a round with the
-mistakes and the record), the remembered tab, and the layout at 340 px. Der, die, das: the word list (valid articles, rules, compounds), buttons,
+mistakes and the record), reopening the game after a reload, Back to the menu, and the layout at 340 px. Der, die, das: the word list (valid articles, rules, compounds), buttons,
 swipes (left der, up die, right das, short or downward drags do nothing), arrow keys, double points, a mistake shown
 with the right article and its rule while the clock stands still, words got wrong coming back more often, Telegram's
 vertical swipes off during a round, the end of a round with the record kept in Telegram. Exits 1 if a check fails.
@@ -50,7 +50,7 @@ async def count(pg): return await pg.evaluate(NUM, '#count')
 async def text(pg, s): return (await pg.text_content(s)).strip()
 async def put_save(pg, base, save):   # leave the game first: it saves its own state when the page is left
     await pg.goto(base); await pg.evaluate("s => localStorage.setItem('dsimya-kliker', s)", json.dumps(save))
-    await pg.goto(base + 'igry/'); await pg.wait_for_timeout(400)
+    await pg.goto(base + 'igry/?tab=click'); await pg.wait_for_timeout(400)
 
 async def main():
     base = serve()
@@ -75,7 +75,7 @@ async def main():
 
         # clicker
         ctx, pg = await context(browser, width=340)
-        await pg.goto(base + 'igry/'); await pg.wait_for_timeout(300)
+        await pg.goto(base + 'igry/?tab=click'); await pg.wait_for_timeout(300)
         check('starts empty', await count(pg) == 0 and await text(pg, '#unit') == 'шкарпеток')
         await pg.click('#drum')
         check('one tap: 1 шкарпетка', await count(pg) == 1 and await text(pg, '#unit') == 'шкарпетка')
@@ -114,15 +114,17 @@ async def main():
         cloud_save = {'n': 5000, 'total': 9000, 'lv': {'powder': 3}, 'm': 2, 't': int(time.time() * 1000)}
         ctx, pg = await context(browser, cloud={'kliker': json.dumps(cloud_save)})
         await pg.clock.install()
-        await pg.goto(base + 'igry/'); await pg.clock.run_for(500)
+        await pg.goto(base + 'igry/?tab=click'); await pg.clock.run_for(500)
         check('Telegram copy is used on a new device', await count(pg) == 5000 and await text(pg, '#per-tap') == '+4 за натиск')
         await pg.click('#drum'); await pg.clock.run_for(31000)
         saved = json.loads(await pg.evaluate("window.__cloud.kliker"))
         check('progress written back to Telegram', saved['n'] == 5004, str(saved)[:80])
         check('the note says progress follows across devices', 'Telegram' in await text(pg, '#foot'))
 
-        # sorting
-        await pg.click('#tab-sort'); await pg.clock.run_for(600)
+        # sorting, opened from the menu
+        await pg.click('#backbtn'); await pg.clock.run_for(400)
+        check('"Усі ігри" leads to the menu', await pg.is_visible('#view-hub') and await text(pg, 'h1') == 'Мініігри')
+        await pg.click('[data-game="sort"]'); await pg.clock.run_for(600)
         items = await pg.evaluate("() => ({items: __games.ITEMS, bins: Object.keys(__games.BINS)})")
         bad = [i for i in items['items'] if i[3] not in items['bins'] or i[1] not in ('der', 'die', 'das') or not i[4]]
         names = [i[2] for i in items['items']]
@@ -157,13 +159,16 @@ async def main():
         await pg.clock.run_for(61000)
         check('time up: score, accuracy, the mistake to learn', await pg.is_visible('#s-end') and await text(pg, '#s-result') == '7 балів' and it[2] in await text(pg, '#s-miss') and '6 з 7' in await text(pg, '#s-sum'), await text(pg, '#s-sum'))
         check('new record noted and kept, in Telegram too', await pg.is_visible('#s-record') and await pg.evaluate("localStorage.getItem('dsimya-sort-best')") == '7' and await pg.evaluate("window.__cloud.sort_best") == '7')
-        check('Back button hidden after the round', not await pg.evaluate('Telegram.WebApp.BackButton.shown'))
+        check('Back button stays after the round (it leads to the menu)', await pg.evaluate('Telegram.WebApp.BackButton.shown'))
         await pg.click('#s-again'); await pg.clock.run_for(200)
         await pg.evaluate('window.__back()'); await pg.clock.run_for(100)
         check("Telegram's Back button leaves the round", await pg.is_visible('#s-start') and await pg.is_hidden('#s-play'))
         await pg.reload(); await pg.clock.run_for(600)
-        check('reopens on the sorting tab with the record', await pg.get_attribute('#tab-sort', 'aria-selected') == 'true' and '7 балів' in await text(pg, '#s-best'))
+        check('reopens on the sorting game with the record', await pg.is_visible('#view-sort') and '7 балів' in await text(pg, '#s-best'))
         await pg.screenshot(path=os.path.join(os.environ.get('SHOTS', '/tmp'), 'igry-sort.png'))
+        await pg.evaluate('window.__back()'); await pg.clock.run_for(400)
+        check("Telegram's Back on a game's first screen goes to the menu, then hides", await pg.is_visible('#view-hub') and not await pg.evaluate('Telegram.WebApp.BackButton.shown') and '?tab' not in pg.url)
+        check('the menu shows the sorting record', 'Рекорд: 7 балів' in await text(pg, '[data-status="sort"]'), await text(pg, '[data-status="sort"]'))
         await ctx.close()
 
         # der, die, das
@@ -171,8 +176,9 @@ async def main():
         await ctx.add_init_script("if (!sessionStorage.getItem('seeded')) { localStorage.setItem('dsimya-artikel-miss', JSON.stringify({Gleis: 4})); sessionStorage.setItem('seeded', '1'); }")
         await pg.clock.install()
         await pg.goto(base + 'igry/'); await pg.clock.run_for(400)
-        await pg.click('#tab-art'); await pg.clock.run_for(600); await pg.wait_for_timeout(500)
-        check('three tabs fit 340 px', await pg.evaluate('document.documentElement.scrollWidth') <= 340 and await pg.is_visible('#view-art'))
+        check('the menu fits 340 px', await pg.evaluate('document.documentElement.scrollWidth') <= 340 and await pg.is_visible('#view-hub'))
+        await pg.click('[data-game="art"]'); await pg.clock.run_for(600); await pg.wait_for_timeout(500)
+        check('the articles fit 340 px', await pg.evaluate('document.documentElement.scrollWidth') <= 340 and await pg.is_visible('#view-art') and await text(pg, 'h1') == 'Артиклі')
         words = await pg.evaluate('__games.WORDS'); rules = await pg.evaluate('Object.keys(__games.RULES)')
         names = [w[0] for w in words]
         bad = [w for w in words if w[1] not in ('der', 'die', 'das') or not w[2] or (w[3] and w[3] not in rules) or (w[3] == 'comp' and not (w[4] or '').startswith(w[1] + ' '))
@@ -237,13 +243,17 @@ async def main():
         await pg.clock.run_for(61000)
         check('time up: score, accuracy, the word to learn with its article', await pg.is_visible('#a-end') and await text(pg, '#a-result') == '6 балів' and wrong_word[1] + ' ' + wrong_word[0] in await text(pg, '#a-miss') and '5 з 6' in await text(pg, '#a-sum'), await text(pg, '#a-sum'))
         check('record kept on the device and in Telegram', await pg.is_visible('#a-record') and await pg.evaluate("localStorage.getItem('dsimya-artikel-best')") == '6' and await pg.evaluate('window.__cloud.artikel_best') == '6')
-        check('after the round: Back hidden, Telegram vertical swipes on again', not await pg.evaluate('Telegram.WebApp.BackButton.shown') and await pg.evaluate('window.__vs') is True)
+        check('after the round: Telegram vertical swipes on again', await pg.evaluate('window.__vs') is True)
+        prog = json.loads(await pg.evaluate("localStorage.getItem('dsimya-progress')"))
+        check('the round counts for the skins: right answers and the best streak', prog['artRight'] == 5 and prog['artStreak'] == 5, str(prog))
         await pg.click('#a-again'); await pg.clock.run_for(200)
         await pg.evaluate('window.__back()'); await pg.clock.run_for(100)
         check("Telegram's Back button leaves the round", await pg.is_visible('#a-start') and await pg.is_hidden('#a-play') and await pg.evaluate('window.__vs') is True)
         await pg.click('#a-go'); await pg.clock.run_for(200)
-        await pg.click('#tab-click'); await pg.clock.run_for(600)
-        check('switching tabs ends the round', await pg.evaluate('__games.artRound()') is None and not await pg.evaluate("document.body.classList.contains('playing')"))
+        check('during a round "Усі ігри" stays on screen', await pg.is_visible('#backbtn'))
+        await pg.click('#backbtn'); await pg.clock.run_for(600)
+        check('"Усі ігри" ends the round', await pg.evaluate('__games.artRound()') is None and not await pg.evaluate("document.body.classList.contains('playing')") and await pg.is_visible('#view-hub'))
+        await pg.click('[data-game="art"]'); await pg.clock.run_for(600)
         check('outside a signed Telegram session the word-of-the-day switch explains itself', await pg.is_disabled('#d-sw') and 'через бота' in await text(pg, '#d-state'))
         await ctx.close()
 
@@ -259,7 +269,7 @@ async def main():
         await ctx.route('**/*.workers.dev/reminders', rem)
         pg = await ctx.new_page(); pg.on('pageerror', lambda e: fails.append(f'page error: {e}'))
         await pg.goto(base + 'igry/?tab=art'); await pg.wait_for_timeout(700)
-        check('?tab=art opens the articles straight away (the bot button)', await pg.is_visible('#view-art') and await pg.get_attribute('#tab-art', 'aria-selected') == 'true')
+        check('?tab=art opens the articles straight away (the bot button), with Back to the menu', await pg.is_visible('#view-art') and await text(pg, 'h1') == 'Артиклі' and await pg.evaluate('Telegram.WebApp.BackButton.shown'))
         await pg.wait_for_function("!document.getElementById('d-sw').disabled")
         check('word of the day: status asked with kind=wort, switch off', any('wort' in b and 'status' in b for b in posts) and await pg.get_attribute('#d-sw', 'aria-checked') == 'false')
         await pg.click('#d-sw'); await pg.wait_for_timeout(300)

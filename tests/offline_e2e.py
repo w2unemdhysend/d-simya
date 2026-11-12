@@ -36,9 +36,21 @@ def static_checks():
         versions |= set(re.findall(r'assets/((?:ui|page)\.(?:css|js)\?v=\d+)', html))
         d = os.path.dirname(p)
         check(f'sw.js keeps the page {d or "home"}', (d + '/' if d else './') in core)
-        for mod in re.findall(r"from '(\.{1,2}/[^']+)'", html) + re.findall(r"fetch\('(\.{0,2}/?[\w/.-]+\.(?:json|ttf))'", html):
-            rel = os.path.normpath(os.path.join(d, mod)).replace('\\', '/')
+        for css in re.findall(r'<link rel="stylesheet" href="(?!https?:)([^"]+)"', html):
+            rel = os.path.normpath(os.path.join(d, css)).replace('\\', '/')
+            if not rel.startswith('assets/'): check(f'sw.js keeps {rel} (style of {p})', rel in core, rel)
+        # the page's modules and, in turn, everything they import
+        todo = [(d, m) for m in re.findall(r"from '(\.{1,2}/[^']+)'", html)]
+        todo += [(d, m) for m in re.findall(r"fetch\('(\.{0,2}/?[\w/.-]+\.(?:json|ttf))'", html)]
+        seen = set()
+        while todo:
+            base_dir, mod = todo.pop()
+            rel = os.path.normpath(os.path.join(base_dir, mod)).replace('\\', '/')
+            if rel in seen: continue
+            seen.add(rel)
             check(f'sw.js keeps {rel} (used by {p})', rel in core, rel)
+            if rel.endswith('.js') and os.path.exists(os.path.join(ROOT, rel)):
+                todo += [(os.path.dirname(rel), m) for m in re.findall(r"from '(\.{1,2}/[^']+)'", open(os.path.join(ROOT, rel)).read())]
     check('pages use one asset version, and sw.js keeps that one', len(versions) == 3 and all('assets/' + v in core for v in versions), f'{versions} vs {[c for c in core if "?v=" in c]}')
     check('sw.js never keeps the list, translations or searches', not re.search(r'/list|translate|transit/stops', sw.split('const DATA')[1].split('\n')[0]))
 
@@ -74,6 +86,8 @@ async def main():
         check('offline: the "no internet" label shows', await pg.is_visible('.offline') and 'Немає інтернету' in await pg.text_content('.offline'))
         await pg.goto(base + 'igry/?tab=art')
         check('offline: a page with a ?query opens (the bot\'s word-of-the-day link)', await pg.is_visible('#view-art'))
+        await pg.goto(base + 'igry/?tab=satz'); await pg.wait_for_timeout(300)
+        check('offline: the German games work (their modules are kept)', await pg.is_visible('#z-pool .zw'))
         await pg.goto(base + 'pogoda/')
         await pg.wait_for_selector('#now-body:not([hidden]), #now-wait.err', timeout=10000)
         check('offline: the last weather is shown, with its time', '5°' in await pg.text_content('#now-body') and 'оновлено о' in await pg.text_content('#now-body'))
@@ -82,9 +96,9 @@ async def main():
         await ctx.set_offline(False); await pg.wait_for_timeout(300)
         # the phrasebook: clips fetched ahead while online play later without internet
         await pg.goto(base + 'rozmovnyk/'); await pg.wait_for_timeout(1500)
-        first = await pg.evaluate("import('./audio.js').then(m => m.AUDIO['Können Sie das bitte wiederholen?'])")
+        first = await pg.evaluate("import('../audio/index.js').then(m => m.AUDIO['Können Sie das bitte wiederholen?'])")
         await ctx.set_offline(True)
-        got = await pg.evaluate(f"fetch('audio/{first}').then(r => r.status + ' ' + r.headers.get('content-type')).catch(e => 'failed ' + e)")
+        got = await pg.evaluate(f"fetch('../audio/{first}').then(r => r.status + ' ' + r.headers.get('content-type')).catch(e => 'failed ' + e)")
         check('offline: a phrasebook clip fetched before plays without internet', got.startswith('200'), got)
         await ctx.set_offline(False); await pg.wait_for_timeout(300)
         check('back online: the label goes away', await pg.is_hidden('.offline'))

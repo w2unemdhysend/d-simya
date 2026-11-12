@@ -1,4 +1,5 @@
-"""Spoken German for the phrasebook (Розмовник): one MP3 per phrase, made once here, served as plain files.
+"""Spoken German for the app: one MP3 per phrase, word, sentence and number (the phrasebook and the games),
+made once here and served as plain files from audio/. What to say comes from tools/speech.mjs.
 
 Android's WebView (Telegram on Android) has no speech synthesis, so the phone's own voice cannot be used there.
 
@@ -11,18 +12,17 @@ Android's WebView (Telegram on Android) has no speech synthesis, so the phone's 
 
 Voice: Piper (MIT) with "thorsten" high (dataset CC0, https://github.com/thorstenMueller/Thorsten-Voice),
 from https://huggingface.co/rhasspy/piper-voices. Needs: pip install piper-tts; ffmpeg with libmp3lame; node.
-Writes rozmovnyk/audio/<hash>.mp3 (name = first 10 hex of sha1 of the German text, so a changed phrase gets a new
-file and phones never keep an old one) and rozmovnyk/audio.js (text → file). Files no phrase uses are removed.
+Writes audio/<hash>.mp3 (name = first 10 hex of sha1 of what is said, so a changed text or pronunciation gets a new
+file and phones never keep an old one) and audio/index.js (text → file). Files nothing uses are removed.
 """
 import hashlib, json, os, re, subprocess, sys, tempfile, wave
 from piper import PiperVoice, SynthesisConfig
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-OUT = os.path.join(ROOT, 'rozmovnyk', 'audio')
+OUT = os.path.join(ROOT, 'audio')
 
-def phrases():
-    js = "import('./rozmovnyk/phrases.js').then(m => console.log(JSON.stringify(m.SITUATIONS.flatMap(s => s.list.map(p => p[0])))))"
-    return json.loads(subprocess.check_output(['node', '--input-type=module', '-e', js], cwd=ROOT))
+def entries():
+    return json.loads(subprocess.check_output(['node', os.path.join(ROOT, 'tools', 'speech.mjs')], cwd=ROOT))
 
 # Words the voice's pronunciation rules (espeak-ng) get wrong, as the sounds to say instead (same symbols as espeak):
 # stress on the wrong syllable, a short vowel that is long, "Bon" said like "Bohn", "Hals|schmerzen" split wrongly,
@@ -67,12 +67,20 @@ class Listener:
     def __init__(self):
         from faster_whisper import WhisperModel
         self.m = WhisperModel('medium', device='cpu', compute_type='int8')
-    def miss(self, path, text):
+    def miss(self, path, text, check=None):
         import numpy as np
         pcm = subprocess.run(['ffmpeg', '-v', 'error', '-i', path, '-f', 's16le', '-ac', '1', '-ar', '16000', '-'], capture_output=True, check=True).stdout
-        segs, _ = self.m.transcribe(np.frombuffer(pcm, np.int16).astype(np.float32) / 32768, language='de', beam_size=5)
+        # half a second of quiet around the clip: on a clip that starts with its first sound Whisper tends to miss a short
+        # first word ("der", "die") or to invent text for a single word
+        quiet = np.zeros(8000, np.float32)
+        audio = np.concatenate([quiet, np.frombuffer(pcm, np.int16).astype(np.float32) / 32768, quiet])
+        segs, _ = self.m.transcribe(audio, language='de', beam_size=5, condition_on_previous_text=False)
         heard = ' '.join(s.text.strip() for s in segs)
-        return distance(letters(re.sub(r'\s*/\s*', ' ', text)), letters(heard)), heard
+        miss = distance(letters(re.sub(r'\s*/\s*', ' ', text)), letters(heard))
+        # numbers: Whisper often writes digits ("23,90 €", "14:30 Uhr"); those count when they are the right ones
+        if check and miss and re.sub(r'\D', '', heard) in check.get('digits', []) and all(w in letters(heard) for w in check.get('words', [])):
+            miss = 0
+        return miss, heard
 
 def slack(text):
     return sum(n for w, n in SPELLING.items() if re.search(r'\b' + w + r'\b', text))
@@ -93,8 +101,9 @@ def main(model, check=False, redo=False):
     ear = Listener() if check else None
     unclear = []
     os.makedirs(OUT, exist_ok=True)
-    todo, made = phrases(), {}
-    for text in todo:
+    todo, made = entries(), {}
+    for entry in todo:
+        text = entry['text']
         f = name(text); made[text] = f
         dst = os.path.join(OUT, f)
         if os.path.exists(dst) and not redo: continue
@@ -103,7 +112,7 @@ def main(model, check=False, redo=False):
         for take in range(5):
             tmp = dst + '.take.mp3'
             make(voice, cfg, text, tmp)
-            miss, heard = ear.miss(tmp, text)
+            miss, heard = ear.miss(tmp, text, entry.get('check'))
             if best is None or miss < best[0]: os.replace(tmp, dst); best = (miss, heard)
             else: os.remove(tmp)
             if miss <= slack(text): break
@@ -111,8 +120,8 @@ def main(model, check=False, redo=False):
         if best[0] > slack(text): unclear.append((text, best[1]))
     for f in os.listdir(OUT):
         if f.endswith('.mp3') and f not in made.values(): os.remove(os.path.join(OUT, f)); print('removed', f)
-    with open(os.path.join(ROOT, 'rozmovnyk', 'audio.js'), 'w') as o:
-        o.write('// Made by tools/tts.py: German phrase → its MP3 in rozmovnyk/audio/ (Piper, voice "thorsten", CC0). Do not edit by hand.\n')
+    with open(os.path.join(OUT, 'index.js'), 'w') as o:
+        o.write('// Made by tools/tts.py: German text → its MP3 in this folder (Piper, voice "thorsten", CC0). Do not edit by hand.\n')
         o.write('export const AUDIO = ' + json.dumps(made, ensure_ascii=False, indent=0).replace('\n', '\n  ').replace('\n  }', '\n}') + ';\n')
     print(len(made), 'phrases,', sum(os.path.getsize(os.path.join(OUT, f)) for f in set(made.values())) // 1024, 'KB')
     for text, heard in unclear: print('never heard as written:', text, '|', heard)

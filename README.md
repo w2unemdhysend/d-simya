@@ -20,7 +20,7 @@ Telegram Mini App для життя в Німеччині: домашні пом
 Фото обробляються на пристрої; на сервер іде лише те, що потрібно для дії, яку ти вибрав.
 Після першого відкриття з інтернетом основні сторінки працюють і без нього.
 
-Сторонні частини: шрифт Noto Sans (SIL Open Font License, [`assets/fonts/`](assets/fonts/)); озвучення розмовника синтезовано [Piper](https://github.com/rhasspy/piper) (MIT) голосом Thorsten ([Thorsten-Voice](https://github.com/thorstenMueller/Thorsten-Voice), CC0), скрипт [`tools/tts.py`](tools/tts.py); розпізнавання тексту [Tesseract.js](https://github.com/naptha/tesseract.js) (Apache 2.0), яке завантажується з jsDelivr і перевіряється за хешем офіційного випуску.
+Сторонні частини: шрифт Noto Sans (SIL Open Font License, [`assets/fonts/`](assets/fonts/)); озвучення розмовника й навчальних ігор синтезовано [Piper](https://github.com/rhasspy/piper) (MIT) голосом Thorsten ([Thorsten-Voice](https://github.com/thorstenMueller/Thorsten-Voice), CC0), скрипт [`tools/tts.py`](tools/tts.py); розпізнавання тексту [Tesseract.js](https://github.com/naptha/tesseract.js) (Apache 2.0), яке завантажується з jsDelivr і перевіряється за хешем офіційного випуску.
 Дані про пральку й сушарку взято з інструкцій Beko WMB 71243/71443/71643 PTE та Gorenje SP10.
 Попередження про негоду: Deutscher Wetterdienst (через Bright Sky). Розклад і час наживо: VRR OpenService (Fahrplanauskünfte werden durch den VRR zur Verfügung gestellt. Alle Angaben ohne Gewähr.). Погода: [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0).
 D-Ticket залишається в застосунку VRR App: D-SIM’YA його не зберігає й не показує.
