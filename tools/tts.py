@@ -33,8 +33,9 @@ FIX = {
     'Pfandflaschen': 'pfˈantʰflˌaʃən', 'Nachbarin': 'nˈaxbɑːrˌɪn', 'Unterlagen': 'ˈʊntɜlˌɑːɡən', 'etwas': 'ˈɛtvas',
 }
 
-# Words that come out clearer when written another way (checked with Whisper: three takes out of three right)
-RESPELL = {'Versichertenkarte': 'Versicherten-Karte'}
+# Words that come out clearer when written another way (checked with Whisper: three takes out of three right).
+# "acht Cent" run together is heard as "achtzehn"; a breath between the two words keeps it 0,08 €.
+RESPELL = {'Versichertenkarte': 'Versicherten-Karte', 'acht Cent': 'acht, Cent'}
 # Whisper cannot write some words it hears right ("Kassenbon" said [bɔŋ] comes back as "Kassenbogen"; "gern" as "gerne"):
 # letters it may miss in a phrase with such a word
 SPELLING = {'Kassenbon': 3, 'gern': 1, 'Herrn': 1}
@@ -45,6 +46,9 @@ def spoken(text):
     t = re.sub(r'\s*/\s*', ', ', t)
     t = re.sub(r',\s*([,.?!])', r'\1', t).strip(' ,')
     for w, r in RESPELL.items(): t = re.sub(r'\b' + w + r'\b', r, t)
+    # a text without a full stop is said like the end of a sentence, too: without one the voice swallows a final
+    # unstressed syllable ("die Lampe" came out as "die Lamp", "der Trockner" as "der Trockne")
+    if not re.search(r'[.?!]$', t): t += '.'
     for w, ph in FIX.items(): t = re.sub(r'\b' + w + r'\b', '[[ ' + ph + ' ]]', t)
     return t
 
