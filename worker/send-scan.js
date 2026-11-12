@@ -11,7 +11,8 @@
  *   POST /reminders        reminders for the signed-in user: action=on|off|status, kind=
  *                            smittia (default, evening before a waste pickup; district, bins, rhythm; action=prefs updates them)
  *                            prospekty (Monday flyers) · wetter (DWD weather warnings; place, level 1–3) · wort (word of the day)
- *                            ranok (morning digest; time, place, waste choices, stop) · zboi (messages about failures)
+ *                            ranok (morning digest; time, place, waste choices, stops) · zboi (messages about failures)
+ *   POST /stops            the stops pinned in «Транспорт» (stops=[{id, name}], up to four): /bus and the digest show them
  *   POST /commands         chat commands on|off|status: points the bot's webhook at this Worker (see brief.js)
  *   POST /tg               Telegram's webhook: /bus /wetter /muell /wort /help in a private chat
  *   POST /list             the family shopping list (Durable Object), see list.js
@@ -48,7 +49,7 @@ import { isTransit, transit } from './transit.js';
 import { PLACES, fetchWarnings, warnConfirmText, sendWarnings } from './warn.js';
 import { listRoute } from './list.js';
 import { WORD_BUTTON, wordConfirmText, sendWordOfDay } from './word.js';
-import { HOME_BUTTON, profileOf, briefConfirmText, sendBriefs, webhook, commands } from './brief.js';
+import { HOME_BUTTON, profileOf, stopsOf, briefConfirmText, sendBriefs, webhook, commands } from './brief.js';
 import { ALERTS, runJobs, watch } from './health.js';
 export { ShoppingList } from './list.js';   // the Durable Object class must be exported by the main module
 
@@ -80,6 +81,13 @@ export default {
     if (hand) return handoff(request, env, hand[1], hand[2], reply, cors);
     if (path === '/tg') return webhook(request, env, tgSend);
     if (path === '/reminders') return reminders(request, env, reply);
+    if (path === '/stops') {
+      if (request.method !== 'POST') return reply(405, { ok: false, error: 'POST only' });
+      if (!env.SCANS) return reply(500, { ok: false, error: 'KV binding SCANS is not set' });
+      const signed = await readSigned(request, env, reply);
+      if (signed instanceof Response) return signed;
+      return pinStops(env, signed, reply);
+    }
     if (path === '/commands') {
       if (request.method !== 'POST') return reply(405, { ok: false, error: 'POST only' });
       const signed = await readSigned(request, env, reply);
@@ -144,6 +152,18 @@ const FLYERS = { prefix: 'fsub:', sent: 'fsent:', button: { text: 'Проспе�
 const WEATHER_BUTTON = { text: 'Погода', url: 'https://w2unemdhysend.github.io/d-simya/pogoda/' };
 const KINDS = { smittia: 'sub:', prospekty: FLYERS.prefix, wetter: 'wsub:', wort: 'dsub:', ranok: 'bsub:', zboi: ALERTS };
 
+// The stops pinned in «Транспорт»: kept in the person's profile (for /bus) and in a running digest. Only the stops
+// change; the place and waste choices stay as the «Бот» page sent them.
+async function pinStops(env, signed, reply) {
+  const stops = stopsOf(signed.form.get('stops')), id = signed.user.id;
+  const read = async (k) => { try { return JSON.parse(await env.SCANS.get(k)); } catch { return null; } };
+  const prof = (await read('prof:' + id)) || {};
+  await env.SCANS.put('prof:' + id, JSON.stringify({ ...prof, stops }));
+  const brief = await read('bsub:' + id);
+  if (brief) await env.SCANS.put('bsub:' + id, JSON.stringify({ ...brief, stops }));
+  return reply(200, { ok: true, stops: stops.length });
+}
+
 // switching on in progress, per kind and person (one confirmation even when a page sends the same tap several times)
 const CONFIRMING = new Set();
 
@@ -163,6 +183,10 @@ async function reminders(request, env, reply) {
     : kind === 'wetter' ? { place: PLACES[f.get('place')] ? String(f.get('place')) : 'Xanten', level: [1, 2, 3].includes(Number(f.get('level'))) ? Number(f.get('level')) : 2 }
     : kind === 'ranok' ? profileOf(f)   // also kept as the person's profile: the chat commands answer for the same place, bins and stop
     : null;
+  if (kind === 'ranok' && (action === 'on' || action === 'prefs') && !('stops' in prefs)) {
+    // the page did not send pinned stops (it does not know them on this phone): the ones pinned before stay
+    try { const old = JSON.parse(await env.SCANS.get('prof:' + signed.user.id)); if (old && Array.isArray(old.stops)) prefs.stops = old.stops; } catch { /* no profile yet */ }
+  }
   const saveProfile = () => (kind === 'ranok' ? env.SCANS.put('prof:' + signed.user.id, JSON.stringify(prefs)) : null);
   const record = () => JSON.stringify({ id: signed.user.id, name: String(signed.user.first_name || '').slice(0, 40), ...prefs });
   if (action === 'on') {

@@ -67,12 +67,13 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-top:10px}
 /* a chain */
 .chain{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 14px 12px;animation:in .3s ease backwards}
 @keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-.chain .head{display:flex;align-items:center;gap:8px}
-.chain .title{flex:1;min-width:0;display:flex;align-items:baseline;flex-wrap:wrap;column-gap:10px}
+.chain .head{display:flex;align-items:flex-start;gap:12px}
+.chain .hl{flex:1;min-width:0}
+.chain .title{display:flex;align-items:baseline;flex-wrap:wrap;column-gap:10px}
 .chain .kind{font-size:14px;color:var(--muted)}
 .seenmark{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:600;color:var(--on);white-space:nowrap}
 .seenmark svg{width:15px;height:15px}
-.star{flex:none;width:44px;height:44px;margin:-10px -8px -10px 0;border:0;background:transparent;border-radius:12px;display:grid;place-items:center;cursor:pointer;color:var(--muted);transition:color .2s ease, transform .15s ease}
+.star{flex:none;width:44px;height:44px;margin:-11px -8px 0 0;border:0;background:transparent;border-radius:12px;display:grid;place-items:center;cursor:pointer;color:var(--muted);transition:color .2s ease, transform .15s ease}
 .star:active{transform:scale(.9)}
 .star svg{width:24px;height:24px}
 .star[aria-pressed="true"]{color:var(--accent)}
@@ -265,10 +266,10 @@ function chainCard(c, town, i) {
     return flyer ? `<li class="store own"><div class="srow">${row}</div>${flyer}</li>` : `<li class="store">${row}</li>`;
   }).join('');
   return `<section class="chain" style="animation-delay:${i * 30}ms" aria-label="${esc(c.name)}" data-chain="${esc(c.name)}">` +
-    `<div class="head"><div class="title"><h2>${esc(c.name)}</h2>${c.kind ? `<span class="kind">${esc(c.kind)}</span>` : ''}` +
-    (done ? `<span class="seenmark">${CHECK}переглянуто</span>` : '') + '</div>' +
+    `<div class="head"><div class="hl"><div class="title"><h2>${esc(c.name)}</h2>${c.kind ? `<span class="kind">${esc(c.kind)}</span>` : ''}` +
+    (done ? `<span class="seenmark">${CHECK}переглянуто</span>` : '') + '</div>' + `<p class="perk">${esc(c.perk)}</p></div>` +
     `<button class="star" type="button" aria-pressed="${fav}" aria-label="Мій магазин: ${esc(c.name)}" title="${fav ? 'Прибрати з моїх магазинів' : 'До моїх магазинів'}">${STAR}</button></div>` +
-    `<p class="perk">${esc(c.perk)}</p><ul class="stores">${rows}</ul>` +
+    `<ul class="stores">${rows}</ul>` +
     (c.url ? link(c.url, isSeen(c.url) ? CHECK + 'Переглянуто, відкрити ' + ARROW : 'Проспект цього тижня ' + ARROW, 'go' + (isSeen(c.url) ? ' seen' : ''),
       `Проспект ${c.name} цього тижня` + (isSeen(c.url) ? ', переглянуто' : '')) : '') +
     (c.extra ? link(c.extra[1], esc(c.extra[0]), 'extra') : '') +

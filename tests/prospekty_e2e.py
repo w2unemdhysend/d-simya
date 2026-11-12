@@ -75,6 +75,9 @@ async def main():
         check('discount line per chain (ALDI: none, Lidl: Lidl Plus, EDEKA: PAYBACK)', 'Без купонів' in x['ALDI SÜD']['perk'] and 'Lidl Plus' in x['Lidl']['perk'] and 'PAYBACK' in x['EDEKA']['perk'])
         check('progress: 0 of 9 flyers seen (Rossmann counts, dm has none)', w['progress'] == 'Переглянуто 0 з 9 проспектів', w['progress'])
         check('fits 340 px, no sideways scrolling', await pg.evaluate('document.documentElement.scrollWidth') <= 340)
+        under = await pg.evaluate("""[...document.querySelectorAll('.chain')].filter(c => { const p = c.querySelector('.perk').getBoundingClientRect(), s = c.querySelector('.star').getBoundingClientRect();
+          return p.right > s.left - 4; }).map(c => c.dataset.chain)""")
+        check('the discount line never runs under the star (room below it)', not under, str(under))
 
         await pg.click('.town button[data-town="wesel"]')
         ws = {c['name']: c for c in await pg.evaluate(STATE)}

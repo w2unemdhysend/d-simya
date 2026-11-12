@@ -86,7 +86,7 @@ async def main():
         # ---------- Бот ----------
         ctx, pg, w = await page(browser, base, 'bot/')
         check('bot, outside Telegram: every switch is off and says where it works', await pg.locator('.switch:disabled').count() == 3 and all('через бота в Telegram' in t for t in await pg.locator('.state').all_text_contents()))
-        check('bot, nothing chosen yet: says where to choose the place, bins and stop', 'вибрати своє місце' in await pg.text_content('#what') and 'вибрати в «Сміття»' in await pg.text_content('#what') and 'вибрати в «Транспорт»' in await pg.text_content('#what'))
+        check('bot, nothing chosen yet: says where to choose the place, bins and stop', 'вибрати своє місце' in await pg.text_content('#what') and 'вибрати в «Сміття»' in await pg.text_content('#what') and 'закріпити в «Транспорт»' in await pg.text_content('#what'))
         check('bot: fits 340 px', await pg.evaluate(fits)); await ctx.close()
 
         ctx, pg, w = await page(browser, base, 'bot/', tg=TG, store=HOME, worker=Worker(on=['smittia', 'wetter']))
@@ -96,7 +96,8 @@ async def main():
         others = await pg.evaluate("() => [...document.querySelectorAll('#others li')].map(l => [l.querySelector('b').textContent, l.querySelector('.st').textContent, l.querySelector('a').getAttribute('href')])")
         check('bot: the other reminders with their state and a way to them', others == [['Сміття', 'увімкнено', '../smittia/'], ['Проспекти', 'вимкнено', '../prospekty/'], ['Попередження про негоду', 'увімкнено', '../pogoda/'], ['Слово дня', 'вимкнено', '../igry/?tab=art']], str(others))
         prof = [f for path, f in w.posts if f.get('kind') == 'ranok' and f.get('action') == 'prefs']
-        check('bot: the choices are sent as the profile for the commands, once', len(prof) == 1 and prof[0].get('stop') == 'de:05170:37032' and prof[0].get('place') == 'Lüttingen' and prof[0].get('bins') == 'rest,papier,gelb', str(prof))
+        check('bot: the choices are sent as the profile for the commands, once; no pins known here, so none sent', len(prof) == 1 and prof[0].get('stop') == 'de:05170:37032' and prof[0].get('place') == 'Lüttingen'
+              and prof[0].get('bins') == 'rest,papier,gelb' and 'stops' not in prof[0], str(prof))
         await pg.click('#times [data-time="06:30"]'); await pg.wait_for_timeout(200)
         await pg.click('#sw-brief'); await pg.wait_for_timeout(300)
         on = [f for path, f in w.posts if f.get('kind') == 'ranok' and f.get('action') == 'on']
@@ -114,6 +115,15 @@ async def main():
         check('… and off again', await pg.get_attribute('#sw-alert', 'aria-checked') == 'false' and 'Вимкнено' in await pg.text_content('#st-alert'))
         check('bot in Telegram: fits 340 px', await pg.evaluate(fits))
         if OUT: await pg.screenshot(path=os.path.join(OUT, 'bot.png'), full_page=True)
+        await ctx.close()
+
+        # stops pinned in «Транспорт»: named, and sent with the profile
+        pinned = {**HOME, 'transport-stops': {'list': [{'id': 'de:05170:37032', 'name': 'Xanten, Bahnhof'}, {'id': 'de:05170:37040', 'name': 'Xanten, Dom'}], 'active': 'de:05170:37032', 'pins': ['de:05170:37040', 'de:05170:37032']}}
+        ctx, pg, w = await page(browser, base, 'bot/', tg=TG, store=pinned, worker=Worker())
+        await pg.wait_for_function("!document.querySelector('#sw-brief').disabled"); await pg.wait_for_timeout(200)
+        what = re.sub(r'\s+', ' ', await pg.text_content('#what'))
+        prof = [f for path, f in w.posts if f.get('kind') == 'ranok' and f.get('action') == 'prefs']
+        check('bot: pinned stops named in the order pinned and sent with the profile', 'ЗупинкиXanten Dom, Xanten Bahnhof' in what and prof and json.loads(prof[0]['stops']) == [{'id': 'de:05170:37040', 'name': 'Xanten Dom'}, {'id': 'de:05170:37032', 'name': 'Xanten Bahnhof'}], f'{what} {prof}')
         await ctx.close()
 
         ctx, pg, w = await page(browser, base, 'bot/', tg=TG, worker=Worker(hook_error='other_webhook'))

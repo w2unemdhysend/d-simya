@@ -43,7 +43,7 @@
   <main>
     <section class="card" aria-labelledby="h-brief">
       <div class="row">
-        <div><h2 id="h-brief">Ранкове зведення</h2><p class="note">Одне повідомлення вранці: погода, попередження DWD, сміття, відправлення з твоєї зупинки, слово дня.</p></div>
+        <div><h2 id="h-brief">Ранкове зведення</h2><p class="note">Одне повідомлення вранці: погода, попередження DWD, сміття, відправлення з твоїх зупинок, слово дня.</p></div>
         <button class="switch" id="sw-brief" type="button" role="switch" aria-checked="false" aria-labelledby="h-brief" disabled></button>
       </div>
       <p class="time-lab" id="time-lab">О котрій надсилати</p>
@@ -57,7 +57,7 @@
         <button class="switch" id="sw-cmd" type="button" role="switch" aria-checked="false" aria-labelledby="h-cmd" disabled></button>
       </div>
       <ul class="cmds">
-        <li><code>/bus</code>найближчі відправлення з твоєї зупинки</li>
+        <li><code>/bus</code>найближчі відправлення з твоїх закріплених зупинок</li>
         <li><code>/wetter</code>погода й попередження DWD</li>
         <li><code>/muell</code>коли вивозять сміття</li>
         <li><code>/wort</code>німецьке слово дня</li>
@@ -99,18 +99,23 @@ const NOTG = 'Вмикається, коли D-SIM’YA відкрито чер�
 const waste = load('smittia-prefs'), stops = load('transport-stops');
 const place = waste && PLACES[waste.place] ? waste.place : 'Xanten';
 const stop = stops && Array.isArray(stops.list) ? stops.list.find((s) => s.id === stops.active) || stops.list[0] : null;
-const short = (n) => String(n).replace(/,\s*/, ' ');
+// stops pinned in «Транспорт»; null when this phone does not know (then the bot keeps the ones pinned before)
+const pinned = stops && Array.isArray(stops.list) && Array.isArray(stops.pins) ? stops.pins.map((id) => stops.list.find((s) => s.id === id)).filter(Boolean).slice(0, 4) : null;
+// "Wesel, Wesel Bahnhof" → "Wesel Bahnhof", "Xanten, Dom" → "Xanten Dom" (as in «Транспорт»)
+const short = (name) => { const m = String(name).match(/^([^,]+),\s*(.+)$/); return m ? (m[2].startsWith(m[1]) ? m[2] : m[1] + ' ' + m[2]) : String(name); };
 let time = TIMES.includes(load('bot-time')) ? load('bot-time') : '07:00';
 function profile() {
   const f = { place, time };
   if (waste && waste.district) { f.district = waste.district; f.rhythm = waste.rhythm || 'unknown'; if (Array.isArray(waste.bins)) f.bins = waste.bins.join(','); }
   if (stop) { f.stop = stop.id; f.stopName = short(stop.name); }
+  if (pinned) f.stops = JSON.stringify(pinned.map((s) => ({ id: s.id, name: short(s.name) })));
   return f;
 }
 $('#what').innerHTML =
   `<li><span>Погода</span><div>${esc(place)}${waste && waste.place ? '' : ' · <a href="../smittia/">вибрати своє місце</a>'}</div></li>` +
   `<li><span>Сміття</span><div>${waste && waste.district ? `район ${esc(waste.district)}: ${(waste.bins || []).filter((b) => BINS[b]).map((b) => BINS[b].uk.toLowerCase()).join(', ')}` : 'не вибрано · <a href="../smittia/">вибрати в «Сміття»</a>'}</div></li>` +
-  `<li><span>Зупинка</span><div>${stop ? esc(short(stop.name)) : 'не вибрано · <a href="../transport/">вибрати в «Транспорт»</a>'}</div></li>`;
+  (pinned && pinned.length ? `<li><span>${pinned.length > 1 ? 'Зупинки' : 'Зупинка'}</span><div>${pinned.map((s) => esc(short(s.name))).join(', ')} · <a href="../transport/">змінити</a></div></li>`
+    : `<li><span>Зупинка</span><div>${stop ? esc(short(stop.name)) + ' · <a href="../transport/">закріпити свої (📌)</a>' : 'не вибрано · <a href="../transport/">закріпити в «Транспорт»</a>'}</div></li>`);
 function renderTimes() {
   $('#times').innerHTML = TIMES.map((t) => `<button class="chip" type="button" role="radio" data-time="${t}" aria-checked="${t === time}">${t}</button>`).join('');
 }

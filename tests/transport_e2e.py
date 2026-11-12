@@ -7,7 +7,8 @@ Covers: the D-Ticket button per platform (Android → Google Play, iPhone → Ap
 Telegram through openLink) and that nothing about the ticket is stored; the weather line for the household's
 place; departures with minutes to go, delays, cancelled trips, platforms, rail replacement buses and the
 TaxiBus hint; trains/buses filter; "show more"; VRR notices with a Ukrainian headline and translation; adding,
-switching and removing stops (kept on the device and in the Telegram cloud); errors; 340 px and dark theme.
+switching and removing stops (kept on the device and in the Telegram cloud); pinning stops for the bot's /bus (sent to
+the Worker only when they change, up to four); errors; 340 px and dark theme.
 Exits 1 if a check fails.
 """
 import asyncio, copy, functools, http.server, json, os, re, sys, threading, urllib.parse
@@ -49,11 +50,12 @@ def departures():
     return d
 
 class Worker:
-    def __init__(self, fail=False):
-        self.calls, self.fail = [], fail
+    def __init__(self, fail=False, slow=0):
+        self.calls, self.fail, self.slow = [], fail, slow
     async def __call__(self, route):
         req = route.request; u = urllib.parse.urlparse(req.url); q = urllib.parse.parse_qs(u.query)
         self.calls.append((u.path, q, req.method, req.post_data if req.method == 'POST' else None))
+        if self.slow and u.path == '/transit/departures' and sum(1 for c in self.calls if c[0] == u.path) == 1: await asyncio.sleep(self.slow)
         if self.fail and u.path != '/weather':
             return await route.fulfill(status=502, json={'ok': False, 'error': 'upstream'})
         if u.path == '/transit/departures':
@@ -67,6 +69,8 @@ class Worker:
             return await route.fulfill(json=STOPS)
         if u.path == '/weather':
             return await route.fulfill(json=WX)
+        if u.path == '/stops':
+            return await route.fulfill(json={'ok': True})
         if u.path == '/translate':
             return await route.fulfill(json={'ok': True, 'text': 'У середу, 11 листопада, з 16:30 до 19:30 центр Гельдерна закрито через ходу святого Мартина.'})
         await route.fulfill(status=404, json={'ok': False})
@@ -208,7 +212,9 @@ async def main():
 
         # Android inside Telegram: Play link through openLink, notices translatable, cloud gets the stops
         ctx, pg, w = await page(browser, url, tg=tg_js('android', 'user=%7B%22id%22%3A1%7D&hash=x'))
-        check('Android: Google Play, «Öffnen» hint', 'Google Play' in await pg.inner_text('#tk-how') and (await pg.get_attribute('#tk-open', 'href')).startswith('https://play.google.com/'))
+        how = await pg.inner_text('#tk-how')
+        check('Android: Google Play, with the labels as on the phone («Відкрити» in the store, «My tickets» in the VRR App)', 'Google Play' in how and '«Відкрити»' in how and '«My tickets»' in how
+              and 'Öffnen' not in how and (await pg.get_attribute('#tk-open', 'href')).startswith('https://play.google.com/'), how)
         await pg.click('#tk-open')
         opened = await pg.evaluate('window.__opened')
         check('Android: the button goes through Telegram openLink, page stays', opened and opened[-1].startswith('https://play.google.com/') and pg.url.endswith('/transport/'), str(opened))
@@ -224,15 +230,57 @@ async def main():
         check('Telegram cloud gets the stops too', cloud and cloud['active'] == 'de:05170:36246', str(cloud))
         stored = await pg.evaluate("Object.keys(localStorage).join(',') + '|' + Object.keys(window.__cloud).join(',')")
         check('nothing about the ticket is stored', 'ticket' not in stored.lower() and 'vrr' not in stored.lower(), stored)
+
+        # pinning stops for the bot
+        field = lambda body, name: (re.search(r'name="%s"\r\n\r\n(.*?)\r\n--' % name, body or '', re.S) or [None, None])[1]
+        sent = lambda: [json.loads(field(c[3], 'stops') or 'null') for c in w.calls if c[0] == '/stops']
+        check('pin: nothing pinned yet, nothing sent', await pg.get_attribute('#pin', 'aria-pressed') == 'false' and 'Закріпити для бота' in await pg.inner_text('#pin') and not sent())
+        await pg.click('#pin'); await pg.wait_for_timeout(200)
+        check('pin: the open stop is pinned, marked on its chip', await pg.get_attribute('#pin', 'aria-pressed') == 'true' and await pg.locator('#stops [data-stop="de:05170:36246"] svg.pinned').count() == 1
+              and 'Закріплено для бота' in await pg.inner_text('#pin'))
+        posts = [c for c in w.calls if c[0] == '/stops']
+        title = await pg.inner_text('#dep-title')
+        check('pin: the bot gets it (signed, id and the name as shown)', len(posts) == 1 and field(posts[0][3], 'initData') and sent() == [[{'id': 'de:05170:36246', 'name': title}]], f'{sent()} {title}')
+        await pg.click('#stops [data-stop="de:05170:37032"]'); await pg.wait_for_timeout(200)
+        check('pin: another stop shows unpinned', await pg.get_attribute('#pin', 'aria-pressed') == 'false')
+        await pg.click('#pin'); await pg.wait_for_timeout(200)
+        note = await pg.inner_text('#pin-note')
+        check('pin: two pinned, in the order pinned; the note names them', [x['id'] for x in sent()[-1]] == ['de:05170:36246', 'de:05170:37032'] and f'{title}, Xanten Bahnhof' in note, note)
+        saved = json.loads(await pg.evaluate("localStorage.getItem('transport-stops')"))
+        check('pin: kept with the stops (device and Telegram cloud)', saved['pins'] == ['de:05170:36246', 'de:05170:37032'] and json.loads(await pg.evaluate('window.__cloud.transport'))['pins'] == saved['pins'], str(saved))
+        n = len(sent())
+        await pg.reload(); await pg.wait_for_timeout(500)
+        check('pin: opening the page again sends nothing new', len(sent()) == n, str(sent()))
+        await pg.click('#remove'); await pg.wait_for_timeout(200)
+        check('pin: removing a pinned stop unpins it for the bot too', [x['id'] for x in sent()[-1]] == ['de:05170:36246'], str(sent()[-1]))
+        await pg.click('#pin'); await pg.wait_for_timeout(200)
+        check('pin: unpinned all: the bot gets an empty list', sent()[-1] == [] and await pg.locator('#stops svg.pinned').count() == 0)
         await ctx.close()
 
-        # a new phone: stops come from the Telegram cloud
-        ctx, pg, w = await page(browser, url, tg=tg_js('ios', '', {'transport': json.dumps({'list': [{'id': 'de:05170:36229', 'name': 'Xanten, Hagelkreuzstraße'}], 'active': 'de:05170:36229'})}))
+        # up to four pins; outside Telegram they stay on the device until the page is opened in Telegram
+        five = {'list': [{'id': f'de:05170:3703{k}', 'name': f'Xanten, Stop {k}'} for k in range(5)], 'active': 'de:05170:37034', 'pins': [f'de:05170:3703{k}' for k in range(4)]}
+        ctx, pg, w = await page(browser, url, stops=five)
+        await pg.click('#pin'); await pg.wait_for_timeout(100)
+        note = await pg.inner_text('#pin-note')
+        check('pin: a fifth is refused with a reason', await pg.get_attribute('#pin', 'aria-pressed') == 'false' and 'до 4' in note and json.loads(await pg.evaluate("localStorage.getItem('transport-stops')"))['pins'] == five['pins'], note)
+        await pg.click('#stops [data-stop="de:05170:37030"]'); await pg.wait_for_timeout(100)
+        note = await pg.inner_text('#pin-note')
+        check('pin: outside Telegram nothing is sent, the note says when the bot learns them', not any(c[0] == '/stops' for c in w.calls) and 'у Telegram' in note, note)
+        await ctx.close()
+
+        # a new phone in Telegram: the pins come from the cloud and are not sent back
+        ctx, pg, w = await page(browser, url, tg=tg_js('android', 'user=%7B%22id%22%3A1%7D&hash=x', {'transport': json.dumps({'list': [{'id': 'de:05170:36229', 'name': 'Xanten, Hagelkreuzstraße'}], 'active': 'de:05170:36229', 'pins': ['de:05170:36229']})}))
+        try: await pg.wait_for_function("document.getElementById('pin').getAttribute('aria-pressed') === 'true'", timeout=4000)
+        except Exception: pass
+        check('new phone: pins from the cloud shown, nothing sent', await pg.get_attribute('#pin', 'aria-pressed') == 'true' and not any(c[0] == '/stops' for c in w.calls))
+        await ctx.close()
+
+        # a new phone: stops come from the Telegram cloud (while the suggested stop is still loading)
+        ctx, pg, w = await page(browser, url, tg=tg_js('ios', '', {'transport': json.dumps({'list': [{'id': 'de:05170:36229', 'name': 'Xanten, Hagelkreuzstraße'}], 'active': 'de:05170:36229'})}), worker=Worker(slow=0.6))
         await pg.wait_for_timeout(400)
         check('iPhone: App Store link', (await pg.get_attribute('#tk-open', 'href')).startswith('https://apps.apple.com/de/app/') and 'App Store' in await pg.inner_text('#tk-how'))
-        try: await pg.wait_for_function("document.getElementById('dep-title').innerText === 'Xanten Hagelkreuzstraße'", timeout=4000)   # the cloud answers later on a busy machine
-        except Exception: pass
-        check('new phone: stops from the cloud replace the suggestion', await pg.inner_text('#dep-title') == 'Xanten Hagelkreuzstraße', await pg.inner_text('#dep-title'))
+        await pg.wait_for_timeout(900)
+        check('new phone: stops from the cloud replace the suggestion, even while it was still loading', await pg.inner_text('#dep-title') == 'Xanten Hagelkreuzstraße', await pg.inner_text('#dep-title'))
         await ctx.close()
 
         # the Worker is down

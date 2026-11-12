@@ -1,5 +1,6 @@
 // Checks what the bot says on its own: the morning digest (chosen half hour, once a day, each part stands alone),
-// the chat commands through the webhook (secret checked, private chats only), switching the webhook on and off
+// the chat commands through the webhook (secret checked, private chats only), stops pinned in the app for /bus and
+// the digest, switching the webhook on and off
 // (never over someone else's), messages about failures (services down and back, a job that throws, the waste
 // calendar running out) and the note to waste subscribers on the calendar's last evening.
 // Run: node tests/bot.test.mjs   (Node 22+, no packages needed)
@@ -39,7 +40,7 @@ globalThis.fetch = async (url, init) => {
     if (method === 'deleteWebhook') { hook = ''; return Response.json({ ok: true }); }
     return Response.json({ ok: true });
   }
-  if (u.hostname === 'openservice.vrr.de') { if (down.has('vrr')) return new Response('x', { status: 503 }); return Response.json(shifted(DM, vrrNow)); }
+  if (u.hostname === 'openservice.vrr.de') { if (down.has('vrr') || down.has(u.searchParams.get('name_dm'))) return new Response('x', { status: 503 }); return Response.json(shifted(DM, vrrNow)); }
   if (u.hostname === 'api.open-meteo.com') { if (down.has('meteo')) return new Response('x', { status: 503 }); return Response.json(METEO); }
   if (u.hostname === 'api.brightsky.dev') { if (down.has('dwd')) return new Response('x', { status: 503 }); return Response.json({ alerts, location: { name_short: 'Xanten' } }); }
   return new Response('unexpected ' + u, { status: 599 });
@@ -128,7 +129,43 @@ t('/muell: the next pickups of the household\'s district', r.msg.text.startsWith
 r = await tg('/muell', { from: { id: 31337, first_name: 'Новий' } });
 t('/muell without a district: asks to choose it in the app', r.msg.text.includes('вибери місце й баки') && r.msg.reply_markup.inline_keyboard[0][0].web_app.url.endsWith('/smittia/'));
 r = await tg('/bus', { from: { id: 31337, first_name: 'Новий' } });
-t('/bus without a stop: Xanten Bahnhof and how to choose one\'s own', r.msg.text.includes('Xanten Bahnhof') && r.msg.text.includes('Свою зупинку вибери'));
+t('/bus without a stop: Xanten Bahnhof and how to pin one\'s own', r.msg.text.includes('Xanten Bahnhof') && r.msg.text.includes('Свої зупинки закріпи кнопкою 📌'), r.msg.text);
+
+/* ---------- stops pinned in «Транспорт» ---------- */
+r = await tg('/bus');
+t('/bus with the one stop from before pins: that stop and a tip about pinning several', r.msg.text.startsWith('🚌 Xanten Bahnhof') && r.msg.text.includes('закріпи їх кнопкою 📌'), r.msg.text);
+const DOM = 'de:05170:37040', MARKT = 'de:05170:37050';
+r = await post('/stops', STAS, { stops: JSON.stringify([{ id: 'de:05170:37032', name: 'Xanten Bahnhof' }, { id: DOM, name: 'Xanten Dom' }, { id: 'drop table', name: 'x' }, { id: DOM, name: 'twice' }]) });
+let prof = JSON.parse(kv.get('prof:4242')), brec = JSON.parse(kv.get('bsub:4242'));
+t('pinning: known ids only, each once; kept in the profile and in the running digest', r.body.ok && r.body.stops === 2 && prof.stops.map((x) => x.id).join() === 'de:05170:37032,' + DOM && brec.stops.length === 2, JSON.stringify(prof));
+t('pinning: the place and waste choices stay', prof.place === 'Lüttingen' && prof.waste.district === '2' && brec.time === '07:30', JSON.stringify(brec));
+r = await tg('/bus');
+let blocks = r.msg.text.split('\n\n');
+t('/bus with two pinned stops: a block of four departures for each, no tip', blocks.length === 2 && blocks.every((b) => b.startsWith('🚌') && b.split('\n').length === 5), r.msg.text);
+down = new Set([DOM]);
+r = await tg('/bus');
+t('/bus: a stop VRR cannot answer for says so, the other still shows', r.msg.text.includes('розклад зараз недоступний') && r.msg.text.split('\n\n').length === 2 && /\n\d\d:\d\d  /.test(r.msg.text), r.msg.text);
+down = new Set();
+await post('/stops', STAS, { stops: JSON.stringify([1, 2, 3, 4, 5].map((k) => ({ id: 'de:05170:3703' + k, name: 'Stop ' + k }))) });
+r = await tg('/bus');
+t('at most four pinned stops, three departures each', JSON.parse(kv.get('prof:4242')).stops.length === 4 && r.msg.text.split('\n\n').length === 4 && r.msg.text.split('\n\n').every((b) => b.split('\n').length === 4), r.msg.text);
+await post('/stops', STAS, { stops: JSON.stringify([{ id: 'de:05170:37032', name: 'Xanten Bahnhof' }, { id: MARKT, name: 'Xanten Markt' }]) });
+text = await briefText(JSON.parse(kv.get('bsub:4242')), new Date('2026-11-12T06:30:00Z'));
+t('digest: a block for each pinned stop, three departures each', text.split('\n\n').filter((b) => b.startsWith('🚌')).length === 2 && text.split('\n\n').filter((b) => b.startsWith('🚌')).every((b) => b.split('\n').length === 4), text);
+r = await post('/reminders', STAS, { ...HOME, action: 'prefs' });
+t('the «Бот» page without pins (another phone): the pinned stops stay', JSON.parse(kv.get('prof:4242')).stops.length === 2 && JSON.parse(kv.get('bsub:4242')).stops.length === 2);
+r = await post('/reminders', MAMA, { kind: 'ranok', action: 'off' });
+messages.length = 0;
+r = await post('/reminders', MAMA, { kind: 'ranok', action: 'on', place: 'Xanten', stops: JSON.stringify([{ id: DOM, name: 'Xanten Dom' }, { id: MARKT, name: 'Xanten Markt' }]) });
+t('digest confirmation names the pinned stops', last().text.includes('із зупинок Xanten Dom, Xanten Markt'), last().text);
+await post('/stops', STAS, { stops: '[]' });
+r = await tg('/bus');
+t('all unpinned: back to the stop the app sent before, with the tip', JSON.parse(kv.get('prof:4242')).stops.length === 0 && r.msg.text.startsWith('🚌 Xanten Bahnhof') && r.msg.text.includes('закріпи їх кнопкою 📌'), r.msg.text);
+r = await post('/stops', STAS, { stops: 'not json' });
+t('pinning: broken input pins nothing, nothing breaks', r.body.ok && r.body.stops === 0);
+const unsigned = await worker.fetch(new Request('https://w.example/stops', { method: 'POST', body: new FormData() }), env, {});
+t('pinning: without Telegram sign-in refused', unsigned.status === 401);
+
 r = await tg('/wort');
 t('/wort: the word of the day', /Слово дня: (der|die|das) /.test(r.msg.text));
 r = await tg('/start');

@@ -85,6 +85,16 @@ details[open] > summary .chev{transform:rotate(180deg)}
 .chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .chip svg{width:16px;height:16px}
 .chip.add{border-style:dashed}
+.chip .pinned{width:14px;height:14px;margin-left:-2px}
+.pinrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:10px}
+.pinbtn{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--ink);
+  font-weight:600;font-size:14.5px;cursor:pointer;transition:background-color .2s ease, color .2s ease, border-color .2s ease}
+.pinbtn svg{width:16px;height:16px}
+.pinbtn[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent)}
+.pinbtn[aria-pressed="true"] svg{color:var(--accent)}
+.pinbtn[aria-pressed="true"] svg path:first-child{fill:currentColor}
+.pinnote{margin:0;flex:1 1 220px}
+.pinnote.err{color:var(--danger);font-weight:600}
 .dep-head{display:flex;align-items:flex-start;gap:10px;margin-top:12px}
 .dep-head > div{flex:1;min-width:0}
 .dep-head h2{font-size:20px;overflow-wrap:anywhere}
@@ -191,7 +201,7 @@ details[open] > summary .chev{transform:rotate(180deg)}
       <details class="facts">
         <summary>Що важливо знати<svg class="chev" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></summary>
         <ul>
-          <li><b>63 € на місяць</b>, лише як абонемент. Скасувати можна до 10-го числа, тоді квиток діє до кінця цього місяця. Кнопка «Kündigen» є в застосунку, у «Meine Tickets».</li>
+          <li><b>63 € на місяць</b>, лише як абонемент. Скасувати можна до 10-го числа, тоді квиток діє до кінця цього місяця. Скасовують у застосунку, у «My tickets».</li>
           <li><b>Де діє:</b> уся Німеччина, автобуси, трамваї, U-Bahn, S-Bahn, RB і RE у 2-му класі. Не діє в ICE, IC, EC і FlixTrain.</li>
           <li><b>Квиток іменний:</b> завжди май із собою посвідчення з фото. Скриншот квитка зазвичай не приймають, тож показуй його прямо в застосунку.</li>
           <li><b>Велосипед</b> не входить. Для нього потрібен окремий квиток, наприклад FahrradTicket VRR на 24 години.</li>
@@ -219,6 +229,7 @@ details[open] > summary .chev{transform:rotate(180deg)}
         <div><h2 id="dep-title">…</h2><p class="meta" id="dep-meta"></p></div>
         <button class="ghost sq" id="refresh" type="button" aria-label="Оновити відправлення"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 5v6h-6"/></svg></button>
       </div>
+      <div class="pinrow"><button class="pinbtn" id="pin" type="button" aria-pressed="false"></button><p class="small pinnote" id="pin-note" aria-live="polite"></p></div>
       <div class="seg" id="modes" role="group" aria-label="Вид транспорту" hidden></div>
       <ol class="deps" id="deps"></ol>
       <p class="empty" id="dep-empty" hidden></p>
@@ -248,6 +259,7 @@ const NEXT = svg('<path d="M9 6l6 6-6 6"/>');
 const WARN = svg('<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17h.01"/>');
 const CHEV = '<svg class="chev" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>';
 const PLUS = svg('<path d="M12 5v14M5 12h14"/>');
+const PIN = svg('<path d="M9 3.5h6l-.8 6.3 3.3 3.2H6.5l3.3-3.2z"/><path d="M12 13v7.5"/>');
 const api = (path) => WORKER_URL.replace(/\/*$/, '/') + path;
 // Links leave the Mini App: inside Telegram they open in the phone's browser or store app
 function openOut(url) { if (tg && tg.openLink) { try { tg.openLink(url); return true; } catch (e) {} } return false; }
@@ -256,7 +268,8 @@ document.addEventListener('click', (e) => {
   if (a && openOut(a.href)) e.preventDefault();
 });
 
-/* ---------- D-Ticket: open the VRR App through its store page (it shows «Öffnen» once installed) ---------- */
+/* ---------- D-Ticket: open the VRR App through its store page (it shows «Відкрити» once installed) ----------
+   The labels are the ones on the family's phones: the stores in Ukrainian, the VRR App in English. */
 const PLAY = 'https://play.google.com/store/apps/details?id=mentz.com.vrr_cibo_app';
 const APPLE = 'https://apps.apple.com/de/app/vrr-app-bus-bahn-bike-p-r/id1491339288';
 const plat = tg ? tg.platform : '', ua = navigator.userAgent;
@@ -265,9 +278,9 @@ const open = $('#tk-open');
 open.innerHTML = 'Відкрити VRR App ' + ARROW;
 if (ios) {
   open.href = APPLE;
-  $('#tk-how').textContent = 'Відкриється App Store. Якщо VRR App уже встановлено, натисни «Öffnen», і квиток буде в «Meine Tickets».';
+  $('#tk-how').textContent = 'Відкриється App Store. Якщо VRR App уже встановлено, натисни «Відкрити», і квиток буде в «My tickets».';
 } else if (android) {
-  $('#tk-how').textContent = 'Відкриється Google Play. Якщо VRR App уже встановлено, натисни «Öffnen», і квиток буде в «Meine Tickets».';
+  $('#tk-how').textContent = 'Відкриється Google Play. Якщо VRR App уже встановлено, натисни «Відкрити», і квиток буде в «My tickets».';
 } else {
   $('#tk-how').innerHTML = 'Квиток показують із телефона. Застосунок: <a href="' + PLAY + '" target="_blank" rel="noopener">Google Play</a> або <a href="' + APPLE + '" target="_blank" rel="noopener">App Store</a>.';
 }
@@ -300,14 +313,55 @@ const short = (name) => { const m = String(name).match(/^([^,]+),\s*(.+)$/); ret
 const activeStop = () => mine.list.find((s) => s.id === mine.active) || mine.list[0];
 
 function renderStops() {
-  const a = activeStop();
-  $('#stops').innerHTML = mine.list.map((s) => `<button class="chip" type="button" data-stop="${esc(s.id)}" aria-pressed="${s.id === a.id}">${esc(short(s.name))}</button>`).join('') +
+  const a = activeStop(), p = pins();
+  $('#stops').innerHTML = mine.list.map((s) => `<button class="chip" type="button" data-stop="${esc(s.id)}" aria-pressed="${s.id === a.id}"` +
+    (p.includes(s.id) ? ` aria-label="${esc(short(s.name))}, закріплено для бота">${PIN.replace('<svg', '<svg class="pinned"')}` : '>') + `${esc(short(s.name))}</button>`).join('') +
     `<button class="chip add" id="addstop" type="button" aria-expanded="${!$('#finder').hidden}" aria-controls="finder">${PLUS}Зупинка</button>`;
   $('#remove').hidden = mine.list.length < 2;
+  renderPin();
+}
+
+/* ---------- stops pinned for the bot: /bus and the morning digest show them (up to four) ---------- */
+const MAX_PINS = 4, SENT = 'transport-pins-sent';
+const pins = () => (Array.isArray(mine.pins) ? mine.pins : []).filter((id) => mine.list.some((s) => s.id === id));
+const nameOf = (id) => short((mine.list.find((s) => s.id === id) || {}).name || '');
+let pinMsg = '';
+function renderPin() {
+  const a = activeStop(), p = pins(), on = p.includes(a.id), b = $('#pin');
+  b.setAttribute('aria-pressed', String(on));
+  b.innerHTML = PIN + (on ? 'Закріплено для бота' : 'Закріпити для бота');
+  const note = $('#pin-note');
+  note.className = 'small pinnote' + (pinMsg ? ' err' : '');
+  note.textContent = pinMsg || (p.length ? `/bus у боті показує: ${p.map(nameOf).join(', ')}.` : `Закріплені зупинки бот показує за командою /bus і в ранковому зведенні. Можна до ${MAX_PINS}.`) +
+    (!pinMsg && p.length && !(tg && tg.initData) ? ' Бот дізнається про них, коли відкриєш «Транспорт» у Telegram.' : '');
+}
+$('#pin').addEventListener('click', () => {
+  const a = activeStop();
+  let p = pins();
+  pinMsg = '';
+  if (p.includes(a.id)) p = p.filter((id) => id !== a.id);
+  else if (p.length >= MAX_PINS) { pinMsg = `Закріпити можна до ${MAX_PINS} зупинок: спершу відкріпи одну.`; renderPin(); haptic('error'); return; }
+  else p = [...p, a.id];
+  const on = p.includes(a.id);
+  mine.pins = p; save(); renderStops(); sendPins(); haptic(on ? 'success' : undefined);
+});
+// The bot learns the pinned stops from here (inside Telegram, signed). Only what changed is sent, and only from a
+// phone that has pins of its own: a new phone waits for its stops from the Telegram cloud instead of sending none.
+async function sendPins() {
+  if (!tg || !tg.initData || !Array.isArray(mine.pins)) return;
+  const body = JSON.stringify(pins().map((id) => ({ id, name: nameOf(id) })));
+  let sent = null;
+  try { sent = localStorage.getItem(SENT); } catch (e) {}
+  if (body === sent) return;
+  try {
+    const fd = new FormData(); fd.append('initData', tg.initData); fd.append('stops', body);
+    const d = await (await fetch(api('stops'), { method: 'POST', body: fd })).json();
+    if (d.ok) try { localStorage.setItem(SENT, body); } catch (e) {}
+  } catch (e) { /* tried again the next time the page opens */ }
 }
 $('#stops').addEventListener('click', (e) => {
   const b = e.target.closest('[data-stop]');
-  if (b) { if (b.dataset.stop !== mine.active) { mine.active = b.dataset.stop; save(); renderStops(); mode = 'all'; shown = FIRST; load(true); haptic(); } return; }
+  if (b) { if (b.dataset.stop !== mine.active) { mine.active = b.dataset.stop; pinMsg = ''; save(); renderStops(); mode = 'all'; shown = FIRST; load(true); haptic(); } return; }
   if (e.target.closest('#addstop')) {
     const f = $('#finder'); f.hidden = !f.hidden; renderStops();
     if (!f.hidden) $('#q').focus();
@@ -316,7 +370,8 @@ $('#stops').addEventListener('click', (e) => {
 $('#remove').addEventListener('click', () => {
   if (mine.list.length < 2) return;
   mine.list = mine.list.filter((s) => s.id !== mine.active); mine.active = mine.list[0].id;
-  save(); renderStops(); load(true); haptic();
+  if (Array.isArray(mine.pins)) mine.pins = pins();
+  pinMsg = ''; save(); renderStops(); sendPins(); load(true); haptic();
 });
 
 /* ---------- finding a stop: by its name, by a street or address (nearest stops), or near the phone ---------- */
@@ -393,7 +448,7 @@ $('#results').addEventListener('click', (e) => {
 
 /* ---------- departures ---------- */
 const FIRST = 12;
-let data = null, mode = 'all', shown = FIRST, loading = false, failed = false;
+let data = null, mode = 'all', shown = FIRST, loading = false, failed = false, again = false;
 const berlin = new Intl.DateTimeFormat('de-DE', { timeZone: 'Europe/Berlin', hour: '2-digit', minute: '2-digit' });
 const hm = (iso) => berlin.format(new Date(iso));
 const isTrain = (d) => d.mode === 'train' || /^SEV\b/.test(d.line);
@@ -446,7 +501,7 @@ function render() {
   const a = activeStop();
   $('#dep-title').textContent = short(data.stop.name || a.name);
   // keep the official name: the stop finder sometimes knows a stop by an older one
-  if (data.stop.id === a.id && data.stop.name && data.stop.name !== a.name) { a.name = data.stop.name; save(); renderStops(); }
+  if (data.stop.id === a.id && data.stop.name && data.stop.name !== a.name) { a.name = data.stop.name; save(); renderStops(); sendPins(); }
   // in the order buses actually leave (a late one moves down), cancelled ones at their planned time
   const now = Date.now(), when = (d) => new Date(d.gone ? d.plan : d.est || d.plan).getTime();
   const soon = data.deps.filter((d) => when(d) > now - 60000).sort((a, b) => when(a) - when(b));
@@ -488,7 +543,8 @@ $('#modes').addEventListener('click', (e) => {
 $('#more').addEventListener('click', () => { shown += 20; render(); });
 
 async function load(reset) {
-  if (loading) return;
+  // another stop chosen while one is still loading (a tap, or the stops from the Telegram cloud): load it right after
+  if (loading) { if (reset) again = true; return; }
   const a = activeStop();
   if (reset) {
     data = null; failed = false;
@@ -505,6 +561,7 @@ async function load(reset) {
     failed = true;
     if (!data) { $('#dep-empty').hidden = false; $('#dep-empty').textContent = 'Не вдалося завантажити відправлення. Перевір інтернет і натисни ⟳.'; }
   } finally { loading = false; $('#refresh').classList.remove('busy'); }
+  if (again) { again = false; return load(true); }
   render();
 }
 $('#refresh').addEventListener('click', () => { load(false); haptic(); });
@@ -529,6 +586,7 @@ $('#notices').addEventListener('click', async (e) => {
 
 renderStops();
 load(true);
+if (!fresh) sendPins();
 // live times: the list is redrawn every 15 s, new data every 30 s while the page is in view
 setInterval(() => { if (document.visibilityState === 'visible') render(); }, 15000);
 setInterval(() => { if (document.visibilityState === 'visible') load(false); }, 30000);

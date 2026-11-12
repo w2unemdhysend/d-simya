@@ -2,8 +2,9 @@
 //
 //   digest (kind "ranok", KV bsub:<id>)   one message at the chosen half hour (06:00–09:00 in Xanten): weather and what
 //                                         it means for going out, DWD warnings, bins today or tomorrow, the next
-//                                         departures from the person's stop, the word of the day
-//   profile (KV prof:<id>)                place, waste choices and stop as chosen in the app; the commands answer for them
+//                                         departures from the person's pinned stops, the word of the day
+//   profile (KV prof:<id>)                place, waste choices and stops as chosen in the app; the commands answer for them.
+//                                         Stops pinned in «Транспорт» (up to four) come first; else the stop that was open there
 //   commands (POST /tg, Telegram webhook) /bus /wetter /muell /wort /help, private chats only
 //
 // Each part of a message stands alone: if the weather service is down, the rest still goes out.
@@ -23,6 +24,7 @@ const WASTE_BUTTON = { text: 'Розклад', url: SITE + 'smittia/' };
 const WORD_BUTTON = { text: 'Грати в артиклі', url: SITE + 'igry/?tab=art' };
 export const TIMES = ['06:00', '06:30', '07:00', '07:30', '08:00', '08:30', '09:00'];
 const DEFAULT_STOP = { stop: 'de:05170:37032', stopName: 'Xanten Bahnhof' };
+export const MAX_PINS = 4;
 const ICON = { storm: '⛈', rain: '☔', snow: '🌨', ice: '🧊', wind: '💨', dry: '🌤' };
 const LEVEL_DOT = { 1: '🟡', 2: '🟠', 3: '🔴', 4: '🟣' };
 
@@ -31,7 +33,26 @@ const hm = (iso) => new Intl.DateTimeFormat('de-DE', { timeZone: 'Europe/Berlin'
 const dateUk = (day, opts = { weekday: 'long', day: 'numeric', month: 'long' }) => new Date(day + 'T12:00:00Z').toLocaleDateString('uk-UA', { ...opts, timeZone: 'UTC' });
 const binList = (bins) => bins.map(({ bin, only14 }) => `${BINS[bin].dot} ${BINS[bin].uk}${only14 ? ' (лише двотижневі)' : ''}`).join(', ');
 
-// The choices sent by the app, cleaned up: a known place, the waste choices, a stop id, a half hour
+// Pinned stops as the app sends them (JSON [{id, name}]): known ids only, each once, at most four
+export function stopsOf(raw) {
+  let list = [];
+  try { list = JSON.parse(String(raw || '[]')); } catch { return []; }
+  if (!Array.isArray(list)) return [];
+  const out = [];
+  for (const x of list) {
+    if (!x || !STOP_ID.test(String(x.id)) || out.some((y) => y.id === x.id)) continue;
+    out.push({ id: String(x.id), name: clip(x.name, 60) || 'Зупинка' });
+    if (out.length === MAX_PINS) break;
+  }
+  return out;
+}
+// The stops a message is about: the pinned ones, else the one stop the app sent before pins existed
+export function stopsFor(p) {
+  if (p && Array.isArray(p.stops) && p.stops.length) return p.stops.map((x) => ({ stop: x.id, stopName: x.name }));
+  return p && p.stop ? [{ stop: p.stop, stopName: p.stopName }] : [];
+}
+
+// The choices sent by the app, cleaned up: a known place, the waste choices, stops, a half hour
 export function profileOf(f) {
   const get = (k) => (f.get(k) == null ? '' : String(f.get(k)));
   const waste = f.has('district') ? prefsOf(cal, { district: get('district'), rhythm: get('rhythm'), bins: f.has('bins') ? get('bins').split(',') : undefined }) : null;
@@ -40,6 +61,7 @@ export function profileOf(f) {
     place: PLACES[get('place')] ? get('place') : 'Xanten',
     ...(waste ? { waste } : {}),
     ...(stop ? { stop, stopName: clip(get('stopName'), 60) || 'Зупинка' } : {}),
+    ...(f.has('stops') ? { stops: stopsOf(get('stops')) } : {}),
     time: TIMES.includes(get('time')) ? get('time') : '07:00',
   };
 }
@@ -82,24 +104,33 @@ export async function busLines(stop, name, now, n = 4) {
     return `${hm(x.est || x.plan)}  ${x.line} → ${x.dest}${late >= 1 ? ` (+${late} хв)` : ''}`;
   })];
 }
+// Departures for several stops, one block each: fewer lines per stop the more stops there are. A stop that cannot be
+// read says so in its block; when none can be read the error goes up (the command then says "try again").
+export async function busBlocks(list, now, n = list.length > 2 ? 3 : list.length > 1 ? 4 : 6) {
+  const got = await Promise.allSettled(list.map((s) => busLines(s.stop, s.stopName, now, n)));
+  if (got.every((g) => g.status === 'rejected')) throw got[0].reason;
+  return got.map((g, i) => (g.status === 'fulfilled' ? g.value : [`🚌 ${list[i].stopName}: розклад зараз недоступний.`]));
+}
 
 /* ---------------- the morning digest ---------------- */
 export async function briefText(rec, now) {
   const day = berlinDay(now), place = PLACES[rec.place] ? rec.place : 'Xanten';
   const part = async (make, failed) => { try { return await make(); } catch (e) { console.log('digest part failed', String(e && e.message || e)); return failed ? [failed] : []; } };
+  const stops = stopsFor(rec);
   const [wx, warn, bus] = await Promise.all([
     part(() => weatherLines(place), '🌡 Погода зараз недоступна.'),
     part(() => warnLines(place)),
-    rec.stop ? part(() => busLines(rec.stop, rec.stopName, now), '🚌 Розклад зараз недоступний.') : [],
+    stops.length ? busBlocks(stops, now, stops.length > 1 ? 3 : 4).catch(() => [['🚌 Розклад зараз недоступний.']]) : [],
   ]);
   const waste = rec.waste ? wasteLines(rec.waste, day) : [];
   const word = wordText(day).split('\n')[0];
-  const blocks = [[`Доброго ранку${rec.name ? ', ' + rec.name : ''}! ${dateUk(day)[0].toUpperCase() + dateUk(day).slice(1)}.`], [...wx, ...warn], waste, bus, [word]];
+  const blocks = [[`Доброго ранку${rec.name ? ', ' + rec.name : ''}! ${dateUk(day)[0].toUpperCase() + dateUk(day).slice(1)}.`], [...wx, ...warn], waste, ...bus, [word]];
   return blocks.filter((b) => b.length).map((b) => b.join('\n')).join('\n\n');
 }
 export function briefConfirmText(rec) {
+  const stops = stopsFor(rec).map((s) => s.stopName);
   return `Ранкове зведення увімкнено. Щодня о ${rec.time} я надішлю одне повідомлення: погода для ${rec.place} і попередження DWD` +
-    (rec.waste ? ', чи вивозять сміття' : '') + (rec.stop ? `, найближчі відправлення із зупинки ${rec.stopName}` : '') + ', слово дня.';
+    (rec.waste ? ', чи вивозять сміття' : '') + (stops.length ? `, найближчі відправлення ${stops.length > 1 ? 'із зупинок' : 'із зупинки'} ${stops.join(', ')}` : '') + ', слово дня.';
 }
 
 // Every 30 minutes: the digest for everyone whose half hour it is, once a day each
@@ -129,15 +160,15 @@ export async function sendBriefs(env, now, tgSend) {
 
 /* ---------------- chat commands ---------------- */
 export const COMMANDS = [
-  { command: 'bus', description: 'Найближчі відправлення з моєї зупинки' },
+  { command: 'bus', description: 'Найближчі відправлення з моїх зупинок' },
   { command: 'wetter', description: 'Погода зараз і попередження DWD' },
   { command: 'muell', description: 'Коли вивозять сміття' },
   { command: 'wort', description: 'Німецьке слово дня' },
   { command: 'help', description: 'Що вміє бот' },
 ];
 const HELP = 'Я бот D-SIM’YA: помічник для життя в Німеччині.\n\n' +
-  '/bus — найближчі відправлення з твоєї зупинки\n/wetter — погода й попередження DWD\n/muell — коли вивозять сміття\n/wort — слово дня\n\n' +
-  'Зупинку, місце й район вивозу я беру з застосунку. Там же вмикаються нагадування й ранкове зведення.';
+  '/bus — найближчі відправлення з твоїх закріплених зупинок\n/wetter — погода й попередження DWD\n/muell — коли вивозять сміття\n/wort — слово дня\n\n' +
+  'Зупинки, місце й район вивозу я беру з застосунку: зупинки закріплюються кнопкою 📌 у розділі «Транспорт». Там же вмикаються нагадування й ранкове зведення.';
 
 // The person's choices: the profile saved by the app, else what their reminders know
 async function profile(env, id) {
@@ -158,9 +189,11 @@ export async function answer(env, text, userId, now) {
   const p = env.SCANS ? await profile(env, userId) : { place: 'Xanten' };
   try {
     if (c === 'bus') {
-      const s = p.stop ? p : DEFAULT_STOP;
-      const lines = await busLines(s.stop, s.stopName, now, 6);
-      return { text: lines.join('\n') + (p.stop ? '' : '\n\nСвою зупинку вибери в розділі «Транспорт»: тоді я показуватиму її.'), button: BUS_BUTTON };
+      const mine = stopsFor(p), pinned = Array.isArray(p.stops) && p.stops.length > 0;
+      const blocks = await busBlocks(mine.length ? mine : [DEFAULT_STOP], now);
+      const tip = pinned ? '' : mine.length ? '\n\nЩоб я показував кілька зупинок, закріпи їх кнопкою 📌 у розділі «Транспорт».'
+        : '\n\nСвої зупинки закріпи кнопкою 📌 у розділі «Транспорт»: тоді я показуватиму їх.';
+      return { text: blocks.map((b) => b.join('\n')).join('\n\n') + tip, button: BUS_BUTTON };
     }
     if (c === 'wetter') {
       const [wx, warn] = await Promise.all([weatherLines(p.place), warnLines(p.place).catch(() => [])]);
