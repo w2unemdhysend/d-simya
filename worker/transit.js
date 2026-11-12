@@ -13,6 +13,8 @@
 //   GET /transit/course?line=<id>&trip=<code>&stop=<id>&when=YYYY-MM-DDTHH:MM
 //                                        where one bus or train goes: its stops with times (live where VRR has them)
 //                                        and its path on the roads; line and trip come with every departure
+//   GET /transit/line?line=<id>          every road a line takes in one direction (all its variants), for the map:
+//                                        the way back of a course when it does not call at the same stop
 //   GET /transit/walk?from=<lat,lon>&to=<lat,lon>  a walking route: metres, minutes and the path (OSRM on the
 //                                        FOSSGIS server, © OpenStreetMap contributors); the spots are never kept
 //   GET /weather?lat=<..>&lon=<..>       now, next 24 hours and 7 days (Open-Meteo)
@@ -35,7 +37,7 @@ const inGermany = (lat, lon) => lat >= 47 && lat <= 55.2 && lon >= 5.8 && lon <=
 
 import { fetchWarnings } from './warn.js';
 
-const PATHS = ['/transit/stops', '/transit/departures', '/transit/trip', '/transit/area', '/transit/course', '/transit/walk', '/weather', '/warnings'];
+const PATHS = ['/transit/stops', '/transit/departures', '/transit/trip', '/transit/area', '/transit/course', '/transit/line', '/transit/walk', '/weather', '/warnings'];
 export function isTransit(path) { return PATHS.includes(path); }
 
 export async function transit(request, env, ctx, reply, cors) {
@@ -78,6 +80,11 @@ export async function transit(request, env, ctx, reply, cors) {
       const line = String(p.get('line') || ''), code = String(p.get('trip') || ''), stop = String(p.get('stop') || ''), when = String(p.get('when') || '');
       if (!LINE_ID.test(line) || !/^\d{1,6}$/.test(code) || !STOP_ID.test(stop) || !STAMP.test(when)) return reply(400, { ok: false, error: 'line, trip, stop and when as a departure gives them' });
       return await cached(`course:${line}:${code}:${stop}:${when}`, 30, ctx, cors, url.origin, () => course(line, code, stop, when));
+    }
+    if (url.pathname === '/transit/line') {
+      const line = String(p.get('line') || '');
+      if (!LINE_ID.test(line)) return reply(400, { ok: false, error: 'line: an id as a departure gives it' });
+      return await cached(`line:${line}`, 86400, ctx, cors, url.origin, () => lineRoads(line));
     }
     if (url.pathname === '/transit/walk') {
       const a = String(p.get('from') || '').split(',').map(Number), b = String(p.get('to') || '').split(',').map(Number);
@@ -202,11 +209,26 @@ async function course(line, code, stop, stamp) {
     at: new Date().toISOString(),
   };
 }
-// a stop of a stop sequence: the stop's id (not its platform), name, place and times
+// a stop of a stop sequence: the stop's id (not its platform), name, times, and where exactly the bus stops: the
+// platform's point (on the side of the street the bus drives on) and its name
 function seqStop(s) {
   const pid = s.parent && STOP_ID.test(s.parent.id || '') ? s.parent.id : (String(s.id || '').match(/^de:\d{5}:\d{1,7}/) || [''])[0];
-  return { id: pid, name: clip(s.parent && s.parent.name ? s.parent.name : s.name, 80), coord: round5(s.coord),
+  const pr = s.properties || {};
+  return { id: pid, name: clip(s.parent && s.parent.name ? s.parent.name : s.name, 80), coord: round5(s.coord), plat: clip(pr.platformName || pr.platform || (s.type === 'platform' ? s.disassembledName : ''), 12),
     arr: s.arrivalTimePlanned || null, arrEst: s.arrivalTimeEstimated || null, dep: s.departureTimePlanned || null, depEst: s.departureTimeEstimated || null };
+}
+
+// The roads of a line in one direction, every variant together, as VRR draws the line (XML_GEOOBJECT_REQUEST).
+// That server sometimes answers 502 to this heavy question: one more try.
+async function lineRoads(line) {
+  const u = new URL(EFA + 'XML_GEOOBJECT_REQUEST');
+  Object.entries({ outputFormat: 'rapidJSON', coordOutputFormat: 'WGS84[dd.ddddd]', line }).forEach(([k, v]) => u.searchParams.set(k, v));
+  let d;
+  try { d = await getJson(u); } catch (e) { d = await getJson(u); }
+  const t = (d.transportations || [])[0];
+  if (!t || !Array.isArray(t.coords)) throw new Error('line: no roads');
+  const parts = t.coords.filter((c) => Array.isArray(c) && c.length > 1).map((c) => simplify(c, 5)).filter((c) => c.length > 1);
+  return { line: clip(t.disassembledName || t.number, 24), dest: clip(t.destination && t.destination.name, 80), paths: parts, at: new Date().toISOString() };
 }
 // [lat, lon] to five decimals (about a metre); anything that is not a point on Earth (old answers had other coordinates) is null
 const round5 = (c) => (Array.isArray(c) && c.length >= 2 && Math.abs(c[0]) <= 90 && Math.abs(c[1]) <= 180 ? [c[0], c[1]].map((n) => Math.round(n * 1e5) / 1e5) : null);

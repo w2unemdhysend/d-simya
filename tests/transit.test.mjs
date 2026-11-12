@@ -8,7 +8,8 @@ import { plain } from '../worker/transit.js';
 const fx = (n) => JSON.parse(readFileSync(new URL('./fixtures/' + n, import.meta.url)));
 const TRIP = fx('efa-trip.json');
 const DM = fx('efa-dm.json'), SF = fx('efa-sf.json'), METEO = fx('meteo.json'), COORD = fx('efa-coord.json');
-const AREA = fx('efa-area.json'), SEQ = fx('efa-stopseq.json'), FOOT = fx('osrm-foot.json');
+const AREA = fx('efa-area.json'), SEQ = fx('efa-stopseq.json'), FOOT = fx('osrm-foot.json'), GEO = fx('efa-geoobject.json');
+let geoBusy = 0;   // the line roads question: how many times VRR answers 502 before it answers
 // what the stop finder says for a street and for an address (no stop has that name)
 const STREET = { locations: [{ type: 'street', id: 'streetID:1', name: 'Xanten, Sonsbecker Straße', matchQuality: 250, coord: [51.6531, 6.4402] },
   { type: 'stop', id: 'de:05170:99001', name: 'Sonsbeck, Markt', disassembledName: 'Markt', matchQuality: 120, productClasses: [5], parent: { name: 'Sonsbeck' } }] };
@@ -24,6 +25,7 @@ globalThis.fetch = async (url) => {
   }
   if (u.hostname === 'openservice.vrr.de' && u.pathname.endsWith('XML_COORD_REQUEST')) return Response.json(u.searchParams.get('radius_1') === '1300' ? AREA : COORD);
   if (u.hostname === 'openservice.vrr.de' && u.pathname.endsWith('XML_STOPSEQCOORD_REQUEST')) return Response.json(SEQ);
+  if (u.hostname === 'openservice.vrr.de' && u.pathname.endsWith('XML_GEOOBJECT_REQUEST')) { if (geoBusy > 0) { geoBusy--; return new Response('Bad Gateway', { status: 502 }); } return Response.json(GEO); }
   if (u.hostname === 'routing.openstreetmap.de') return Response.json(FOOT);
   if (u.hostname === 'openservice.vrr.de' && u.pathname.endsWith('XML_DM_REQUEST')) {
     // the look-alike check asks each stop for its own name
@@ -182,10 +184,23 @@ t('course: 39 stops with stop ids (not platforms), names and coordinates', co.st
 t('course: planned and live times; none to arrive at the first stop, none to leave the last', co.stops[0].dep && !co.stops[0].arr && co.stops[38].arr && !co.stops[38].dep && co.stops[38].arrEst === '2026-11-12T15:19:00Z', JSON.stringify(co.stops[38]));
 t('course: the road, made smaller, starts and ends where the trip does', co.path.length > 50 && co.path.length < SEQ.leg.coords.length / 2
   && Math.abs(co.path[0][0] - 51.65543) < 1e-4 && Math.abs(co.path[co.path.length - 1][1] - SEQ.leg.coords[SEQ.leg.coords.length - 1][1]) < 1e-4, co.path.length);
+t('course: where the bus stops at each stop: the platform\'s point and name', co.stops[0].plat === '4' && co.stops[1].plat === '1' && co.stops.every((x) => typeof x.plat === 'string'), JSON.stringify(co.stops.slice(0, 2)));
 t('course: small enough for a phone', JSON.stringify(co).length < 16000, JSON.stringify(co).length);
 t('course: made-up ids, a missing trip code or time are refused', (await get('/transit/course?line=x&trip=33&stop=de:05170:37032&when=2026-11-12T15:28')).status === 400
   && (await get('/transit/course?line=' + encodeURIComponent('bvr:88X28:W:R:j26') + '&stop=de:05170:37032&when=2026-11-12T15:28')).status === 400
   && (await get('/transit/course?line=' + encodeURIComponent('bvr:88X28:W:R:j26') + '&trip=33&stop=de:05170:37032')).status === 400);
+
+// the map: every road of a line one way
+geoBusy = 1;
+r = await get('/transit/line?line=' + encodeURIComponent('nia:25S42: :H:j26'));
+const gc = calls.filter((u) => u.pathname.endsWith('XML_GEOOBJECT_REQUEST'));
+t('line: VRR asked for the line, once more after a 502', gc.length === 2 && gc[1].searchParams.get('line') === 'nia:25S42: :H:j26', gc.length);
+t('line: its roads as lines of points, made smaller, with the line and where it goes', r.status === 200 && r.body.line === 'SL42' && r.body.dest === 'Kalkar Markt' && r.body.paths.length >= 30
+  && r.body.paths.every((pp) => pp.length > 1 && pp.every((q) => q[0] > 51 && q[1] > 6)) && r.body.paths.reduce((n, pp) => n + pp.length, 0) < GEO.transportations[0].coords.reduce((n, pp) => n + pp.length, 0), JSON.stringify(r.body).length);
+const ng = calls.length;
+await get('/transit/line?line=' + encodeURIComponent('nia:25S42: :H:j26'));
+t('line: kept a day (timetable roads change rarely)', calls.length === ng);
+t('line: a made-up line is refused', (await get('/transit/line?line=evil')).status === 400);
 
 // the map: on foot
 const nw = calls.length;

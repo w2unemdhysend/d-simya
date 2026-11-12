@@ -10,14 +10,14 @@ export const LIGHT = {
   motorway: '#F7E3BF', motorwayCasing: '#D9B67A', path: '#AEB9BF', rail: '#A3AEB4', railDash: '#ECEFF0',
   label: '#12181C', label2: '#53616A', label3: '#7A878F', halo: '#FFFFFF', waterLabel: '#3E6F8C',
   // what we draw: stops, the selected one, the walk, a course
-  accent: '#9A5800', accentSoft: '#F7E3BF', ink: '#12181C', surface: '#FFFFFF', walk: '#1F6FD1', muted: '#8C989F',
+  accent: '#9A5800', accentSoft: '#F7E3BF', ink: '#12181C', surface: '#FFFFFF', walk: '#1F6FD1', muted: '#8C989F', back: '#6F4BD8',
 };
 export const DARK = {
   land: '#12181B', resid: '#151C20', green: '#16241B', wood: '#18281D', water: '#1B3341', waterLine: '#234357',
   building: '#1E272D', buildingLine: '#283239', road: '#27323A', casing: '#0C1114', major: '#34424C', majorCasing: '#0C1114',
   motorway: '#5A4518', motorwayCasing: '#0C1114', path: '#45525B', rail: '#4E5B64', railDash: '#12181B',
   label: '#E5EBEE', label2: '#A7B4BB', label3: '#7D8A92', halo: '#0F1417', waterLabel: '#8FC1DE',
-  accent: '#FFB424', accentSoft: '#3A2909', ink: '#E5EBEE', surface: '#182026', walk: '#8AB4F8', muted: '#6B7980',
+  accent: '#FFB424', accentSoft: '#3A2909', ink: '#E5EBEE', surface: '#182026', walk: '#8AB4F8', muted: '#6B7980', back: '#B9A6FF',
 };
 
 const NAME = ['coalesce', ['get', 'name:de'], ['get', 'name']];
@@ -79,16 +79,34 @@ export function baseLayers(c) {
 
 // What the page draws on the map. The sources start empty; the page fills them.
 const EMPTY = { type: 'FeatureCollection', features: [] };
-export const OVERLAY_SOURCES = ['acc', 'walk', 'route', 'routestops', 'stops', 'sel'];
+export const OVERLAY_SOURCES = ['acc', 'walk', 'back', 'route', 'routestops', 'stops', 'sel'];
+// Buses drive on the right: each direction's line is drawn a little to the right of the road's middle, so where the
+// way there and the way back share a street, both show side by side, each on the side where its buses stop.
+// White arrows along the lines say which way they go (the icon "arrow" is drawn by the page).
+const OFFSET = ['interpolate', ['linear'], ['zoom'], 12, 0, 14, 2.5, 16, 4.5, 18, 7];
+const arrows = (id, source, filter, c) => ({ id, type: 'symbol', source, minzoom: 13, filter,
+  layout: { 'symbol-placement': 'line', 'symbol-spacing': ['interpolate', ['linear'], ['zoom'], 13, 90, 17, 140], 'icon-image': 'arrow',
+    'icon-size': ['interpolate', ['linear'], ['zoom'], 13, 0.45, 16, 0.6, 18, 0.8], 'icon-rotation-alignment': 'map', 'icon-allow-overlap': true, 'icon-ignore-placement': true,
+    // the same distance to the right as the line (the offset is in icon pixels, so divided by the icon's size)
+    'icon-offset': ['interpolate', ['linear'], ['zoom'], 13, ['literal', [0, 2.8]], 14, ['literal', [0, 5]], 16, ['literal', [0, 7.5]], 18, ['literal', [0, 8.75]]] },
+  paint: { 'icon-color': c.surface } });
 export function overlayLayers(c) {
+  const RIDE = ['all', ['!=', ['get', 'kind'], 'walk'], ['!=', ['get', 'kind'], 'done']];
   return [
     // how sure the phone is about where you are
     { id: 'acc', type: 'fill', source: 'acc', paint: { 'fill-color': c.walk, 'fill-opacity': 0.12 } },
+    // the way back of a course, when it takes other streets: its own colour, under the way there
+    { id: 'back-casing', type: 'line', source: 'back', layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': c.surface, 'line-width': z(10, 4, 14, 7, 18, 12), 'line-offset': OFFSET } },
+    { id: 'back', type: 'line', source: 'back', layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': c.back, 'line-width': z(10, 2.4, 14, 4, 18, 7.5), 'line-offset': OFFSET } },
+    arrows('back-arrows', 'back', ['has', 'dir'], c),
     // a bus or train's road (a course, or the rides of a connection) and its stops
     { id: 'route-casing', type: 'line', source: 'route', filter: ['!=', ['get', 'kind'], 'walk'], layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': c.surface, 'line-width': z(10, 5, 14, 8, 18, 14) } },
+      paint: { 'line-color': c.surface, 'line-width': z(10, 5, 14, 8, 18, 14), 'line-offset': OFFSET } },
     { id: 'route', type: 'line', source: 'route', filter: ['!=', ['get', 'kind'], 'walk'], layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': ['match', ['get', 'kind'], 'train', c.ink, 'done', c.muted, c.accent], 'line-width': z(10, 3, 14, 5, 18, 9) } },
+      paint: { 'line-color': ['match', ['get', 'kind'], 'train', c.ink, 'done', c.muted, c.accent], 'line-width': z(10, 3, 14, 5, 18, 9), 'line-offset': OFFSET } },
+    arrows('route-arrows', 'route', RIDE, c),
     { id: 'route-walk', type: 'line', source: 'route', filter: ['==', ['get', 'kind'], 'walk'], layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: { 'line-color': c.walk, 'line-width': z(12, 3, 18, 7), 'line-dasharray': [0.1, 2] } },
     { id: 'routestops', type: 'circle', source: 'routestops', minzoom: 11,

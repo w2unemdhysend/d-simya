@@ -1,9 +1,9 @@
 /* «Мапа»: the map fills the screen; on top of it a search row, a button for "where am I" and a sheet from the bottom
    with what is chosen (stops around, a stop with its departures, where a bus goes, a connection). The sheet can be
    dragged by its handle or title: low, half, high. Colours, cards and line badges as on the other pages. */
-:root{--walk:#1F6FD1;--sheet-h:46vh;--top-h:72px}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--walk:#8AB4F8}}
-:root[data-theme="dark"]{--walk:#8AB4F8}
+:root{--walk:#1F6FD1;--back:#6F4BD8;--sheet-h:46vh;--top-h:72px}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--walk:#8AB4F8;--back:#B9A6FF}}
+:root[data-theme="dark"]{--walk:#8AB4F8;--back:#B9A6FF}
 html,body.mapapp{height:100%;overflow:hidden;overscroll-behavior:none}
 body.mapapp{padding:0}
 body.mapapp::before{display:none}
@@ -150,6 +150,24 @@ h3.sub{margin:16px 0 0;font:600 12px/1.4 var(--f-body);letter-spacing:.12em;text
 .busrow .bi{width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--surface);display:grid;place-items:center}
 .busrow .bi svg{width:14px;height:14px}
 .course .gapcs{padding:2px 0 2px calc(3.6em + 38px);font-size:13px;color:var(--muted)}
+
+/* the colours of the course on the map, and where to stand */
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:8px;font-size:13px;line-height:1.35;color:var(--muted)}
+.legend .key{display:flex;align-items:center;gap:8px}
+.legend .sw{flex:none;width:22px;height:5px;border-radius:3px;background:var(--accent)}
+.legend .sw.train{background:var(--ink)}
+.legend .sw.back{background:var(--back)}
+.standnote{margin:0;font-size:14.5px;line-height:1.45}
+/* (no position here: MapLibre places the marker absolutely) the tail points at the pole, from the corner the label grows away from */
+.stand{display:flex;align-items:center;gap:5px;padding:4px 9px 4px 5px;border-radius:999px;background:var(--ink);color:var(--bg);font:700 12.5px/1 var(--f-body);white-space:nowrap;
+  box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.stand::after{content:"";position:absolute;left:50%;bottom:-6px;margin-left:-6px;border:6px solid transparent;border-bottom:0;border-top-color:var(--ink)}
+.stand.a-bottom-left{border-bottom-left-radius:4px}.stand.a-bottom-left::after{left:4px;margin-left:0}
+.stand.a-bottom-right{border-bottom-right-radius:4px}.stand.a-bottom-right::after{left:auto;right:4px;margin-left:0}
+.stand.a-top::after{bottom:auto;top:-6px;border-top:0;border-bottom:6px solid var(--ink)}
+.stand .dir{width:20px;height:20px;border-radius:50%;background:var(--accent);color:var(--surface);display:grid;place-items:center}
+.stand .dir svg{width:14px;height:14px}
+.stand.back .dir{background:var(--back)}
 
 /* a connection: its legs */
 .legs{list-style:none;margin:0;padding:0;display:grid;gap:10px}

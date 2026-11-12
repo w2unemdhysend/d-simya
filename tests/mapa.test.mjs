@@ -2,7 +2,7 @@
 // minutes, the Xanten time stamp, and that both map styles hang together (every layer's source exists, ids unique).
 // Run: node tests/mapa.test.mjs
 import { readFileSync } from 'node:fs';
-import { whereNow, cellsFor, walkMin, fmtDist, metres, measure, locate, pointAt, slice, berlinStamp, ring, XANTEN } from '../mapa/geo.js';
+import { whereNow, cellsFor, walkMin, fmtDist, metres, measure, locate, pointAt, slice, berlinStamp, ring, XANTEN, bearing, headingAt, distTo, shareNear, stopPositions } from '../mapa/geo.js';
 import { mapStyle, OVERLAY_SOURCES, LIGHT, DARK } from '../mapa/style.js';
 
 let fails = 0;
@@ -42,6 +42,17 @@ t('out and back: B is found on the way back, the bus between the end and B on th
 const c = fx.course, mid = (Date.parse(c.stops[0].dep) + Date.parse(c.stops[c.stops.length - 1].arr || c.stops[c.stops.length - 1].dep)) / 2;
 const w = whereNow(c.stops, mid, c.path), cc = measure(c.path);
 t('real course: halfway through its time the bus is between two stops or at one, on its road', ['between', 'at'].includes(w.state) && w.at > 0 && w.at < cc[cc.length - 1] && metres(w.point, c.stops[w.i].coord) < 3000, JSON.stringify(w));
+
+// which way it drives, and whether the way back takes the same streets
+t('bearing: north 0, east 90, south 180, west 270', Math.round(bearing([51.66, 6.45], [51.67, 6.45])) === 0 && Math.round(bearing([51.66, 6.45], [51.66, 6.46])) === 90
+  && Math.round(bearing([51.66, 6.45], [51.65, 6.45])) === 180 && Math.round(bearing([51.66, 6.45], [51.66, 6.44])) === 270);
+t('heading along a road: east on the way out, west on the way back', Math.round(headingAt(obPath, measure(obPath), 300)) === 90 && Math.round(headingAt(obPath, measure(obPath), measure(obPath)[3] - 100)) === 270);
+t('distance to a road: across the street', Math.abs(distTo(path, [51.6602, 6.452]) - 22.3) < 0.5);
+const parallel = [[51.6601, 6.44], [51.6601, 6.46]], other = [[51.665, 6.44], [51.665, 6.46]];
+t('the way back on the other side of the same street counts as the same streets', shareNear(path, [parallel], 30) === 1);
+t('a way back two streets away does not; half and half is half', shareNear(path, [other], 30) === 0 && Math.abs(shareNear(path, [parallel, other], 30) - 0.5) < 0.05);
+const sp = stopPositions(OB, obPath, measure(obPath));
+t('stop positions along an out-and-back road go only forward', sp[0] === 0 && sp[1] > sp[0] && sp[2] > sp[1] && Math.abs(sp[2] - measure(obPath)[3]) < 1, JSON.stringify(sp));
 
 // grid cells
 const cells = cellsFor({ s: 51.655, w: 6.44, n: 51.668, e: 6.462 });

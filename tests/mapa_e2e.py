@@ -6,7 +6,8 @@ to now) and without map tiles (the base map stays empty; what the page draws on 
 Covers: the stops around the phone with walking minutes and the map's stop layer; asking for the place when it is not
 known yet; a stop (title, the address in the URL, departures, the walk with minutes and its path on the map, «Маршрут
 сюди», «У мої зупинки» into Транспорт's list); a departure's course (where the bus is, when it comes to my stop, the
-stops as a line with the bus between them, the road in two colours and the bus marker); the phone's Back and
+stops as a line with the bus between them, the road in two colours and the bus marker, arrows along it, where to wait
+for it and for the way back; the way back in its own colour only when it takes other streets); the phone's Back and
 Telegram's Back step back through the sheet; search for an address and its nearest stops; a connection from «Маршрут»
 drawn with its legs; the sheet dragged and tapped; the theme switch keeps what is drawn; without WebGL the lists still
 work; links from Транспорт and Маршрут; 360 px. Exits 1 if a check fails.
@@ -48,12 +49,18 @@ def moved(obj):
     return ISO.sub(fix, json.dumps(obj, ensure_ascii=False))
 
 class Worker:
-    def __init__(self): self.calls = []
+    """the Worker's answers; twin=False: the stop has no departure of the line the other way (the way back then comes
+    from the line's roads)"""
+    def __init__(self, twin=True): self.calls = []; self.twin = twin
     async def __call__(self, route):
         u = urlparse(route.request.url); q = parse_qs(u.query); self.calls.append((u.path, q))
-        key = {'/transit/area': 'area', '/transit/departures': 'deps', '/transit/course': 'course', '/transit/walk': 'walk', '/transit/stops': 'search', '/transit/trip': 'trip'}.get(u.path)
+        key = {'/transit/area': 'area', '/transit/departures': 'deps', '/transit/course': 'course', '/transit/line': 'line', '/transit/walk': 'walk', '/transit/stops': 'search', '/transit/trip': 'trip'}.get(u.path)
         if not key: return await route.fulfill(status=404, body='{"ok":false}', content_type='application/json')
-        await route.fulfill(body=moved(FX[key]), content_type='application/json', headers={'Access-Control-Allow-Origin': '*'})
+        data = FX[key]
+        if key == 'course' and q.get('line', [''])[0] != FX['course_ref']: data = FX['course_back']
+        if key == 'deps' and not self.twin:
+            data = {**data, 'deps': [x for x in data['deps'] if not (x.get('ref') and x['line'] == FX['course']['line'] and x['ref']['line'] != FX['course_ref'])]}
+        await route.fulfill(body=moved(data), content_type='application/json', headers={'Access-Control-Allow-Origin': '*'})
 
 # no base map in tests: an empty TileJSON, empty tiles, no glyphs (the names are not drawn, nothing else changes)
 TILEJSON = json.dumps({'tilejson': '3.0.0', 'tiles': ['https://tiles.openfreemap.org/planet/t/{z}/{x}/{y}.pbf'], 'minzoom': 0, 'maxzoom': 14, 'vector_layers': []})
@@ -122,7 +129,8 @@ async def main():
         await pg.screenshot(path=os.path.join(os.environ.get('SHOTS', '/tmp'), 'map-stop.png'))
 
         # ---------------- where the bus is ----------------
-        first = await pg.evaluate("[...document.querySelectorAll('#deps .dep')].findIndex(b => b.querySelector('.line').textContent === %s)" % json.dumps(FX['course']['line']))
+        PICK = "[...document.querySelectorAll('#deps .dep')].findIndex(b => b.querySelector('.line').textContent === %s && b.querySelector('.dest').textContent === %s)" % (json.dumps(FX['course']['line']), json.dumps(FX['course']['dest']))
+        first = await pg.evaluate(PICK)
         await pg.click(f'#deps li:nth-child({first + 1}) .dep'); await settle(pg, 1500)
         now = await text(pg, '#now')
         check('course: title with the line, direction', await text(pg, '#stitle') == f"Лінія {FX['course']['line']}" and FX['course']['dest'] in await text(pg, '#ssub'), await text(pg, '#stitle'))
@@ -132,6 +140,17 @@ async def main():
         cq = next(c for c in w.calls if c[0] == '/transit/course')
         check('course: asked with line, trip, my stop and its planned time in Xanten time', re.fullmatch(r'20\d\d-\d\d-\d\dT\d\d:\d\d', cq[1]['when'][0]) and cq[1]['stop'][0] == dom['id'] and cq[1]['line'][0] and cq[1]['trip'][0], str(cq))
         if gl: check('map: the road in two parts (driven, ahead), its stops, the bus marker', await src(pg, 'route') == 2 and await src(pg, 'routestops') == len(FX['course']['stops']) and await pg.evaluate("!!document.querySelector('.busmk')"))
+        await pg.wait_for_selector('#legend:not([hidden])', timeout=8000)
+        mine_plat = next(x['plat'] for x in FX['course']['stops'] if x['id'] == dom['id'])
+        back_plat = next(x['plat'] for x in FX['course_back']['stops'] if x['id'] == dom['id'])
+        lg = await text(pg, '#legend'); sn = await text(pg, '#standnote')
+        check('way back by this stop\'s departure the other way: the same streets, one colour, said so', 'тими самими вулицями' in lg and any(c[0] == '/transit/course' and c[1]['line'][0] != FX['course_ref'] for c in w.calls), lg)
+        check('where to wait: the platform for this way and for the way back', f'стоянка {mine_plat}' in sn and f'стоянка {back_plat}' in sn and 'Назад' in sn, sn)
+        if gl:
+            marks = await pg.evaluate("[...document.querySelectorAll('.stand')].map(m => [m.textContent, !!m.querySelector('.dir'), m.className])")
+            check('map: «Стій тут» and «Назад» marks with arrows, growing away from each other; the same streets: no second colour',
+                  [m[0] for m in marks] == [f'Стій тут · {mine_plat}', f'Назад · {back_plat}'] and all(m[1] for m in marks) and marks[0][2] != marks[1][2] and await src(pg, 'back') == 0, str(marks))
+            check('map: arrows along the road say which way it goes', await pg.evaluate("!!window.__mapa.map().getLayer('route-arrows') && window.__mapa.map().hasImage('arrow')"))
         await pg.screenshot(path=os.path.join(os.environ.get('SHOTS', '/tmp'), 'map-course.png'))
 
         # ---------------- Back ----------------
@@ -149,6 +168,21 @@ async def main():
         if gl: check('map: the address pinned', await pg.evaluate("!!document.querySelector('.pin')"))
         await ctx.close()
 
+        # ---------------- the way back along other streets ----------------
+        ctx, pg, w = await page(browser, base + f"mapa/?stop={dom['id']}", w=Worker(twin=False), store=[['mapa-loc', '1']])
+        await pg.wait_for_function('document.querySelectorAll("#deps .dep").length > 0', timeout=15000)
+        first = await pg.evaluate(PICK)
+        await pg.click(f'#deps li:nth-child({first + 1}) .dep')
+        await pg.wait_for_selector('#legend:not([hidden])', timeout=8000); await settle(pg)
+        lg = await text(pg, '#legend')
+        lq = [c for c in w.calls if c[0] == '/transit/line']
+        check('no departure the other way here: the line\'s roads that way are asked for (the other direction letter)', lq and lq[0][1]['line'][0].split(':')[3] != FX['course_ref'].split(':')[3]
+              and lq[0][1]['line'][0].split(':')[:3] == FX['course_ref'].split(':')[:3], str(lq))
+        check('the way back takes other streets near here: two colours, both named', 'туди: цей рейс' in lg and 'назад' in lg and 'іншими вулицями' in lg, lg)
+        if gl: check('map: the way back drawn in its own colour, one «Стій тут» mark', await src(pg, 'back') > 0 and await pg.evaluate("document.querySelectorAll('.stand').length") == 1)
+        await pg.screenshot(path=os.path.join(os.environ.get('SHOTS', '/tmp'), 'map-back.png'))
+        await ctx.close()
+
         # ---------------- the place not known yet ----------------
         ctx, pg, w = await page(browser, base + 'mapa/', geo=False)
         await pg.wait_for_function('document.querySelectorAll("#nearlist .row").length > 0', timeout=15000)
@@ -161,7 +195,11 @@ async def main():
         await pg.wait_for_function('document.querySelectorAll(".leg").length > 0', timeout=15000); await settle(pg)
         tq = next(c for c in w.calls if c[0] == '/transit/trip')
         check('connection: asked with paths, its legs listed', tq[1].get('paths') == ['1'] and len(await pg.query_selector_all('.leg')) == len(t['legs']) and '→' in await text(pg, '#ssub'), str(tq))
-        if gl: check('map: every leg drawn', await src(pg, 'route') == len([l for l in t['legs'] if len(l.get('path') or []) > 1]))
+        if gl:
+            check('map: every leg drawn', await src(pg, 'route') == len([l for l in t['legs'] if len(l.get('path') or []) > 1]))
+            rides = [l for l in t['legs'] if not l['walk'] and l.get('on')]
+            marks = await pg.evaluate("[...document.querySelectorAll('.stand')].map(m => m.textContent)")
+            check('map: where to get on each bus, then where to change', len(marks) == len(rides) and marks[0].startswith('Сідай: ' + rides[0]['line']) and all(m.startswith('Пересадка: ') for m in marks[1:]), str(marks))
 
         # ---------------- the sheet ----------------
         h0 = await pg.evaluate("document.getElementById('sheet').getBoundingClientRect().height")

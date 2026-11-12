@@ -61,6 +61,44 @@ export function slice(path, cum, from, to) {
   return out;
 }
 
+// each stop's place along the path, searched from the previous stop on (never backwards)
+export function stopPositions(stops, path, cum) {
+  const pos = []; let from = 0;
+  for (const s of stops) { const x = s.coord ? locate(path, cum, s.coord, from) : NaN; pos.push(x); if (Number.isFinite(x)) from = x; }
+  return pos;
+}
+// the compass direction from a to b, in degrees (0 north, 90 east): which way the bus drives at a point
+export function bearing(a, b) {
+  const k = Math.cos(a[0] * Math.PI / 180);
+  return (Math.atan2((b[1] - a[1]) * k, b[0] - a[0]) * 180 / Math.PI + 360) % 360;
+}
+// the direction of the path `d` metres along it
+export function headingAt(path, cum, d) {
+  const total = cum[cum.length - 1], a = pointAt(path, cum, Math.max(0, Math.min(d, total - 12))), b = pointAt(path, cum, Math.max(0, Math.min(d, total - 12)) + 12);
+  return bearing(a, b);
+}
+// metres from a point to the nearest part of a line
+export function distTo(path, p) {
+  let best = Infinity;
+  const k = Math.cos(p[0] * Math.PI / 180), X = (q) => q[1] * 111320 * k, Y = (q) => q[0] * 111320, px = X(p), py = Y(p);
+  for (let i = 1; i < path.length; i++) {
+    const ax = X(path[i - 1]), ay = Y(path[i - 1]), dx = X(path[i]) - ax, dy = Y(path[i]) - ay, len2 = dx * dx + dy * dy;
+    const t = len2 ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / len2)) : 0;
+    best = Math.min(best, Math.hypot(ax + t * dx - px, ay + t * dy - py));
+  }
+  return best;
+}
+// How much of the lines `others` (by length) runs within `tol` metres of `path`: 1 when the way back takes the same
+// streets, less when it goes another way. Looked at every 25 m.
+export function shareNear(path, others, tol = 30) {
+  let near = 0, all = 0;
+  for (const o of others) {
+    const cum = measure(o), len = cum[cum.length - 1];
+    for (let d = 0; d <= len; d += 25) { all++; if (distTo(path, pointAt(o, cum, d)) <= tol) near++; }
+  }
+  return all ? near / all : 1;
+}
+
 const T = (x) => (x ? Date.parse(x) : NaN);
 // when a vehicle is at stop k: it arrives (live if known), it leaves (live if known)
 export const reach = (s) => T(s.arrEst || s.arr || s.depEst || s.dep);
@@ -73,9 +111,7 @@ export function whereNow(stops, now, path = null) {
   const n = stops.length;
   if (!n) return null;
   const cum = path && path.length > 1 ? measure(path) : null;
-  // each stop's place along the path, searched from the previous stop on (never backwards)
-  let pos = null;
-  if (cum) { pos = []; let from = 0; for (const s of stops) { const x = s.coord ? locate(path, cum, s.coord, from) : NaN; pos.push(x); if (Number.isFinite(x)) from = x; } }
+  const pos = cum ? stopPositions(stops, path, cum) : null;
   const place = (i, j = i, f = 0) => {
     if (cum && Number.isFinite(pos[i]) && Number.isFinite(pos[j])) { const d = pos[i] + f * (pos[j] - pos[i]); return { at: d, point: pointAt(path, cum, d) }; }
     const a = stops[i].coord, b = stops[j].coord || a;

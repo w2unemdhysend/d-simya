@@ -1,10 +1,12 @@
 // «Мапа»: the map of the stops around (VRR), the walk to a stop (OSRM, FOSSGIS), where a bus or train is and which
 // stops it calls at (worked out from its live times), and a connection from «Маршрут» drawn on the map.
 // The sheet at the bottom holds what is chosen; every step is a step in the history, so the phone's Back goes back.
+// Its own modules carry the version (?v=) like the page's links do: a phone with the last version kept offline must
+// never mix a new page with an old helper.
 import { $, tg, haptic, toast, load, store, cloudSet, esc, plural } from '../igry/kit.js';
 import { WORKER_URL } from '../pogoda/wx.js';
-import { mapStyle, OVERLAY_SOURCES } from './style.js';
-import { XANTEN, metres, walkMin, fmtDist, cellsFor, whereNow, measure, slice, berlinStamp, ring, reach, leave } from './geo.js';
+import { mapStyle, OVERLAY_SOURCES } from './style.js?v=2';
+import { XANTEN, metres, walkMin, fmtDist, cellsFor, whereNow, measure, slice, berlinStamp, ring, reach, leave, stopPositions, headingAt, shareNear, locate as along } from './geo.js?v=2';
 
 const reduce = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
 const wide = () => !!(window.matchMedia && matchMedia('(min-width:700px)').matches);
@@ -110,6 +112,14 @@ try {
   map.touchZoomRotate.disableRotation();
   map.keyboard.disableRotation();
   map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
+  // the arrows along a bus's road: a chevron pointing the way it drives, coloured by the style (an SDF icon)
+  map.on('styleimagemissing', (e) => {
+    if (e.id !== 'arrow' || map.hasImage('arrow')) return;
+    const n = 32, cv = document.createElement('canvas'); cv.width = cv.height = n;
+    const g = cv.getContext('2d'); g.strokeStyle = '#fff'; g.lineWidth = 6; g.lineCap = 'round'; g.lineJoin = 'round';
+    g.beginPath(); g.moveTo(11, 7); g.lineTo(21, 16); g.lineTo(11, 25); g.stroke();
+    map.addImage('arrow', g.getImageData(0, 0, n, n), { sdf: true, pixelRatio: 2 });
+  });
   // our layers can be filled as soon as the style is there (the tiles may still be on their way)
   map.on('style.load', () => {
     ready = true;
@@ -146,13 +156,13 @@ try {
   }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 } catch (e) { mapFailed(); }
 function flyTo(c, zoom = 16) { if (map && c) map.easeTo({ center: ll(c), zoom: Math.max(map.getZoom(), zoom), duration: reduce ? 0 : 650 }); }
-function fit(points, maxZoom = 16.5) {
+function fit(points, maxZoom = 16.5, padding = 48) {
   const p = points.filter(Boolean);
   if (!map || !p.length) return;
   if (p.length === 1) { flyTo(p[0], Math.min(16, maxZoom)); return; }
   const b = new maplibregl.LngLatBounds(ll(p[0]), ll(p[0]));
   p.forEach((x) => b.extend(ll(x)));
-  map.fitBounds(b, { padding: 48, maxZoom, duration: reduce ? 0 : 700 });
+  map.fitBounds(b, { padding, maxZoom, duration: reduce ? 0 : 700 });
 }
 
 /* ---------------- the stops around: asked by grid cell, kept for this visit ---------------- */
@@ -221,12 +231,31 @@ document.addEventListener('visibilitychange', () => {
 /* ---------------- the views of the sheet, as a stack in the history ---------------- */
 const stack = [{ v: 'near' }];
 const top = () => stack[stack.length - 1];
-let timers = [], placeMarker = null, busMarker = null;
+let timers = [], placeMarker = null, busMarker = null, stands = [];
 function clearView() {
   timers.forEach((t) => clearInterval(t)); timers = [];
-  setSrc('walk', EMPTY()); setSrc('route', EMPTY()); setSrc('routestops', EMPTY()); setSrc('sel', EMPTY());
+  setSrc('walk', EMPTY()); setSrc('back', EMPTY()); setSrc('route', EMPTY()); setSrc('routestops', EMPTY()); setSrc('sel', EMPTY());
   if (placeMarker) { placeMarker.remove(); placeMarker = null; }
   if (busMarker) { busMarker.remove(); busMarker = null; }
+  stands.forEach((m) => m.remove()); stands = [];
+}
+// "Стій тут": where exactly to wait (the platform's pole, on the side of the street the bus drives on) and an arrow
+// the way the bus will go from there
+const UP = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg>';
+function stand(coord, heading, label, cls = '', anchor = 'bottom') {
+  if (!map || !coord) return;
+  const el = document.createElement('div');
+  el.className = 'stand a-' + anchor + (cls ? ' ' + cls : '');
+  el.innerHTML = (heading == null ? '' : `<span class="dir" style="transform:rotate(${Math.round(heading)}deg)">${UP}</span>`) + `<span>${esc(label)}</span>`;
+  el.setAttribute('aria-label', label + (heading == null ? '' : ', стрілка показує, куди поїде'));
+  stands.push(new maplibregl.Marker({ element: el, anchor, offset: [0, anchor === 'top' ? 6 : -6] }).setLngLat(ll(coord)).addTo(map));
+}
+// two marks at one stop (this way and the way back, on either side of the street): the labels grow away from each other
+function anchors(a, b) {
+  if (!map || !a || !b) return ['bottom', 'bottom'];
+  const p = map.project(ll(a)), q = map.project(ll(b));
+  if (Math.abs(p.x - q.x) >= Math.abs(p.y - q.y)) return p.x <= q.x ? ['bottom-right', 'bottom-left'] : ['bottom-left', 'bottom-right'];
+  return p.y <= q.y ? ['bottom', 'top'] : ['top', 'bottom'];
 }
 function open(view, opts = {}) {
   if (opts.replace) { view.h = top().h; stack[stack.length - 1] = view; try { history.replaceState({ ...(history.state || {}), mapa: stack.length }, '', urlOf(view)); } catch (e) {} }
@@ -408,7 +437,7 @@ $('#sbody').addEventListener('click', (e) => {
   if (e.target.closest('[data-place]') && v.res && v.res.near) { const n = v.res.near; haptic(); setSheet('mid'); open({ v: 'place', name: n.name, kind: n.kind, coord: n.coord, near: n.stops }); return; }
   if (e.target.closest('#askloc')) { locate(true); return; }
   const dep = e.target.closest('[data-dep]');
-  if (dep && v.v === 'stop') { const x = v.deps[Number(dep.dataset.dep)]; if (x && x.ref) { haptic(); setSheet('mid'); open({ v: 'course', dep: x, stop: { id: v.id, name: v.name, coord: v.coord } }); } return; }
+  if (dep && v.v === 'stop') { const x = v.deps[Number(dep.dataset.dep)]; if (x && x.ref) { haptic(); setSheet('mid'); open({ v: 'course', dep: x, stop: { id: v.id, name: v.name, coord: v.coord }, stopDeps: v.deps }); } return; }
   if (e.target.closest('#addmine') && v.v === 'stop') { addToMine(v); haptic('success'); toast('Додано в «Транспорт»: тепер ця зупинка там перша.', 3000); e.target.closest('#addmine').outerHTML = `<a class="act done" href="../transport/">${ICON(I.check)}У моїх зупинках</a>`; return; }
   const wb = e.target.closest('#walkbtn');
   if (wb) {
@@ -427,12 +456,12 @@ $('#sbody').addEventListener('click', (e) => {
 function renderCourse(v) {
   const x = v.dep;
   head(`${x.mode === 'train' ? '' : 'Лінія '}${x.line}`, `${MODE[x.mode] || 'автобус'} у бік <span lang="de">${esc(x.dest)}</span>`);
-  body('<div class="now" id="now">Шукаю, де він зараз…</div>' +
+  body('<div class="now" id="now">Шукаю, де він зараз…</div><p class="standnote" id="standnote" hidden></p>' +
     '<ol class="course" id="course"><li class="skel"></li><li class="skel"></li></ol><div class="acts"><button class="act" type="button" id="fitall">' + ICON(I.fit) + 'Увесь маршрут на мапі</button></div>' +
     '<p class="note" id="cnote"></p>' + SRC);
   if (v.stop.coord) setSrc('sel', fc([pt(v.stop.coord)]));
   v.shown = null;
-  if (v.data) drawCourse(v, true); else loadCourse(v, true);
+  if (v.data) { drawCourse(v, true); drawBack(v); } else loadCourse(v, true);
   timers.push(setInterval(() => { if (!document.hidden && v.data) drawCourse(v); }, 1000));
   timers.push(setInterval(() => { if (!document.hidden) loadCourse(v); }, 30000));
 }
@@ -442,12 +471,71 @@ async function loadCourse(v, first) {
     const d = await api(`transit/course?line=${encodeURIComponent(x.ref.line)}&trip=${encodeURIComponent(x.ref.trip)}&stop=${encodeURIComponent(v.stop.id)}&when=${berlinStamp(new Date(x.plan))}`);
     if (top() !== v) return;
     v.data = d; v.cum = d.path.length > 1 ? measure(d.path) : null;
+    v.pos = v.cum ? stopPositions(d.stops, d.path, v.cum) : null;
     v.mine = d.stops.findIndex((s) => s.id === v.stop.id);
     v.shown = null;
     drawCourse(v, first);
+    if (!v.backTried) loadBack(v); else drawBack(v);
   } catch (e) {
     if (top() === v && !v.data) { $('#now').outerHTML = '<div class="ask err" id="now"><p>Не вдалося дізнатися, де він. Перевір інтернет; спробую ще раз за пів хвилини.</p></div>'; $('#course').innerHTML = ''; }
   }
+}
+// The way back: the same line the other way. A departure of it from this stop (from the list the course was opened
+// from) gives its exact road and where it stops here; otherwise every road the line takes that way near here.
+// Drawn in its own colour only when it takes other streets (the user then sees both); the same streets: one colour.
+const dirOf = (id) => String(id).split(':')[3];
+// the pieces of a line that lie within r metres of a point
+function runsNear(path, c, r) {
+  const out = []; let cur = [];
+  for (const q of path) { if (metres(q, c) <= r) cur.push(q); else { if (cur.length > 1) out.push(cur); cur = []; } }
+  if (cur.length > 1) out.push(cur);
+  return out;
+}
+async function loadBack(v) {
+  v.backTried = true;
+  const id = v.dep.ref.line, d0 = dirOf(id), opp = d0 === 'H' ? 'R' : d0 === 'R' ? 'H' : null;
+  const twin = (v.stopDeps || []).find((x) => x.ref && x.line === v.dep.line && x.ref.line !== id && (!opp || dirOf(x.ref.line) === opp) && x.dest !== v.dep.dest);
+  let paths = [], at = null, dest = twin ? twin.dest : '';
+  try {
+    if (twin) {
+      const d = await api(`transit/course?line=${encodeURIComponent(twin.ref.line)}&trip=${encodeURIComponent(twin.ref.trip)}&stop=${encodeURIComponent(v.stop.id)}&when=${berlinStamp(new Date(twin.plan))}`);
+      paths = d.path.length > 1 ? [d.path] : [];
+      const s = d.stops.find((x) => x.id === v.stop.id);
+      if (s && s.coord && d.path.length > 1) { const cum = measure(d.path); at = { coord: s.coord, plat: s.plat || twin.plat, heading: headingAt(d.path, cum, along(d.path, cum, s.coord)), dest: twin.dest }; }
+    } else if (opp) {
+      const p = id.split(':'); p[3] = opp;
+      const d = await api(`transit/line?line=${encodeURIComponent(p.join(':'))}`);
+      // the line's roads that way, every variant: the parts within 2.5 km of my stop (the way back from here)
+      const c = v.stop.coord || (v.mine >= 0 ? v.data.stops[v.mine].coord : null);
+      paths = c ? d.paths.flatMap((x) => runsNear(x, c, 2500)) : d.paths;
+      dest = d.dest;
+    }
+  } catch (e) { /* no way back known: only this direction is drawn */ }
+  if (top() !== v || !v.data) return;
+  v.back = { paths, at, dest, same: paths.length && v.data.path.length > 1 ? shareNear(v.data.path, paths, 30) >= 0.85 : null };
+  drawBack(v);
+}
+function drawBack(v) {
+  const b = v.back, d = v.data, el = $('#legend'), sn = $('#standnote');
+  if (!d || !el || !sn) return;
+  const cls = d.mode === 'train' ? 'train' : '';
+  setSrc('back', b && b.same === false ? fc(b.paths.map((p) => ({ type: 'Feature', properties: { dir: 1 }, geometry: { type: 'LineString', coordinates: p.map(ll) } }))) : EMPTY());
+  const mine = v.mine >= 0 ? d.stops[v.mine] : null;
+  const plat = mine && (mine.plat || v.dep.plat);
+  let html = '';
+  const key = (sw, words) => `<span class="key"><i class="sw ${sw}"></i><span>${words}</span></span>`;
+  if (b && b.same === false) html += key(cls, 'туди: цей рейс') + key('back', `назад${b.dest ? ` (у бік <span lang="de">${esc(b.dest)}</span>)` : ''}: іншими вулицями`);
+  else if (b && b.same) html += key(cls, 'туди й назад тими самими вулицями, назад — з іншого боку дороги');
+  else html += key(cls, 'шлях цього рейсу, стрілки — куди він їде');
+  el.innerHTML = html; el.hidden = false;
+  sn.innerHTML = `<b>Де чекати:</b> позначка «Стій тут»${plat ? ` (стоянка ${esc(plat)})` : ''}, стрілка — куди поїде автобус.` +
+    (b && b.at ? ` Назад — позначка «Назад»${b.at.plat ? ` (стоянка ${esc(b.at.plat)})` : ''}.` : '');
+  sn.hidden = !(mine && mine.coord);
+  // the marks on the map: where to wait for this bus, and for the way back
+  stands.forEach((m) => m.remove()); stands = [];
+  const here = mine && mine.coord, there = b && b.at ? b.at.coord : null, [a1, a2] = here && there ? anchors(here, there) : ['bottom', 'bottom'];
+  if (here) stand(here, v.cum && v.pos && Number.isFinite(v.pos[v.mine]) ? headingAt(d.path, v.cum, v.pos[v.mine]) : null, plat ? `Стій тут · ${plat}` : 'Стій тут', '', a1);
+  if (there) stand(there, b.at.heading, b.at.plat ? `Назад · ${b.at.plat}` : 'Назад', 'back', a2);
 }
 function busEl(v) {
   const el = document.createElement('div');
@@ -471,9 +559,12 @@ function drawCourse(v, first) {
       if (!busMarker) busMarker = new maplibregl.Marker({ element: busEl(v) }).setLngLat(ll(pos.point)).addTo(map);
       else busMarker.setLngLat(ll(pos.point));
     } else if (busMarker) { busMarker.remove(); busMarker = null; }
+    // first look: my stop with its marks; the bus too when it is near (else the status says when it comes)
     if (first) {
       const mine = v.mine >= 0 ? d.stops[v.mine].coord : v.stop.coord;
-      fit([pos.state === 'done' ? null : pos.point, mine, ...(pos.state === 'before' ? [d.stops[0].coord] : [])].filter(Boolean), 15.5);
+      if (!mine) fit([pos.point], 15);
+      else if (pos.state === 'done' || pos.state === 'before' || !pos.point || metres(pos.point, mine) > 2500) flyTo(mine, 16.3);
+      else fit([pos.point, mine], 16.3, { top: 70, bottom: 50, left: 110, right: 110 });
     }
   }
   // the words: where it is, when it comes to my stop
@@ -493,7 +584,8 @@ function drawCourse(v, first) {
     else if (pos.state === 'before' || pos.i < m) mine = `<b>До ${nm(m)}: ${min <= 0 ? 'ось-ось' : `через ${min} хв`} (${hm(new Date(t).toISOString())})</b>`;
     else mine = `Твою зупинку ${nm(m)} він уже проїхав.`;
   }
-  $('#now').outerHTML = `<div class="now" id="now">${mine ? mine + '<br>' : ''}${where}</div>`;
+  const legend = $('#legend') ? $('#legend').outerHTML : '<div class="legend" id="legend" hidden></div>';   // the map's colours, kept in the card on top
+  $('#now').outerHTML = `<div class="now" id="now">${mine ? mine + '<br>' : ''}${where}${legend}</div>`;
   head($('#stitle').textContent, `${MODE[v.dep.mode] || 'автобус'} у бік <span lang="de">${esc(v.dep.dest)}</span> · ${d.live ? '<span class="live">наживо</span>' : 'за розкладом'}`);
   $('#cnote').textContent = d.live ? 'Час із запізненням від VRR. Місце на мапі розраховане за часом зупинок, це не GPS.' : 'VRR не має живих даних цього рейсу: час і місце за розкладом, приблизно.';
   // the stops as a line, the bus between them
@@ -550,6 +642,12 @@ async function renderTrip(v) {
     if (!l.walk) (l.on || []).forEach((s) => dots.push(pt(s.coord, { name: short(s.name), kind, past: false })));
   });
   setSrc('route', fc(feats)); setSrc('routestops', fc(dots));
+  // where to get on each bus or train: its platform at the stop, the arrow the way it will go
+  t.legs.forEach((l, k) => {
+    if (l.walk || !l.on || !l.on.length || !l.path || l.path.length < 2) return;
+    const cum = measure(l.path);
+    stand(l.on[0].coord, headingAt(l.path, cum, along(l.path, cum, l.on[0].coord)), `${k && t.legs.slice(0, k).some((x) => !x.walk) ? 'Пересадка' : 'Сідай'}: ${l.line}${l.from.plat ? ' · ' + l.from.plat : ''}`);
+  });
   if (map) fit(t.legs.flatMap((l) => l.path || []), 16);
   const legs = t.legs.map((l, k) => `<li class="leg" data-leg="${k}"><span class="tm">${hm(l.from.est || l.from.plan)}<small>${hm(l.to.est || l.to.plan)}</small></span><span class="b">` +
     `<div lang="de">${esc(short(l.from.name))} → ${esc(short(l.to.name))}</div><span class="ride"><span class="line ${l.walk ? 'walk' : lineCls(l)}">${l.walk ? 'пішки' : esc(l.line)}</span>` +
