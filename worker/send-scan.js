@@ -403,8 +403,8 @@ async function translateCheck(request, env, reply) {
 }
 const SAMPLE_PAGE = `Stadtverwaltung Musterstadt · Fachbereich Bürgerdienste · Rathausplatz 1 · 12345 Musterstadt
 
-Frau
-Olena Beispiel
+Herr
+Taras Beispiel
 Beispielstraße 12
 12345 Musterstadt
 
@@ -414,7 +414,7 @@ Sachbearbeiter: Herr M. Schmidt, Zimmer 214, Telefon 02801 7720-214
 
 Bescheid über die Festsetzung der Abfallgebühren für das Jahr 2026
 
-Sehr geehrte Frau Beispiel,
+Sehr geehrter Herr Beispiel,
 
 auf Grundlage der Satzung über die Abfallentsorgung der Stadt Musterstadt in der zurzeit gültigen Fassung werden für das Grundstück Beispielstraße 12 die Abfallgebühren für das Jahr 2026 wie folgt festgesetzt: Restmülltonne 120 Liter, 14-tägliche Leerung: 186,00 €; Papiertonne 240 Liter: 0,00 €; Grundgebühr je Haushalt: 62,40 €. Der Gesamtbetrag beläuft sich somit auf 248,40 €.
 

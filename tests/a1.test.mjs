@@ -1,15 +1,42 @@
 // The A1 course's content: 16 chapters in the book's order with goals, grammar topics, phrases, a dialogue and
 // exercises that can be solved; tables whose rows fit their heads; marks (**bold**, `German`) that open and close;
 // a dictionary whose nouns have an article and a plural, verbs their forms, and whose words reach the word garden;
-// the answer check and the search folding. Run: node tests/a1.test.mjs
+// the answer check and the search folding; the hero who says "I" in both forms (Тарас and Леся, {for him|for her}):
+// every check of the content runs for each (the second run is a child process with HERO=f).
+// Run: node tests/a1.test.mjs
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { WORDS, KINDS, sayOf, gardenNouns, byChapter } from '../a1/data/wortschatz.js';
-import { md, norm, fold, order, CATS } from '../a1/text.js';
+import { md, norm, fold, order, CATS, hero, heroAll } from '../a1/text.js';
 import { POOL } from '../igry/data/garten.js';
+const G = process.env.HERO === 'f' ? 'f' : 'm';
+console.log(`(the course as ${G === 'f' ? 'Леся' : 'Тарас'})`);
 
 let fails = 0;
 const t = (name, ok, info = '') => { if (!ok) fails++; console.log(ok ? 'PASS' : 'FAIL', name, ok ? '' : info); };
-const CH = [];
-for (let n = 1; n <= 16; n++) CH.push((await import(`../a1/data/k${String(n).padStart(2, '0')}.js`)).default);
+const RAW = [];
+for (let n = 1; n <= 16; n++) RAW.push((await import(`../a1/data/k${String(n).padStart(2, '0')}.js`)).default);
+const CH = RAW.map((c) => heroAll(c, G));
+
+/* ---------- the hero: both forms written, the chosen one shown ---------- */
+const rawStrings = [];
+const walkRaw = (v) => { if (typeof v === 'string') rawStrings.push(v); else if (Array.isArray(v)) v.forEach(walkRaw); else if (v && typeof v === 'object') Object.values(v).forEach(walkRaw); };
+RAW.forEach(walkRaw);
+const pairsBad = rawStrings.filter((x) => /[{}]/.test(x.replace(/\{[^{}|"\n]+\|[^{}|"\n]+\}/g, '')));
+t('both forms are written as {for him|for her}: never empty, never nested', !pairsBad.length, pairsBad.slice(0, 5).join('\n'));
+const heroText = []; const walkShown = (v) => { if (typeof v === 'string') heroText.push(v); else if (Array.isArray(v)) v.forEach(walkShown); else if (v && typeof v === 'object') Object.values(v).forEach(walkShown); };
+CH.forEach(walkShown);
+t('what is shown has no braces left', heroText.every((x) => !/[{}]/.test(x)));
+t('the hero\'s name always comes in both forms (Taras/Lesia, Тарас/Леся, Тарасе/Лесю)', rawStrings.every((x) => !/Taras|Тарас|Lesia|Леся|Лесю/.test(x.replace(/\{[^{}|]+\|[^{}|]+\}/g, ''))));
+t('one hero with one surname: Koval (Herr/Frau Koval, пане Ковалю/пані Коваль)', !rawStrings.some((x) => /Bondar|Бондар/.test(x)) && rawStrings.some((x) => x.includes('{Herr|Frau} Koval')) && rawStrings.some((x) => x.includes('{пане Ковалю|пані Коваль}')));
+const name = G === 'f' ? 'Lesia' : 'Taras', other = G === 'f' ? /Taras|Тарас|Herr Koval|пане Ковалю|Ingenieur\b|інженер\b/ : /Lesia|Леся|Лесю|Frau Koval|пані Коваль|Ingenieurin|інженерка/;
+const heroLines = CH.map((c) => c.dialog.lines.filter((l) => l[0] === name).length);
+t(`the hero (${name}) speaks in the dialogue of every chapter`, heroLines.every((n) => n >= 1), heroLines.join(' '));
+t('the dialogues and examples never mix in the other hero\'s forms', !CH.some((c) => [c.dialog.t, ...c.dialog.lines.flat()].some((x) => other.test(x))),
+  CH.flatMap((c) => c.dialog.lines.flat().filter((x) => other.test(x))).slice(0, 4).join(' | '));
+t('the form chosen: past tense, address and job agree (було в неї / був у неї, Тарасе / Лесю, Ingenieur / Ingenieurin)',
+  G === 'f' ? heroText.some((x) => x.includes('я була в неї')) && heroText.some((x) => x.includes('Привіт, Лесю!')) && heroText.some((x) => x.includes('Ich bin Ingenieurin.'))
+    : heroText.some((x) => x.includes('я був у неї')) && heroText.some((x) => x.includes('Привіт, Тарасе!')) && heroText.some((x) => x.includes('Ich bin Ingenieur.')));
 
 /* ---------- chapters ---------- */
 t('16 chapters numbered 1–16: A1.1 for 1–8 (with the book chapter title), A1.2 for 9–16',
@@ -95,6 +122,14 @@ const gn = gardenNouns(), poolDe = new Set(POOL.map((w) => w.de));
 t('every singular noun of the course can be planted in the word garden', gn.length > 400 && gn.every((e) => poolDe.has(e.word)), gn.filter((e) => !poolDe.has(e.word)).map((e) => e.word).join(', '));
 t('the garden list has no word twice', new Set(POOL.map((w) => w.de)).size === POOL.length);
 t('search folding: umlauts, ß and apostrophes', fold('Tschüss') === fold('tschuss') && fold('Straße').includes('strasse') && fold('пам’ять') === fold("пам'ять"));
+
+// the same checks once more, as Леся
+if (G === 'm') {
+  const r = spawnSync(process.execPath, [fileURLToPath(import.meta.url)], { env: { ...process.env, HERO: 'f' }, encoding: 'utf8' });
+  const out = (r.stdout || '') + (r.stderr || '');
+  for (const line of out.split('\n')) if (/^FAIL|FAILED/.test(line)) console.log('(as Леся) ' + line);
+  t('every check passes for Леся too', r.status === 0, out.split('\n').filter((l) => /^FAIL/.test(l)).slice(0, 8).join('\n'));
+}
 
 console.log(fails ? `${fails} FAILED` : 'all passed');
 process.exit(fails ? 1 : 0);

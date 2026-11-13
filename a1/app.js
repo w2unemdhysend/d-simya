@@ -8,11 +8,14 @@ import k05 from './data/k05.js'; import k06 from './data/k06.js'; import k07 fro
 import k09 from './data/k09.js'; import k10 from './data/k10.js'; import k11 from './data/k11.js'; import k12 from './data/k12.js';
 import k13 from './data/k13.js'; import k14 from './data/k14.js'; import k15 from './data/k15.js'; import k16 from './data/k16.js';
 import { $, $$, tg, haptic, toast, load, store, cloudGet, cloudSet, plural, SPEAKER } from '../igry/kit.js';
-import { esc, md, norm, fold, order, CATS } from './text.js';
+import { esc, md, norm, fold, order, CATS, heroAll, GENDER_KEY } from './text.js';
 import * as sound from '../audio/say.js';
 import * as garden from '../igry/garten.js';
 
-export const CHAPTERS = [k01, k02, k03, k04, k05, k06, k07, k08, k09, k10, k11, k12, k13, k14, k15, k16];
+// The chapters as written (both forms, {Тарас|Леся}) and as shown: in the form chosen in the menu's settings
+const RAW = [k01, k02, k03, k04, k05, k06, k07, k08, k09, k10, k11, k12, k13, k14, k15, k16];
+const gender = () => { try { return localStorage.getItem(GENDER_KEY) === 'f' ? 'f' : 'm'; } catch (e) { return 'm'; } };
+export let CHAPTERS = RAW.map((c) => heroAll(c, gender()));
 const TABS = ['gram', 'words', 'phr', 'tasks'];
 
 /* ---------------- progress: solved exercises "chapter:index", the last chapter ---------------- */
@@ -311,6 +314,23 @@ $('#view-gram').addEventListener('click', (e) => {
 /* ---------------- start ---------------- */
 if (tg) { try { tg.ready(); tg.expand(); } catch (e) {} }
 garden.onChange(() => { if (current === 'hub') renderHub(); });
+// under the title: who speaks in the examples, and where to change it
+function heroLine() {
+  const l = $('#herol'); if (!l) return;
+  l.innerHTML = gender() === 'f' ? 'Приклади й діалоги — від імені <b>Лесі</b> (жіночий рід). Змінити: меню → «Налаштування».'
+    : 'Приклади й діалоги — від імені <b>Тараса</b> (чоловічий рід). Змінити: меню → «Налаштування».';
+}
+heroLine();
 const [v0, o0] = fromUrl();
 show(v0, { ...o0, instant: true });
-window.__a1 = { CHAPTERS, WORDS, KINDS, P, current: () => current, tab: () => tab, dictMatches };
+window.__a1 = { CHAPTERS, WORDS, KINDS, P, current: () => current, tab: () => tab, dictMatches, gender };
+// the hero changed in the menu (Тарас ↔ Леся): the same place again, in the other form
+function heroChanged() {
+  CHAPTERS = RAW.map((c) => heroAll(c, gender())); window.__a1.CHAPTERS = CHAPTERS;
+  heroLine();
+  if (current === 'hub') renderHub();
+  else if (current === 'gram') renderGram();
+  else if (current === 'ch') { const y = window.scrollY; renderChapter(); header(); window.scrollTo(0, y); }
+}
+window.addEventListener('dsimya-gender', heroChanged);
+window.addEventListener('storage', (e) => { if (e.key === GENDER_KEY) heroChanged(); });

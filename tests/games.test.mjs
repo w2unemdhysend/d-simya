@@ -62,6 +62,11 @@ t('conversations: three answers per step, a reason and a known reaction for ever
 const L = lines();
 t('conversations: every line said aloud is listed for the clips', SCENES.every((sc) => L.includes(sc.end[0]) && sc.steps.every((st) => L.includes(st.npc[0]) && L.includes(st.answers[0][0]))) && Object.values(REACT).every((r) => L.includes(r[0])));
 t('conversations: five scenes, unique ids', SCENES.length === 5 && new Set(SCENES.map((s) => s.id)).size === 5);
+const forms = SCENES.flatMap((sc) => [sc.end[1], ...sc.steps.flatMap((st) => [st.npc[1], ...st.answers.map((x) => x[1])])]).concat(Object.values(REACT).map((r) => r[1]));
+t('conversations: where Ukrainian differs for a man and a woman, both forms are written ({він|вона})',
+  forms.every((x) => !/[{}]/.test(x.replace(/\{[^{}|]+\|[^{}|]+\}/g, ''))) && REACT.nicht[1].includes('{зрозумів|зрозуміла}') && forms.some((x) => x.includes('{голодний|голодна}')));
+t('conversations: a woman reacts in the feminine (the saleswoman, the nurse, the neighbour), a man in the masculine',
+  SCENES.filter((sc) => sc.f).map((sc) => sc.id).join() === 'baeckerei,arzt,nachbar');
 
 /* ---------- Пам'ять and the garden ---------- */
 const mBad = [];

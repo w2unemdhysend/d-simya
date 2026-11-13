@@ -166,7 +166,8 @@ async def main():
         check('conversation: a wrong answer: crossed out, a reaction, a hint, the option off', await pg.is_visible('#d-hint') and await pg.evaluate("document.querySelectorAll('#d-chat .msg.wrongmsg').length") == 1
               and await pg.evaluate("document.querySelectorAll('#d-chat .msg.npc').length") == 2 and await pg.is_disabled('#d-ans .opt[data-a="1"]'), await text(pg, '#d-hint'))
         await pg.click('#d-chat .tr'); await pg.wait_for_timeout(50)
-        check('conversation: «Переклад» shows the Ukrainian', await pg.is_visible('#d-chat .uk'))
+        chat = await text(pg, '#d-chat')
+        check('conversation: «Переклад» shows the Ukrainian, in one form (no {він|вона} marks left)', await pg.is_visible('#d-chat .uk') and not any(c in chat for c in '{}|'), chat[:120])
         async def play_scene():
             n = await pg.evaluate("import('./data/dialog.js').then(m => m.SCENES.find(s => s.id === 'baeckerei').steps.length)")
             for k in range(n):

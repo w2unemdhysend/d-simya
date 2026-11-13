@@ -28,8 +28,8 @@ TG = """window.Telegram = {WebApp: {platform: 'android', colorScheme: 'light', i
   disableVerticalSwipes() {}, enableVerticalSwipes() {}, openLink(u) { window.__opened = u; },
   HapticFeedback: {selectionChanged() {}, notificationOccurred() {}, impactOccurred() {}},
   BackButton: {show() {}, hide() {}, onClick(f) { window.__backCb = f; }}}};"""
-UK = ('Місто Musterstadt, міська адміністрація · Rathausplatz 1 · 12345 Musterstadt\n\nПані\nOlena Beispiel\nBeispielstraße 12\n12345 Musterstadt\n\n'
-      'Musterstadt, 03.11.2026\nНомер справи (Aktenzeichen): 32-4711/26\n\nРішення (Bescheid) про плату за вивіз сміття 2026\n\nШановна пані Beispiel,\n\n'
+UK = ('Місто Musterstadt, міська адміністрація · Rathausplatz 1 · 12345 Musterstadt\n\nПан\nTaras Beispiel\nBeispielstraße 12\n12345 Musterstadt\n\n'
+      'Musterstadt, 03.11.2026\nНомер справи (Aktenzeichen): 32-4711/26\n\nРішення (Bescheid) про плату за вивіз сміття 2026\n\nШановний пане Beispiel,\n\n'
       'для ділянки Beispielstraße 12 плату за вивіз сміття на 2026 рік встановлено в розмірі 248,40 €.\n\n'
       'Будь ласка, перекажіть суму до [дата] із зазначенням номера справи на рахунок міської каси.\n\n'
       'Проти цього рішення ви можете подати заперечення (Widerspruch) протягом місяця.\n\nЗ повагою\nЗа дорученням\nM. Schmidt')
@@ -135,7 +135,7 @@ async def main(tmp):
         check('one signed request, German → Ukrainian', len(worker.calls) == 1 and sent.get('pair') == 'de-uk' and sent.get('initData', '').startswith('query_id='), str({k: v[:40] for k, v in sent.items()}))
         check('text read on the phone, numbers intact', all(n in src for n in mkletter.NUMBERS) and 'Abfallgebühren' in src, src[:120])
         check('running text joined into paragraphs, address lines kept apart',
-              'Olena Beispiel\nBeispielstraße 12\n12345 Musterstadt' in src and 'für das Jahr 2026 auf 248,40 € festgesetzt.' in src and '\n\nGegen diesen Bescheid' in src, repr(src[:400]))
+              'Taras Beispiel\nBeispielstraße 12\n12345 Musterstadt' in src and 'für das Jahr 2026 auf 248,40 € festgesetzt.' in src and '\n\nGegen diesen Bescheid' in src, repr(src[:400]))
         check('translation on screen', c['state'] == 'Перекладено' and c['text'].startswith('Місто Musterstadt') and c['actions'], c['state'])
         check('lost number flagged: 24.11.2026', '24.11.2026' in c['num'] and '248,40' not in c['num'], c['num'])
         check('Telegram on Android: the main button sends the PDF to the chat', c['pdf'] == 'Надіслати в чат' and c['pdfOn'])

@@ -48,7 +48,7 @@ export default {
       tables: [
         { head: ["він", "вона", "множина (вона)"], rows: [["der Lehrer", "die Lehrerin", "die Lehrerinnen"], ["der Student", "die Studentin", "die Studentinnen"], ["der Arzt", "die Ärztin", "die Ärztinnen"], ["der Koch", "die Köchin", "die Köchinnen"], ["der Verkäufer", "die Verkäuferin", "die Verkäuferinnen"]] },
       ],
-      ex: [["Was sind Sie von Beruf? – Ich bin Ingenieurin.", "Ким Ви працюєте? – Я інженерка."], ["Was machst du? – Ich studiere Informatik.", "Чим ти займаєшся? – Я вивчаю інформатику."], ["Mein Bruder ist Koch.", "Мій брат — кухар."], ["Ich arbeite als Verkäuferin.", "Я працюю продавчинею."]],
+      ex: [["Was sind Sie von Beruf? – Ich bin {Ingenieur|Ingenieurin}.", "Ким Ви працюєте? – Я {інженер|інженерка}."], ["Was machst du? – Ich studiere Informatik.", "Чим ти займаєшся? – Я вивчаю інформатику."], ["Mein Bruder ist Koch.", "Мій брат — кухар."], ["Ich arbeite als Verkäuferin.", "Я працюю продавчинею."]],
       tips: ["`als` + професія = «як, у ролі»: `Ich arbeite als Fahrer.` — «Я працюю водієм». Теж без артикля."],
       warn: ["`Ich bin ein Lehrer` — так кажуть лише з прикметником: `Ich bin ein guter Lehrer.` Просто про професію — без артикля."],
     },
@@ -84,20 +84,20 @@ export default {
   ],
   phrases: [
     { t: "Мови", list: [["Welche Sprachen sprechen Sie?", "Якими мовами Ви говорите?"], ["Ich spreche Ukrainisch und Englisch.", "Я говорю українською та англійською."], ["Ich spreche ein bisschen Deutsch.", "Я трохи говорю німецькою."], ["Ich lerne Deutsch.", "Я вчу німецьку."]] },
-    { t: "Робота й навчання", list: [["Was sind Sie von Beruf?", "Ким Ви працюєте?"], ["Ich bin Student. / Ich bin Studentin.", "Я студент. / Я студентка."], ["Ich arbeite als Programmierer.", "Я працюю програмістом."], ["Ich suche Arbeit.", "Я шукаю роботу."]] },
+    { t: "Робота й навчання", list: [["Was sind Sie von Beruf?", "Ким Ви працюєте?"], ["Ich bin {Student|Studentin}.", "Я {студент|студентка}."], ["Ich arbeite als {Programmierer|Programmiererin}.", "Я працюю {програмістом|програмісткою}."], ["Ich suche Arbeit.", "Я шукаю роботу."]] },
     { t: "Контакти", list: [["Wie ist Ihre Telefonnummer?", "Який Ваш номер телефону?"], ["Haben Sie eine E-Mail-Adresse?", "У Вас є адреса електронної пошти?"], ["Noch einmal, bitte. Langsam.", "Ще раз, будь ласка. Повільно."]] },
   ],
   dialog: {
     t: "Обмін контактами після заняття",
     lines: [
-      ["Max", "Hallo, ich bin Max. Du bist Olena, oder?", "Привіт, я Макс. Ти Олена, так?"],
-      ["Olena", "Ja, genau. Sprichst du Englisch?", "Так, точно. Ти говориш англійською?"],
+      ["Max", "Hallo, ich bin Max. Du bist {Taras|Lesia}, oder?", "Привіт, я Макс. Ти {Тарас|Леся}, так?"],
+      ["{Taras|Lesia}", "Ja, genau. Sprichst du Englisch?", "Так, точно. Ти говориш англійською?"],
       ["Max", "Ja, aber wir lernen Deutsch, also sprechen wir Deutsch!", "Так, але ми вчимо німецьку, тож говорімо німецькою!"],
-      ["Olena", "Okay! Was machst du, Max?", "Добре! Чим ти займаєшся, Максе?"],
+      ["{Taras|Lesia}", "Okay! Was machst du, Max?", "Добре! Чим ти займаєшся, Максе?"],
       ["Max", "Ich bin Koch. Und du?", "Я кухар. А ти?"],
-      ["Olena", "Ich bin Ingenieurin. Hast du WhatsApp?", "Я інженерка. У тебе є WhatsApp?"],
+      ["{Taras|Lesia}", "Ich bin {Ingenieur|Ingenieurin}. Hast du WhatsApp?", "Я {інженер|інженерка}. У тебе є WhatsApp?"],
       ["Max", "Ja. Meine Nummer ist null eins sieben sechs, drei zwo, achtundvierzig, fünfzehn.", "Так. Мій номер: 0176 32 48 15."],
-      ["Olena", "Danke! Bis morgen!", "Дякую! До завтра!"],
+      ["{Taras|Lesia}", "Danke! Bis morgen!", "Дякую! До завтра!"],
     ],
   },
   tasks: [

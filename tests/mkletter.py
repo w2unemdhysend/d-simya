@@ -11,10 +11,10 @@ FONT = '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'
 NUMBERS = ['03.11.2026', '32-4711/26', '248,40', '24.11.2026', '12345']
 LETTER = [
     ('small', 'Stadtverwaltung Musterstadt · Rathausplatz 1 · 12345 Musterstadt'),
-    ('lines', ['Frau', 'Olena Beispiel', 'Beispielstraße 12', '12345 Musterstadt']),
+    ('lines', ['Herr', 'Taras Beispiel', 'Beispielstraße 12', '12345 Musterstadt']),
     ('right', ['Musterstadt, 03.11.2026', 'Aktenzeichen: 32-4711/26']),
     ('bold', 'Bescheid über Abfallgebühren 2026'),
-    ('para', 'Sehr geehrte Frau Beispiel,'),
+    ('para', 'Sehr geehrter Herr Beispiel,'),
     ('para', 'für das Grundstück Beispielstraße 12 werden die Abfallgebühren für das Jahr 2026 auf '
              '248,40 € festgesetzt. Die Gebühr umfasst die Restmülltonne, die Papiertonne und die Abholung '
              'der Gelben Säcke.'),

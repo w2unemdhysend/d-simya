@@ -13,7 +13,7 @@
     ['Навчання', [['a1/', 'Німецька A1', 'Граматика, словник, вправи', 'book']]],
     ['Інструкції', [['pralka/', 'Пралка', 'Beko: кнопки, програми, проблеми', 'wash'], ['sushka/', 'Сушарка', 'Gorenje SensoCare', 'dry']]],
     ['Telegram', [['bot/', 'Бот', 'Ранкове зведення, команди, сповіщення', 'bell']]],
-    ['Ігри', [['igry/', 'Мініігри', 'Німецька граючись і 3D-шкарпетка', 'game']]],
+    ['Ігри', [['igry/', 'Мініігри', 'Німецька граючись і пригоди шкарпетки', 'game']]],
   ];
   var ICONS = {
     route: '<circle cx="6.500" cy="6.500" r="2.500"/><circle cx="17.500" cy="17.500" r="2.500"/><path d="M9 6.500h6.500a3 3 0 0 1 0 6h-7a3 3 0 0 0 0 6H15"/>',
@@ -182,7 +182,7 @@
           var href = new URL(it[0], SITE).href;
           return '<li><a href="' + href + '"' + (samePage(href) ? ' aria-current="page"' : '') + '><span class="ic">' + svg(it[3]) + '</span><span><b>' + it[1] + '</b><small>' + it[2] + '</small></span></a></li>';
         }).join('') + '</ul>';
-      }).join('') + '</nav><div class="drawer-foot" id="dfoot"></div></div>';
+      }).join('') + '</nav><div class="drawer-foot" id="dfoot"><div class="drawer-set" id="dset"></div><div id="dinst"></div></div></div>';
     document.body.appendChild(d);
     var wrap = document.querySelector('.wrap'), panel = d.querySelector('.drawer-panel');
     var isOpen = function(){ return d.classList.contains('open'); };
@@ -236,8 +236,11 @@
       toggleFull();
     });
     paintFull();
-    paintInstall();
-    d.querySelector('#dfoot').addEventListener('click', function(e){ var b = e.target.closest('[data-install]'); if (b) { install(b.getAttribute('data-install')); } });
+    paintInstall(); paintSet();
+    d.querySelector('#dfoot').addEventListener('click', function(e){
+      var b = e.target.closest('[data-install]'); if (b) { install(b.getAttribute('data-install')); return; }
+      var g = e.target.closest('[data-gender]'); if (g) { try { if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged(); } catch(err){} setGender(g.getAttribute('data-gender')); }
+    });
     menu = { open: open, close: close, isOpen: isOpen, d: d, panel: panel };
   }
 
@@ -496,8 +499,25 @@
   window.addEventListener('beforeinstallprompt', function(e){ e.preventDefault(); askInstall = e; paintInstall(); var b = document.querySelector('.install'); if (b) { b.remove(); } showInstall(); });
   window.addEventListener('appinstalled', function(){ askInstall = null; paintInstall(); var b = document.querySelector('.install'); if (b) b.remove(); });
   function installHow(){ return ios ? 'У Safari: «Поділитися» → «На екран „Додому“».' : 'У меню Chrome ⋮ вибери «Установити додаток» або «Додати на головний екран».'; }
+  /* settings: who speaks in the examples of the course (Тарас, masculine, or Леся, feminine); pages that use it listen
+     for "dsimya-gender" */
+  var GKEY = 'dsimya-gender';
+  function gender(){ try { return localStorage.getItem(GKEY) === 'f' ? 'f' : 'm'; } catch(e){ return 'm'; } }
+  function setGender(g){
+    g = g === 'f' ? 'f' : 'm';
+    if (g === gender()) return;
+    try { localStorage.setItem(GKEY, g); } catch(e){}
+    paintSet();
+    try { window.dispatchEvent(new CustomEvent('dsimya-gender', { detail: g })); } catch(e){}
+  }
+  function paintSet(){
+    var s = document.getElementById('dset'); if (!s) return;
+    var g = gender(), opt = function(v, name, kind){ return '<button type="button" role="radio" data-gender="' + v + '" aria-checked="' + (g === v) + '"><b>' + name + '</b><small>' + kind + '</small></button>'; };
+    s.innerHTML = '<div class="drawer-group">Налаштування</div><div class="set-row"><span class="set-t"><b>Рід у прикладах</b><small>Від чийого імені говорять приклади й діалоги курсу</small></span>' +
+      '<div class="seg" role="radiogroup" aria-label="Рід у прикладах">' + opt('m', 'Тарас', 'чоловічий') + opt('f', 'Леся', 'жіночий') + '</div></div>';
+  }
   function paintInstall(){
-    var f = document.getElementById('dfoot'); if (!f) return;
+    var f = document.getElementById('dinst'); if (!f) return;
     if (installed()) { f.innerHTML = ''; return; }
     var what = tg ? ['tg', 'Працювати без інтернету', 'Встановити D-SIM’YA на телефон як застосунок']
       : askInstall ? ['ask', 'Встановити застосунок', 'Іконка на екрані, працює й без інтернету']
@@ -531,9 +551,9 @@
     document.body.appendChild(b);
   }
 
-  // full screen for a page's own button (the 3D game's pause): can it, is it on, switch it
+  // full screen for a page's own button (the platformer's pause): can it, is it on, switch it
   function toggleFull(){ try { if (tg.isFullscreen) tg.exitFullscreen(); else tg.requestFullscreen(); } catch(e){ noFull(); } }
   window.UI = { setTheme: setTheme, sync: sync, tabsThumb: tabsThumb, switchView: switchView, reserve: reserve, reduce: reduce, morph: morph,
-    canFull: canFull, isFull: function(){ return !!(tg && tg.isFullscreen); }, toggleFull: toggleFull };
+    canFull: canFull, isFull: function(){ return !!(tg && tg.isFullscreen); }, toggleFull: toggleFull, gender: gender, setGender: setGender };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

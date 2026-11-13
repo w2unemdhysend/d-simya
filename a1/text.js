@@ -6,6 +6,13 @@ export const md = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/
 export const norm = (s) => String(s).normalize('NFC').trim().toLowerCase().replace(/ß/g, 'ss').replace(/[’‘`´]/g, "'").replace(/[.!?,;]+$/, '').replace(/\s+/g, ' ');
 // the search: ä = a, ö = o, ü = u, ß = ss, apostrophes ignored, so "tschuss" finds Tschüss and "пам'ять" finds пам’ять
 export const fold = (s) => String(s).normalize('NFC').toLowerCase().replace(/ä/g, 'a').replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ß/g, 'ss').replace(/[’'ʼ]/g, '');
+// Who speaks in the course: the examples, phrases and dialogues say "I" as Тарас (a man) or Леся (a woman), chosen in
+// the menu's settings. A chapter writes both forms, {for him|for her}: names, endings (я був / я була), jobs
+// (Ingenieur / Ingenieurin), how others address the hero (Herr / Frau Koval, Тарасе / Лесю).
+export const GENDER_KEY = 'dsimya-gender';
+export const hero = (s, g) => String(s).replace(/\{([^{}|]*)\|([^{}|]*)\}/g, (m, a, b) => (g === 'f' ? b : a));
+export const heroAll = (v, g) => (typeof v === 'string' ? hero(v, g) : Array.isArray(v) ? v.map((x) => heroAll(x, g))
+  : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, heroAll(x, g)])) : v);
 // the grammar index groups the topics by these kinds
 export const CATS = { laut: 'Вимова й письмо', verb: 'Дієслова й часи', noun: 'Іменник, артикль, відмінки', pron: 'Займенники', prep: 'Прийменники', satz: 'Будова речення', zeit: 'Числа, час, дати', rede: 'Розмовні теми' };
 // The order the options of a choice exercise are shown in. Written down, the right one is mostly second; shown, it

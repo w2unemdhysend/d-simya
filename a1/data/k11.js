@@ -44,7 +44,7 @@ export default {
         "**bei** + Dativ: «у когось, у когось удома чи на прийомі; біля, поблизу; на (роботі)». `beim` = bei dem.",
         "На питання **wo?**: `beim Arzt` (у лікаря), `bei meiner Tante` (у тітки), `bei Siemens` (на Siemens). Куди? — інший прийменник: `zum Arzt` (розділ 12).",
       ],
-      ex: [["Ich war heute beim Arzt.", "Сьогодні я був у лікаря."], ["Wir wohnen bei meiner Tante.", "Ми живемо в тітки."], ["Er arbeitet bei der Post.", "Він працює на пошті."], ["Die Apotheke ist beim Rathaus.", "Аптека біля ратуші."]],
+      ex: [["Ich war heute beim Arzt.", "Сьогодні я {був|була} у лікаря."], ["Wir wohnen bei meiner Tante.", "Ми живемо в тітки."], ["Er arbeitet bei der Post.", "Він працює на пошті."], ["Die Apotheke ist beim Rathaus.", "Аптека біля ратуші."]],
       warn: ["`Ich war bei Arzt` — потрібен артикль: `beim Arzt` (bei dem)."],
     },
     {
@@ -70,7 +70,7 @@ export default {
         "Як давно — `seit` + Dativ (детальніше в розділі 14): `seit drei Tagen` (уже три дні).",
         "Уночі й на вихідних, коли кабінети зачинені, — черговий лікар **116 117**. У небезпеці для життя — **112** (див. розділ «Екстрено» в застосунку).",
       ],
-      ex: [["Ich möchte einen Termin bei Frau Dr. Schmidt.", "Я хотів би записатися до лікарки Шмідт."], ["Was fehlt Ihnen? – Ich habe Fieber und Halsschmerzen.", "Що Вас турбує? – У мене температура й болить горло."], ["Seit wann haben Sie Fieber? – Seit zwei Tagen.", "Відколи у Вас температура? – Уже два дні."], ["Mir tut der Rücken weh.", "У мене болить спина."], ["Nehmen Sie die Tabletten dreimal am Tag.", "Приймайте таблетки тричі на день."]],
+      ex: [["Ich möchte einen Termin bei Frau Dr. Schmidt.", "Я {хотів би|хотіла б} записатися до лікарки Шмідт."], ["Was fehlt Ihnen? – Ich habe Fieber und Halsschmerzen.", "Що Вас турбує? – У мене температура й болить горло."], ["Seit wann haben Sie Fieber? – Seit zwei Tagen.", "Відколи у Вас температура? – Уже два дні."], ["Mir tut der Rücken weh.", "У мене болить спина."], ["Nehmen Sie die Tabletten dreimal am Tag.", "Приймайте таблетки тричі на день."]],
     },
   ],
   phrases: [
@@ -81,14 +81,14 @@ export default {
   dialog: {
     t: "У сімейної лікарки",
     lines: [
-      ["Ärztin", "Guten Tag, Herr Bondar. Was fehlt Ihnen?", "Добрий день, пане Бондар. Що Вас турбує?"],
-      ["Taras", "Mir geht es nicht gut. Ich habe Halsschmerzen und Husten.", "Мені погано. У мене болить горло і кашель."],
+      ["Ärztin", "Guten Tag, {Herr|Frau} Koval. Was fehlt Ihnen?", "Добрий день, {пане Ковалю|пані Коваль}. Що Вас турбує?"],
+      ["{Taras|Lesia}", "Mir geht es nicht gut. Ich habe Halsschmerzen und Husten.", "Мені погано. У мене болить горло і кашель."],
       ["Ärztin", "Seit wann?", "Відколи?"],
-      ["Taras", "Seit Montag. Und gestern hatte ich auch Fieber.", "З понеділка. А вчора в мене ще була температура."],
+      ["{Taras|Lesia}", "Seit Montag. Und gestern hatte ich auch Fieber.", "З понеділка. А вчора в мене ще була температура."],
       ["Ärztin", "Ich untersuche Sie mal. … Das ist eine Erkältung. Sie müssen viel trinken und im Bett bleiben.", "Я Вас огляну. … Це застуда. Вам треба багато пити й лежати в ліжку."],
-      ["Taras", "Ich muss morgen arbeiten. Brauche ich eine Krankschreibung?", "Мені завтра на роботу. Мені потрібен лікарняний?"],
+      ["{Taras|Lesia}", "Ich muss morgen arbeiten. Brauche ich eine Krankschreibung?", "Мені завтра на роботу. Мені потрібен лікарняний?"],
       ["Ärztin", "Ja, ich schreibe Sie bis Freitag krank. Hier ist auch ein Rezept.", "Так, я дам Вам лікарняний до п’ятниці. І ось рецепт."],
-      ["Taras", "Vielen Dank!", "Щиро дякую!"],
+      ["{Taras|Lesia}", "Vielen Dank!", "Щиро дякую!"],
       ["Ärztin", "Gute Besserung!", "Одужуйте!"],
     ],
   },

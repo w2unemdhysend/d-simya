@@ -4,18 +4,20 @@
 //
 // step: { npc: [German, Ukrainian], answers: [[German, Ukrainian], ...] — the first is right — , why: { index: hint },
 //         react: { index: key of REACT } }
+// The Ukrainian says {for a man|for a woman} where it differs: in a reaction by the other person's gender (`f` of the
+// scene), in your answers by the hero chosen in the menu's settings (Тарас or Леся).
 
 export const REACT = {
   wie: ['Wie bitte?', 'Перепрошую?'],
-  nicht: ['Entschuldigung, das habe ich nicht verstanden.', 'Вибачте, я не зрозумів.'],
+  nicht: ['Entschuldigung, das habe ich nicht verstanden.', 'Вибачте, я не {зрозумів|зрозуміла}.'],
   falsch: ['Hm, ich glaube, Sie meinen etwas anderes.', 'Хм, здається, ви маєте на увазі щось інше.'],
   du: ['Äh… wir kennen uns doch gar nicht.', 'Е-е… ми ж навіть не знайомі.'],
   hier: ['Da sind Sie bei mir leider falsch.', 'Тут ви, на жаль, не за адресою.'],
-  lachen: ['Haha, nein, das meinte ich nicht.', 'Ха-ха, ні, я не це мав на увазі.'],
+  lachen: ['Haha, nein, das meinte ich nicht.', 'Ха-ха, ні, я не це {мав|мала} на увазі.'],
 };
 
 export const SCENES = [
-  { id: 'baeckerei', emoji: '🥨', name: 'У пекарні', de: 'In der Bäckerei', who: 'Продавчиня', steps: [
+  { id: 'baeckerei', emoji: '🥨', name: 'У пекарні', de: 'In der Bäckerei', who: 'Продавчиня', f: true, steps: [
     { npc: ['Guten Morgen! Was darf es sein?', 'Доброго ранку! Що бажаєте?'],
       answers: [['Zwei Brötchen, bitte.', 'Дві булочки, будь ласка.'], ['Ich habe einen Termin.', 'У мене запис.'], ['Wo ist der Bahnhof?', 'Де вокзал?']],
       why: { 1: 'Запис (Termin) буває в лікаря чи в установі, а в пекарні просто кажуть, що хочуть купити.', 2: 'Продавчиня питає, що ви хочете купити, а не дорогу.' },
@@ -38,9 +40,9 @@ export const SCENES = [
       react: { 1: 'du', 2: 'lachen' } },
   ], end: ['Tschüss, bis morgen!', 'Бувайте, до завтра!'] },
 
-  { id: 'arzt', emoji: '🩺', name: 'Реєстратура в лікаря', de: 'In der Arztpraxis', who: 'Медсестра на реєстрації', steps: [
+  { id: 'arzt', emoji: '🩺', name: 'Реєстратура в лікаря', de: 'In der Arztpraxis', who: 'Медсестра на реєстрації', f: true, steps: [
     { npc: ['Guten Tag! Haben Sie einen Termin?', 'Добрий день! У вас є запис?'],
-      answers: [['Ja, um zehn Uhr bei Frau Doktor Schmidt.', 'Так, на десяту до лікарки Шмідт.'], ['Ja, ich habe Hunger.', 'Так, я голодний.'], ['Nein, ich möchte nur ein Brötchen.', 'Ні, я хочу тільки булочку.']],
+      answers: [['Ja, um zehn Uhr bei Frau Doktor Schmidt.', 'Так, на десяту до лікарки Шмідт.'], ['Ja, ich habe Hunger.', 'Так, я {голодний|голодна}.'], ['Nein, ich möchte nur ein Brötchen.', 'Ні, я хочу тільки булочку.']],
       why: { 1: 'Питали про запис (Termin), а «Hunger» — це голод.', 2: 'Булочки продають у пекарні, а це лікарня.' },
       react: { 1: 'wie', 2: 'hier' } },
     { npc: ['Ihre Versichertenkarte, bitte.', 'Вашу картку медичного страхування, будь ласка.'],
@@ -48,7 +50,7 @@ export const SCENES = [
       why: { 1: 'Картку страхування (Versichertenkarte) треба просто віддати: без неї прийом не оплатять.', 2: 'Картку просять віддати, а не оцінити.' },
       react: { 1: 'falsch', 2: 'lachen' } },
     { npc: ['Waren Sie schon einmal bei uns?', 'Ви вже були в нас раніше?'],
-      answers: [['Nein, ich bin zum ersten Mal hier.', 'Ні, я тут уперше.'], ['Ja, ich war gestern im Kino.', 'Так, я вчора був у кіно.'], ['Nein, ich wohne in Xanten.', 'Ні, я живу в Ксантені.']],
+      answers: [['Nein, ich bin zum ersten Mal hier.', 'Ні, я тут уперше.'], ['Ja, ich war gestern im Kino.', 'Так, я вчора {був|була} у кіно.'], ['Nein, ich wohne in Xanten.', 'Ні, я живу в Ксантені.']],
       why: { 1: 'Питали, чи були ви в цій практиці, а не в кіно.', 2: 'Де ви живете, ще спитають. Зараз питали, чи ви тут уперше.' },
       react: { 1: 'lachen', 2: 'falsch' } },
     { npc: ['Dann füllen Sie bitte diesen Fragebogen aus.', 'Тоді заповніть, будь ласка, цю анкету.'],
@@ -84,9 +86,9 @@ export const SCENES = [
       react: { 1: 'lachen', 2: 'du' } },
   ], end: ['Auf Wiedersehen und willkommen in Xanten!', 'До побачення і ласкаво просимо до Ксантена!'] },
 
-  { id: 'nachbar', emoji: '📦', name: 'Сусідка й посилка', de: 'Die Nachbarin', who: 'Сусідка пані Шульц', steps: [
+  { id: 'nachbar', emoji: '📦', name: 'Сусідка й посилка', de: 'Die Nachbarin', who: 'Сусідка пані Шульц', f: true, steps: [
     { npc: ['Hallo! Ich habe ein Paket für Sie angenommen.', 'Привіт! Я прийняла для вас посилку.'],
-      answers: [['Oh, vielen Dank! Das ist sehr nett.', 'О, дуже дякую! Це дуже мило.'], ['Das ist nicht mein Problem.', 'Це не моя проблема.'], ['Ich habe keinen Hunger.', 'Я не голодний.']],
+      answers: [['Oh, vielen Dank! Das ist sehr nett.', 'О, дуже дякую! Це дуже мило.'], ['Das ist nicht mein Problem.', 'Це не моя проблема.'], ['Ich habe keinen Hunger.', 'Я не {голодний|голодна}.']],
       why: { 1: 'Сусіди в Німеччині часто приймають посилки одне для одного. Варто подякувати.', 2: 'Paket — посилка, не їжа.' },
       react: { 1: 'falsch', 2: 'nicht' } },
     { npc: ['Kein Problem. Sind Sie neu hier?', 'Нема за що. Ви тут нові?'],

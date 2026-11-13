@@ -5,6 +5,9 @@ import { SCENES, REACT } from './data/dialog.js';
 import { $, esc, haptic, shuffle, SPEAKER } from './kit.js';
 import * as sound from '../audio/say.js';
 import * as progress from './progress.js';
+import { hero, GENDER_KEY } from '../a1/text.js';
+// your answers in the form of the hero chosen in the menu (Тарас or Леся); a reaction in the other person's form
+const mine = (t) => { let g = 'm'; try { g = localStorage.getItem(GENDER_KEY) === 'f' ? 'f' : 'm'; } catch (e) {} return hero(t, g); };
 
 export function status() { const P = progress.get(); return P.dialog.length ? `${P.dialog.length} з ${SCENES.length} сцен${P.dialogPerfect.length ? ' · ⭐ ' + P.dialogPerfect.length : ''}` : 'Пекарня, лікар, Bürgerbüro'; }
 
@@ -40,7 +43,7 @@ export function create(root) {
   }
   function ask() {
     const st = sc.steps[step];
-    bubble('npc', st.npc[0], st.npc[1]);
+    bubble('npc', st.npc[0], hero(st.npc[1], sc.f ? 'f' : 'm'));
     sound.say(st.npc[0]);
     const order = shuffle(st.answers.map((a, k) => k));
     $('#d-ans', root).innerHTML = order.map((k) => `<button class="opt" type="button" data-a="${k}" lang="de">${esc(st.answers[k][0])}</button>`).join('');
@@ -53,7 +56,7 @@ export function create(root) {
     if (k === 0) {
       haptic('ok');
       $('#d-ans', root).innerHTML = '';
-      bubble('me', st.answers[0][0], st.answers[0][1]);
+      bubble('me', st.answers[0][0], mine(st.answers[0][1]));
       const me = sc; let gone = false;
       const go = (ms) => () => { if (gone) return; gone = true; setTimeout(() => { if (sc === me) nextStep(); }, ms); };
       if (!sound.say(st.answers[0][0], { off: go(350) })) go(700)();
@@ -61,9 +64,9 @@ export function create(root) {
     }
     mistakes++; haptic('error');
     btn.disabled = true; btn.classList.add('wrong');
-    bubble('me', st.answers[k][0], st.answers[k][1], 'wrongmsg');
+    bubble('me', st.answers[k][0], mine(st.answers[k][1]), 'wrongmsg');
     const r = REACT[(st.react || {})[k] || 'wie'];
-    setTimeout(() => { bubble('npc', r[0], r[1]); sound.say(r[0]); }, 400);
+    setTimeout(() => { bubble('npc', r[0], hero(r[1], sc.f ? 'f' : 'm')); sound.say(r[0]); }, 400);
     $('#d-hint', root).innerHTML = `💡 ${esc((st.why || {})[k] || 'Спробуй іншу відповідь.')}`;
     $('#d-hint', root).hidden = false;
   }
@@ -71,7 +74,7 @@ export function create(root) {
     if (!sc) return;
     step++;
     if (step < sc.steps.length) return ask();
-    bubble('npc', sc.end[0], sc.end[1]); sound.say(sc.end[0]);
+    bubble('npc', sc.end[0], hero(sc.end[1], sc.f ? 'f' : 'm')); sound.say(sc.end[0]);
     progress.mark('dialog', sc.id); if (!mistakes) progress.mark('dialogPerfect', sc.id);
     $('#d-ans', root).innerHTML = `<div class="dend"><b>${mistakes ? 'Сцену пройдено ✓' : 'Без жодної помилки ⭐'}</b><small>${mistakes ? `Помилок: ${mistakes}. Повтори, щоб отримати зірку.` : 'Так і говори в реальному житті.'}</small></div>` +
       '<button class="btn primary" type="button" data-replay>Ще раз</button><button class="btn" type="button" data-list>Інші сцени</button>';

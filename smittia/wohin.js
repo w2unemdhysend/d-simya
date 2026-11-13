@@ -109,7 +109,7 @@ export const ITEMS = [
   I('одяг і взуття в доброму стані', 'речі куртка штани сукня', 'Kleidung, Schuhe', 'kleider'),
   I('постільна білизна, рушники', 'простирадло ковдра', 'Bettwäsche, Handtücher', 'kleider'),
 ];
-const norm = (t) => String(t).toLowerCase().replace(/[’'ʼ`]/g, '').replace(/ё/g, 'е').replace(/ä/g, 'a').replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ß/g, 'ss').replace(/\s+/g, ' ').trim();
+const norm = (t) => String(t).toLowerCase().replace(/[’'ʼ`]/g, '').replace(/ä/g, 'a').replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ß/g, 'ss').replace(/\s+/g, ' ').trim();
 const INDEX = ITEMS.map((it) => ({ it, uk: norm(it.uk), all: norm(it.uk + ' ' + it.also + ' ' + it.de) }));
 
 // Items matching what was typed (every word, as a beginning of some word of the item), names first

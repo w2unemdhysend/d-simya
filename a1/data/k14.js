@@ -60,18 +60,18 @@ export default {
   ],
   phrases: [
     { t: "Погода", list: [["Wie ist das Wetter?", "Яка погода?"], ["Heute ist es sonnig und warm.", "Сьогодні сонячно й тепло."], ["Es regnet schon den ganzen Tag.", "Дощ іде вже цілий день."], ["Nimm einen Schirm mit!", "Візьми парасольку!"], ["Was sagt der Wetterbericht?", "Що каже прогноз погоди?"]] },
-    { t: "Як давно", list: [["Seit wann lernst du Deutsch?", "Відколи ти вчиш німецьку?"], ["Seit zwei Monaten.", "Уже два місяці."], ["Ich bin vor drei Monaten nach Deutschland gekommen.", "Я приїхав до Німеччини три місяці тому."]] },
+    { t: "Як давно", list: [["Seit wann lernst du Deutsch?", "Відколи ти вчиш німецьку?"], ["Seit zwei Monaten.", "Уже два місяці."], ["Ich bin vor drei Monaten nach Deutschland gekommen.", "Я {приїхав|приїхала} до Німеччини три місяці тому."]] },
     { t: "Причина", list: [["Warum kommst du nicht?", "Чому ти не прийдеш?"], ["Ich kann nicht kommen, denn ich muss arbeiten.", "Я не можу прийти, бо мушу працювати."]] },
   ],
   dialog: {
     t: "Плани на суботу",
     lines: [
       ["Anna", "Wollen wir am Samstag eine Radtour machen?", "Може, у суботу поїдемо на велосипедах?"],
-      ["Taras", "Gute Idee! Aber wie ist das Wetter am Samstag?", "Гарна ідея! А яка погода в суботу?"],
+      ["{Taras|Lesia}", "Gute Idee! Aber wie ist das Wetter am Samstag?", "Гарна ідея! А яка погода в суботу?"],
       ["Anna", "Der Wetterbericht sagt, es soll sonnig sein. Zwölf Grad.", "Прогноз каже, що має бути сонячно. Дванадцять градусів."],
-      ["Taras", "Super. Ich fahre gern Rad, denn ich habe seit einem Monat ein neues Fahrrad.", "Чудово. Я люблю кататися, бо вже місяць маю новий велосипед."],
-      ["Anna", "Wirklich? Du hast doch vor zwei Wochen gesagt, du hast kein Fahrrad.", "Справді? Ти ж два тижні тому казав, що не маєш велосипеда."],
-      ["Taras", "Ja, aber dann habe ich eins gekauft. Gebraucht, aber gut!", "Так, але потім купив. Уживаний, але добрий!"],
+      ["{Taras|Lesia}", "Super. Ich fahre gern Rad, denn ich habe seit einem Monat ein neues Fahrrad.", "Чудово. Я люблю кататися, бо вже місяць маю новий велосипед."],
+      ["Anna", "Wirklich? Du hast doch vor zwei Wochen gesagt, du hast kein Fahrrad.", "Справді? Ти ж два тижні тому {казав|казала}, що не маєш велосипеда."],
+      ["{Taras|Lesia}", "Ja, aber dann habe ich eins gekauft. Gebraucht, aber gut!", "Так, але потім {купив|купила}. Уживаний, але добрий!"],
       ["Anna", "Toll! Dann fahren wir nach Wesel, am Rhein entlang.", "Клас! Тоді поїдемо до Везеля вздовж Рейну."],
     ],
   },

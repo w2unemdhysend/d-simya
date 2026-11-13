@@ -63,11 +63,11 @@ async def main():
         ctx, pg = await context(browser)
         await pg.goto(base); await pg.wait_for_timeout(300)
         await pg.click('#menubtn'); await pg.wait_for_timeout(400)
-        info = await pg.evaluate("""() => { const g = [...document.querySelectorAll('.drawer-group')].map(x => x.textContent), links = [...document.querySelectorAll('.drawer nav a')];
+        info = await pg.evaluate("""() => { const g = [...document.querySelectorAll('.drawer nav .drawer-group')].map(x => x.textContent), links = [...document.querySelectorAll('.drawer nav a')];
           const a = links[links.length - 1];
           return {groups: g, last: a.querySelector('b').textContent, href: a.getAttribute('href'), note: a.querySelector('small').textContent,
             secret: !!document.querySelector('.drawer-secret'), full: !!document.querySelector('.fsbtn')}; }""")
-        check('menu: «Ігри» is the last group and the games its entry', info['groups'][-1] == 'Ігри' and info['last'] == 'Мініігри' and info['href'].endswith('/igry/') and '3D' in info['note'] and not info['secret'], str(info))
+        check('menu: «Ігри» is the last group of sections and the games its entry', info['groups'][-1] == 'Ігри' and info['last'] == 'Мініігри' and info['href'].endswith('/igry/') and 'шкарпетки' in info['note'] and not info['secret'], str(info))
         check('menu: no full-screen button in a browser (it would leave full screen on every page)', not info['full'], str(info))
         await pg.click('.drawer nav a[href$="/igry/"]'); await pg.wait_for_url('**/igry/')
         check('menu entry opens the games', await text(pg, 'h1') == 'Мініігри')

@@ -19,7 +19,7 @@ export default {
         { cap: "Хто володіє", head: ["Особа", "Присвійне", "Значення"], rows: [["ich", "mein", "мій"], ["du", "dein", "твій"], ["er", "sein", "його"], ["sie", "ihr", "її"], ["es", "sein", "його (дитини тощо)"]] },
         { cap: "Закінчення (так само для dein, sein, ihr)", head: ["", "der", "die", "das", "множина"], rows: [["Nominativ", "mein Vater", "meine Mutter", "mein Kind", "meine Eltern"], ["Akkusativ", "mein**en** Vater", "meine Mutter", "mein Kind", "meine Eltern"]] },
       ],
-      ex: [["Das ist mein Bruder Taras.", "Це мій брат Тарас."], ["Wie heißt deine Schwester?", "Як звати твою сестру?"], ["Anna und ihr Mann wohnen in Wesel.", "Анна та її чоловік живуть у Везелі."], ["Max besucht seine Oma.", "Макс відвідує свою бабусю."], ["Ich liebe meinen Hund.", "Я люблю свого собаку."]],
+      ex: [["Das ist mein Bruder Andrij.", "Це мій брат Андрій."], ["Wie heißt deine Schwester?", "Як звати твою сестру?"], ["Anna und ihr Mann wohnen in Wesel.", "Анна та її чоловік живуть у Везелі."], ["Max besucht seine Oma.", "Макс відвідує свою бабусю."], ["Ich liebe meinen Hund.", "Я люблю свого собаку."]],
       tips: ["Українське «свій» перекладається за особою: «Макс відвідує свою бабусю» = `seine Oma` (його), «Анна відвідує свою бабусю» = `ihre Oma` (її)."],
       warn: ["`Anna und sein Mann` — помилка: власниця — Анна (жінка), тож `ihr Mann`.", "`meine Vater` — помилка: der Vater → `mein Vater`."],
     },
@@ -32,7 +32,7 @@ export default {
       tables: [
         { head: ["", "sein → war", "haben → hatte"], rows: [["ich", "war", "hatte"], ["du", "warst", "hattest"], ["er / sie / es", "war", "hatte"], ["wir", "waren", "hatten"], ["ihr", "wart", "hattet"], ["sie / Sie", "waren", "hatten"]] },
       ],
-      ex: [["Gestern war ich beim Arzt.", "Учора я був у лікаря."], ["Wo warst du am Wochenende?", "Де ти був на вихідних?"], ["Wir hatten keine Zeit.", "У нас не було часу."], ["Die Party war super!", "Вечірка була чудова!"], ["Früher hatte ich einen Hund.", "Раніше в мене був собака."]],
+      ex: [["Gestern war ich beim Arzt.", "Учора я {був|була} у лікаря."], ["Wo warst du am Wochenende?", "Де ти був на вихідних?"], ["Wir hatten keine Zeit.", "У нас не було часу."], ["Die Party war super!", "Вечірка була чудова!"], ["Früher hatte ich einen Hund.", "Раніше в мене був собака."]],
     },
     {
       id: "modal1", t: "können і müssen", cat: "verb",
@@ -58,7 +58,7 @@ export default {
       tables: [
         { head: ["Країна", "Він", "Вона", "Мова"], rows: [["die Ukraine", "Ukrainer", "Ukrainerin", "Ukrainisch"], ["Deutschland", "Deutscher", "Deutsche", "Deutsch"], ["Polen", "Pole", "Polin", "Polnisch"], ["Österreich", "Österreicher", "Österreicherin", "Deutsch"], ["die Türkei", "Türke", "Türkin", "Türkisch"], ["Spanien", "Spanier", "Spanierin", "Spanisch"]] },
       ],
-      ex: [["Ich bin Ukrainer und spreche Ukrainisch und Deutsch.", "Я українець і говорю українською та німецькою."], ["Meine Nachbarin ist Deutsche.", "Моя сусідка — німкеня."]],
+      ex: [["Ich bin {Ukrainer|Ukrainerin} und spreche Ukrainisch und Deutsch.", "Я {українець|українка} і говорю українською та німецькою."], ["Meine Nachbarin ist Deutsche.", "Моя сусідка — німкеня."]],
     },
     {
       id: "familie", t: "Про родину і вік", cat: "rede",
@@ -67,12 +67,12 @@ export default {
         "Сімейний стан: `ledig` (неодружений/незаміжня), `verheiratet` (одружений/заміжня), `geschieden` (розлучений), `verwitwet` (вдівець/вдова). В анкетах це поле `Familienstand`.",
         "`die Eltern` (батьки) і `die Geschwister` (брати й сестри) — лише множина.",
       ],
-      ex: [["Wie alt ist deine Mutter? – Sie ist fünfzig.", "Скільки років твоїй мамі? – П’ятдесят."], ["Hast du Geschwister? – Ja, einen Bruder und eine Schwester.", "У тебе є брати чи сестри? – Так, брат і сестра."], ["Ich bin ledig und habe keine Kinder.", "Я неодружений і не маю дітей."], ["Mein Opa ist achtzig Jahre alt.", "Моєму дідусеві вісімдесят років."]],
+      ex: [["Wie alt ist deine Mutter? – Sie ist fünfzig.", "Скільки років твоїй мамі? – П’ятдесят."], ["Hast du Geschwister? – Ja, einen Bruder und eine Schwester.", "У тебе є брати чи сестри? – Так, брат і сестра."], ["Ich bin ledig und habe keine Kinder.", "Я {неодружений|незаміжня} і не маю дітей."], ["Mein Opa ist achtzig Jahre alt.", "Моєму дідусеві вісімдесят років."]],
       warn: ["`Ich habe 21 Jahre` — калька, правильно `Ich bin 21 Jahre alt.`"],
     },
   ],
   phrases: [
-    { t: "Про родину", list: [["Das ist meine Familie.", "Це моя родина."], ["Ich habe einen Bruder und eine Schwester.", "У мене є брат і сестра."], ["Meine Eltern wohnen in der Ukraine.", "Мої батьки живуть в Україні."], ["Ich bin verheiratet und habe zwei Kinder.", "Я одружений, маю двох дітей."]] },
+    { t: "Про родину", list: [["Das ist meine Familie.", "Це моя родина."], ["Ich habe einen Bruder und eine Schwester.", "У мене є брат і сестра."], ["Meine Eltern wohnen in der Ukraine.", "Мої батьки живуть в Україні."], ["Ich bin verheiratet und habe zwei Kinder.", "Я {одружений|заміжня}, маю двох дітей."]] },
     { t: "Вік", list: [["Wie alt bist du?", "Скільки тобі років?"], ["Ich bin einundzwanzig.", "Мені двадцять один."], ["Wann hast du Geburtstag?", "Коли в тебе день народження?"]] },
     { t: "Попросити про допомогу", list: [["Können Sie mir bitte helfen?", "Можете мені допомогти?"], ["Kannst du das bitte erklären?", "Можеш це пояснити?"], ["Ich kann das nicht verstehen.", "Я не можу цього зрозуміти."], ["Danke für Ihre Hilfe!", "Дякую за допомогу!"]] },
   ],
@@ -80,13 +80,13 @@ export default {
     t: "Фото на телефоні",
     lines: [
       ["Anna", "Ist das deine Familie?", "Це твоя родина?"],
-      ["Olena", "Ja. Das sind meine Eltern, und das ist mein Bruder Andrij.", "Так. Це мої батьки, а це мій брат Андрій."],
+      ["{Taras|Lesia}", "Ja. Das sind meine Eltern, und das ist mein Bruder Andrij.", "Так. Це мої батьки, а це мій брат Андрій."],
       ["Anna", "Wie alt ist dein Bruder?", "Скільки років твоєму братові?"],
-      ["Olena", "Er ist vierzehn. Er wohnt mit meinen Eltern in der Ukraine.", "Чотирнадцять. Він живе з моїми батьками в Україні."],
+      ["{Taras|Lesia}", "Er ist vierzehn. Er wohnt mit meinen Eltern in der Ukraine.", "Чотирнадцять. Він живе з моїми батьками в Україні."],
       ["Anna", "Und wer ist die Frau hier?", "А хто ця жінка?"],
-      ["Olena", "Das ist meine Tante. Sie wohnt in Köln. Ihr Mann ist Deutscher.", "Це моя тітка. Вона живе в Кельні. Її чоловік — німець."],
+      ["{Taras|Lesia}", "Das ist meine Tante. Sie wohnt in Köln. Ihr Mann ist Deutscher.", "Це моя тітка. Вона живе в Кельні. Її чоловік — німець."],
       ["Anna", "Kannst du sie oft besuchen?", "Ти можеш часто її відвідувати?"],
-      ["Olena", "Nein, leider nicht. Ich muss viel lernen. Aber am Wochenende war ich bei ihr.", "Ні, на жаль. Мені треба багато вчитися. Але на вихідних я була в неї."],
+      ["{Taras|Lesia}", "Nein, leider nicht. Ich muss viel lernen. Aber am Wochenende war ich bei ihr.", "Ні, на жаль. Мені треба багато вчитися. Але на вихідних я {був у неї|була в неї}."],
     ],
   },
   tasks: [

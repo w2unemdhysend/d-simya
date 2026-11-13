@@ -12,7 +12,7 @@ export default {
     {
       id: "moechten", t: "möchten — хотів би", cat: "verb",
       text: [
-        "**möchten** — ввічливе «хотів би, бажаю». Саме це слово кажуть у кафе, магазині, на касі. Різке `ich will` (я хочу) у такій ситуації звучить грубувато.",
+        "**möchten** — ввічливе «{хотів би|хотіла б}, бажаю». Саме це слово кажуть у кафе, магазині, на касі. Різке `ich will` (я хочу) у такій ситуації звучить грубувато.",
         "Увага: у формі `er/sie/es` **немає закінчення -t**: `er möchte`, як і в `ich möchte`.",
         "Після `möchten` іде або іменник (`Ich möchte einen Tee.`), або друге дієслово **в кінці речення** (`Ich möchte bezahlen.`).",
       ],
@@ -97,7 +97,7 @@ export default {
     t: "У кав’ярні",
     lines: [
       ["Kellner", "Guten Tag! Was möchten Sie?", "Добрий день! Що бажаєте?"],
-      ["Olena", "Ich möchte einen Cappuccino und ein Stück Apfelkuchen, bitte.", "Мені капучино й шматок яблучного пирога, будь ласка."],
+      ["{Taras|Lesia}", "Ich möchte einen Cappuccino und ein Stück Apfelkuchen, bitte.", "Мені капучино й шматок яблучного пирога, будь ласка."],
       ["Max", "Und für mich einen Tee, bitte. Haben Sie Pfefferminztee?", "А мені чай, будь ласка. У Вас є м’ятний чай?"],
       ["Kellner", "Ja, natürlich.", "Так, звісно."],
       ["", "…", "…"],

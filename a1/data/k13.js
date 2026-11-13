@@ -32,7 +32,7 @@ export default {
       tables: [
         { head: ["Речення 1", "0", "1", "2", "далі"], rows: [["Ich arbeite in Wesel", "und", "meine Frau", "arbeitet", "in Xanten."], ["Wir fahren mit dem Bus", "oder", "wir", "nehmen", "das Fahrrad."], ["Der Job ist interessant,", "aber", "der Lohn", "ist", "nicht hoch."], ["Ich habe heute Zeit,", "aber", "morgen", "muss", "ich arbeiten."]] },
       ],
-      ex: [["Ich suche eine Stelle und lerne Deutsch.", "Я шукаю роботу й вчу німецьку."], ["Kommst du heute oder kommst du morgen?", "Ти прийдеш сьогодні чи завтра?"], ["Die Arbeit ist anstrengend, aber die Kollegen sind nett.", "Робота важка, але колеги приємні."], ["Ich möchte kommen, aber ich habe keine Zeit.", "Я хотів би прийти, але не маю часу."]],
+      ex: [["Ich suche eine Stelle und lerne Deutsch.", "Я шукаю роботу й вчу німецьку."], ["Kommst du heute oder kommst du morgen?", "Ти прийдеш сьогодні чи завтра?"], ["Die Arbeit ist anstrengend, aber die Kollegen sind nett.", "Робота важка, але колеги приємні."], ["Ich möchte kommen, aber ich habe keine Zeit.", "Я {хотів би|хотіла б} прийти, але не маю часу."]],
       warn: ["`…, aber morgen ich muss arbeiten` — помилка. Після aber звичайний порядок: `aber morgen muss ich arbeiten`."],
     },
     {
@@ -65,14 +65,14 @@ export default {
   dialog: {
     t: "Перший день на роботі",
     lines: [
-      ["Chefin", "Guten Morgen, Herr Bondar! Willkommen im Team.", "Доброго ранку, пане Бондар! Ласкаво просимо в команду."],
-      ["Taras", "Guten Morgen! Danke. Was soll ich heute machen?", "Доброго ранку! Дякую. Що мені сьогодні робити?"],
+      ["Chefin", "Guten Morgen, {Herr|Frau} Koval! Willkommen im Team.", "Доброго ранку, {пане Ковалю|пані Коваль}! Ласкаво просимо в команду."],
+      ["{Taras|Lesia}", "Guten Morgen! Danke. Was soll ich heute machen?", "Доброго ранку! Дякую. Що мені сьогодні робити?"],
       ["Chefin", "Zuerst sollen Sie bitte diesen Vertrag unterschreiben. Und hier ist ein Formular.", "Спочатку підпишіть, будь ласка, цей договір. А ось формуляр."],
-      ["Taras", "Soll ich das gleich ausfüllen?", "Мені заповнити його одразу?"],
+      ["{Taras|Lesia}", "Soll ich das gleich ausfüllen?", "Мені заповнити його одразу?"],
       ["Chefin", "Ja, bitte. Dann zeigt Ihnen Frau Yilmaz das Lager.", "Так, будь ласка. Потім пані Їлмаз покаже Вам склад."],
-      ["Taras", "Und wann ist die Pause?", "А коли перерва?"],
+      ["{Taras|Lesia}", "Und wann ist die Pause?", "А коли перерва?"],
       ["Chefin", "Um zwölf. Die Arbeit fängt um acht an und hört um halb fünf auf.", "О дванадцятій. Робота починається о восьмій і закінчується о пів на п’яту."],
-      ["Taras", "Alles klar. Ich bin gespannt!", "Зрозуміло. Мені цікаво!"],
+      ["{Taras|Lesia}", "Alles klar. Ich bin gespannt!", "Зрозуміло. Мені цікаво!"],
     ],
   },
   tasks: [

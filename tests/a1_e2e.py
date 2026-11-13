@@ -249,6 +249,33 @@ async def main():
         check('progress solved on another phone arrives from Telegram', await text(pg, '.chrow[data-ch="6"] .pr') == '3/12' and '6. Продукти' in await text(pg, '.hcard.cont'))
         await ctx.close()
 
+        # ---------------- who speaks: Тарас or Леся, switched in the menu's settings ----------------
+        ctx, pg = await context(browser)
+        await pg.goto(base + 'a1/?ch=10&tab=phr'); await pg.wait_for_timeout(600)
+        def said():
+            return pg.evaluate("""() => ({who: [...new Set([...document.querySelectorAll('#p-phr .dl li')].map((l) => (l.querySelector('.who') || {}).textContent).filter(Boolean))],
+              text: document.querySelector('#p-phr').textContent, hero: document.querySelector('#herol').textContent, title: document.querySelector('#title').textContent})""")
+        m = await said()
+        check('by default the course speaks as Тарас (masculine), and says where to change it',
+              'Taras' in m['who'] and 'Я встав о п’ятій' in m['text'] and 'Лес' not in m['text'] and 'Тараса' in m['hero'] and 'Налаштування' in m['hero'], str({**m, 'text': m['text'][:160]}))
+        await pg.click('#menubtn'); await pg.wait_for_timeout(400)
+        seg = await pg.evaluate("[...document.querySelectorAll('#dset [data-gender]')].map((b) => [b.textContent, b.getAttribute('aria-checked')])")
+        check('the menu has «Налаштування» with «Рід у прикладах»: Тарас (chosen) or Леся', seg == [['Тарасчоловічий', 'true'], ['Лесяжіночий', 'false']] and 'Рід у прикладах' in await text(pg, '#dset'), str(seg))
+        await pg.click('#dset [data-gender="f"]'); await pg.wait_for_timeout(300)
+        f = await said()
+        check('Леся chosen: the open chapter changes at once, names, endings and how others address her',
+              'Lesia' in f['who'] and 'Taras' not in f['who'] and 'Я встала о п’ятій' in f['text'] and 'А що ти робила у Берліні?' in f['text'] and 'Тарас' not in f['text'] and 'Лесі' in f['hero'], str({**f, 'text': f['text'][:160]}))
+        await pg.keyboard.press('Escape'); await pg.wait_for_timeout(300)
+        await pg.goto(base + 'a1/?ch=1&tab=phr'); await pg.wait_for_timeout(600)
+        f1 = await pg.evaluate("document.querySelector('#p-phr').textContent")
+        check('… and stays chosen: chapter 1 in the feminine (Frau Koval, пані Коваль, Lesia Koval)', 'Frau Koval' in f1 and 'пані Коваль' in f1 and 'Ich heiße Lesia Koval.' in f1 and 'Herr Koval' not in f1, f1[:200])
+        await shot(pg, 'a1-lesia.png', False)
+        await pg.click('#menubtn'); await pg.wait_for_timeout(400)
+        await pg.click('#dset [data-gender="m"]'); await pg.wait_for_timeout(300)
+        back = await pg.evaluate("[document.querySelector('#p-phr').textContent.includes('Ich heiße Taras Koval.'), localStorage.getItem('dsimya-gender')]")
+        check('back to Тарас in one tap', back == [True, 'm'], str(back))
+        await ctx.close()
+
         # ---------------- the dark theme ----------------
         ctx, pg = await context(browser, theme='dark')
         await pg.goto(base + 'a1/?ch=4'); await pg.wait_for_timeout(600)

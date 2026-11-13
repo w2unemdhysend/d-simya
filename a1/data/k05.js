@@ -94,12 +94,12 @@ export default {
     t: "Запис до перукаря",
     lines: [
       ["Friseurin", "Salon Schneider, guten Tag!", "Салон «Шнайдер», добрий день!"],
-      ["Taras", "Guten Tag, hier ist Taras Bondar. Ich möchte einen Termin, bitte.", "Добрий день, це Тарас Бондар. Я хотів би записатися."],
+      ["{Taras|Lesia}", "Guten Tag, hier ist {Taras|Lesia} Koval. Ich möchte einen Termin, bitte.", "Добрий день, це {Тарас|Леся} Коваль. Я {хотів би|хотіла б} записатися."],
       ["Friseurin", "Gern. Wann haben Sie Zeit?", "Охоче. Коли у Вас є час?"],
-      ["Taras", "Am Dienstag nach dem Kurs. Der Kurs ist von halb neun bis zwölf.", "У вівторок після курсу. Курс з пів на дев’яту до дванадцятої."],
+      ["{Taras|Lesia}", "Am Dienstag nach dem Kurs. Der Kurs ist von halb neun bis zwölf.", "У вівторок після курсу. Курс з пів на дев’яту до дванадцятої."],
       ["Friseurin", "Dienstag um vierzehn Uhr? Geht das?", "У вівторок о чотирнадцятій? Підходить?"],
-      ["Taras", "Ja, das passt. Vielen Dank!", "Так, підходить. Щиро дякую!"],
-      ["Friseurin", "Also Dienstag, vierzehn Uhr. Bis Dienstag, Herr Bondar!", "Отже, вівторок, чотирнадцята. До вівторка, пане Бондар!"],
+      ["{Taras|Lesia}", "Ja, das passt. Vielen Dank!", "Так, підходить. Щиро дякую!"],
+      ["Friseurin", "Also Dienstag, vierzehn Uhr. Bis Dienstag, {Herr|Frau} Koval!", "Отже, вівторок, чотирнадцята. До вівторка, {пане Ковалю|пані Коваль}!"],
     ],
   },
   tasks: [

@@ -91,7 +91,7 @@ async def main():
         pg = await ctx.new_page()
         await pg.goto(base + '?install=1'); await pg.wait_for_timeout(400)
         await pg.click('#menubtn'); await pg.wait_for_timeout(400)
-        check('installed: no note, no menu entry', not await pg.query_selector('.install') and (await pg.text_content('#dfoot')).strip() == '')
+        check('installed: no note, no menu entry (the settings stay)', not await pg.query_selector('.install') and (await pg.text_content('#dinst')).strip() == '' and 'Налаштування' in await pg.text_content('#dfoot'))
         await ctx.close()
         await browser.close()
     print('ALL PASS' if not fails else f'{len(fails)} FAILED: {fails}')
