@@ -6,6 +6,9 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>(function(){try{var s=null;try{s=localStorage.getItem('dsimya-theme')}catch(e){}var w=window.Telegram&&Telegram.WebApp;var tg=w&&w.platform&&w.platform!=='unknown';var t=s||(tg?(w.colorScheme==='dark'?'dark':'light'):(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));document.documentElement.setAttribute('data-theme',t)}catch(e){}})();addEventListener('unhandledrejection',function(e){var r=e.reason;if(r&&/Transition was (aborted|skipped)/.test(r.message||''))e.preventDefault()});</script>
 <title>Транспорт</title>
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="icon" href="../assets/icons/favicon-48.png" sizes="48x48">
+<link rel="apple-touch-icon" href="../assets/icons/apple-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@600;700&display=swap">
@@ -186,7 +189,7 @@ a.deplink:active{background:var(--bg);transform:scale(.99)}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 @media (min-width:480px){h1{font-size:38px}}
 </style>
-<link rel="stylesheet" href="../assets/ui.css?v=19">
+<link rel="stylesheet" href="../assets/ui.css?v=20">
 </head>
 <body>
 <div class="wrap">
@@ -248,7 +251,7 @@ a.deplink:active{background:var(--bg);transform:scale(.99)}
     <p>Розклад і час наживо: VRR OpenService, без гарантії. Погода: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (CC BY 4.0).</p>
   </div>
 </div>
-<script src="../assets/ui.js?v=19"></script>
+<script src="../assets/ui.js?v=20"></script>
 <script type="module">
 import { WORKER_URL, PLACES, homePlace, getWeather, wxIcon, wxText, advice, deg } from '../pogoda/wx.js';
 
@@ -498,11 +501,12 @@ function row(d) {
   // the line number (the whole row) opens this very bus on the map: its road, where it is, where I am, how to catch it
   const map = d.ref && !d.gone && data.stop.id ? `../mapa/?line=${encodeURIComponent(d.ref.line)}&amp;trip=${encodeURIComponent(d.ref.trip)}&amp;at=${encodeURIComponent(data.stop.id)}` +
     `&amp;plan=${encodeURIComponent(d.plan)}&amp;ln=${encodeURIComponent(d.line)}&amp;dest=${encodeURIComponent(d.dest)}&amp;mode=${encodeURIComponent(d.mode)}&amp;sn=${encodeURIComponent(data.stop.name || '')}` : '';
-  const inner = `<div class="t" aria-hidden="true"><b>${esc(big)}</b>${small ? `<small>${esc(small)}</small>` : ''}</div><div>` +
+  const inner = `<div class="t" aria-hidden="true"><b data-tick>${esc(big)}</b>${small ? `<small>${esc(small)}</small>` : ''}</div><div>` +
     `<div class="l1"><span class="line ${lineCls(d)}">${esc(d.line.replace(/^SEV\s*RB\s*/, 'SEV '))}</span><span class="dest" lang="de">${esc(d.dest)}</span>${map ? MAPGO : ''}</div>` +
     `<div class="l2"><span>${esc(kind)}</span>${where ? `<span>${esc(where)}</span>` : ''}${live}` +
     (d.notes.length ? `<span class="warn">${WARN}є зміни на лінії</span>` : '') + `</div>${hints}</div>`;
-  return `<li class="dep${d.gone ? ' gone' : ''}${!d.gone && mins <= 2 ? ' soon' : ''}${map ? ' has-map' : ''}">` +
+  const key = `${d.ref ? d.ref.line + ':' + d.ref.trip : d.line + ':' + d.dest}|${d.plan}`;
+  return `<li class="dep${d.gone ? ' gone' : ''}${!d.gone && mins <= 2 ? ' soon' : ''}${map ? ' has-map' : ''}" data-key="${esc(key)}">` +
     (map ? `<a class="deplink" href="${map}" aria-label="${esc(label)}. На мапі: де він зараз і як на нього встигнути">${inner}</a>` : `<div class="deplink" aria-label="${esc(label)}">${inner}</div>`) + '</li>';
 }
 const MAPGO = '<svg class="mapgo" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
@@ -522,7 +526,9 @@ function render() {
   if (seg.hidden) mode = 'all';
   seg.innerHTML = [['all', 'Усі'], ['train', 'Потяги'], ['bus', 'Автобуси']].map(([k, t]) => `<button type="button" data-mode="${k}" aria-pressed="${k === mode}">${t}</button>`).join('');
   const list = soon.filter((d) => mode === 'all' || (mode === 'train') === isTrain(d));
-  $('#deps').innerHTML = list.slice(0, shown).map(row).join('');
+  // the same buses stay in their rows: the minutes roll, a late one moves down smoothly, a gone one leaves
+  const html = list.slice(0, shown).map(row).join('');
+  if (window.UI && UI.morph) UI.morph($('#deps'), html); else $('#deps').innerHTML = html;
   $('#more').hidden = list.length <= shown;
   const empty = $('#dep-empty');
   empty.hidden = !!list.length;

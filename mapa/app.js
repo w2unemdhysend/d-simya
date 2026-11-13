@@ -430,6 +430,7 @@ function renderStop(v) {
   if (v.deps) renderDeps(v);
   refreshDeps(v);
   timers.push(setInterval(() => { if (!document.hidden) refreshDeps(v); }, 30000));
+  timers.push(setInterval(() => { if (!document.hidden && v.deps && top() === v) renderDeps(v); }, 15000));   // the minutes count down between updates
 }
 const inView = (c) => { if (!map) return true; const b = map.getBounds(); return b.contains(ll(c)); };
 function walkBtn(v) {
@@ -465,8 +466,8 @@ async function refreshDeps(v) {
 function depRow(x, i) {
   const t = Date.parse(x.est || x.plan), min = Math.round((t - Date.now()) / 60000), dl = late(x.plan, x.est);
   const big = min <= 0 ? 'зараз' : min < 60 ? `${min} хв` : hm(x.est || x.plan);
-  return `<li><button class="dep${min <= 5 && min >= 0 ? ' soon' : ''}${x.gone ? ' gone' : ''}" type="button" data-dep="${i}"${x.ref ? '' : ' disabled'}>` +
-    `<span class="tm"><b>${big}</b>${min < 60 ? `<small>${hm(x.est || x.plan)}</small>` : ''}</span>` +
+  return `<li data-key="${esc((x.ref ? x.ref.line + ':' + x.ref.trip : x.line + ':' + x.dest) + '|' + x.plan)}"><button class="dep${min <= 5 && min >= 0 ? ' soon' : ''}${x.gone ? ' gone' : ''}" type="button" data-dep="${i}"${x.ref ? '' : ' disabled'}>` +
+    `<span class="tm"><b data-tick>${big}</b>${min < 60 ? `<small>${hm(x.est || x.plan)}</small>` : ''}</span>` +
     `<span><span class="l1"><span class="line ${lineCls(x)}">${esc(x.line)}</span><span class="dest" lang="de">${esc(x.dest)}</span></span>` +
     `<span class="l2">${x.gone ? '<span class="late">скасовано</span>' : x.live ? (dl >= 1 ? `<span class="late">+${dl} хв</span>` : '<span class="ok">вчасно</span>') : '<span>за розкладом</span>'}` +
     `${x.plat ? `<span>${x.mode === 'train' ? 'колія' : 'стоянка'} ${esc(x.plat)}</span>` : ''}${x.ref ? '<span>де зараз →</span>' : ''}</span></span>` +
@@ -474,7 +475,9 @@ function depRow(x, i) {
 }
 function renderDeps(v) {
   const list = (v.deps || []).filter((x) => Date.parse(x.est || x.plan) > Date.now() - 60000).slice(0, 12);
-  $('#deps').innerHTML = list.length ? `<ul class="deps">${list.map((x) => depRow(x, v.deps.indexOf(x))).join('')}</ul>` : '<p class="note">Найближчим часом відправлень немає.</p>';
+  const ul = $('#deps ul.deps'), rows = list.map((x) => depRow(x, v.deps.indexOf(x))).join('');
+  if (list.length && ul && window.UI && UI.morph) UI.morph(ul, rows);   // the same buses stay in their rows, the minutes roll
+  else $('#deps').innerHTML = list.length ? `<ul class="deps">${rows}</ul>` : '<p class="note">Найближчим часом відправлень немає.</p>';
 }
 $('#sbody').addEventListener('click', (e) => {
   const v = top();

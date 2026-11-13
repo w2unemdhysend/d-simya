@@ -32,6 +32,7 @@
     book: '<path d="M12 6.5c-1.800-1.300-4.300-2-7.500-2v13c3.200 0 5.700.700 7.500 2 1.800-1.300 4.300-2 7.500-2v-13c-3.200 0-5.700.700-7.500 2z"/><path d="M12 6.500v13"/>',
     map: '<path d="M9 4.5l-5 2v13l5-2 6 2 5-2v-13l-5 2z"/><path d="M9 4.5v13M15 6.5v13"/>',
     close: '<path d="M6 6l12 12M18 6L6 18"/>',
+    dl: '<path d="M12 4v10M7.5 9.5L12 14l4.5-4.5M5 19.5h14"/>',
     full: '<path d="M4 9.5V4h5.5"/><path d="M14.5 4H20v5.5"/><path d="M20 14.5V20h-5.5"/><path d="M9.5 20H4v-5.5"/>',
     game: '<path d="M7.5 7.5h9a4.5 4.5 0 0 1 4.4 5.4l-.8 3.8a2.4 2.4 0 0 1-4.2 1L14.6 16H9.4l-1.3 1.7a2.4 2.4 0 0 1-4.2-1l-.8-3.8a4.5 4.5 0 0 1 4.4-5.4z"/><path d="M8.5 10.5v3M7 12h3"/><circle cx="15.5" cy="11.2" r=".6"/><circle cx="17" cy="12.8" r=".6"/>',
   };
@@ -181,7 +182,7 @@
           var href = new URL(it[0], SITE).href;
           return '<li><a href="' + href + '"' + (samePage(href) ? ' aria-current="page"' : '') + '><span class="ic">' + svg(it[3]) + '</span><span><b>' + it[1] + '</b><small>' + it[2] + '</small></span></a></li>';
         }).join('') + '</ul>';
-      }).join('') + '</nav></div>';
+      }).join('') + '</nav><div class="drawer-foot" id="dfoot"></div></div>';
     document.body.appendChild(d);
     var wrap = document.querySelector('.wrap'), panel = d.querySelector('.drawer-panel');
     var isOpen = function(){ return d.classList.contains('open'); };
@@ -235,6 +236,8 @@
       toggleFull();
     });
     paintFull();
+    paintInstall();
+    d.querySelector('#dfoot').addEventListener('click', function(e){ var b = e.target.closest('[data-install]'); if (b) { install(b.getAttribute('data-install')); } });
     menu = { open: open, close: close, isOpen: isOpen, d: d, panel: panel };
   }
 
@@ -401,6 +404,71 @@
     initExplain();
     initSwipes();
     initOffline();
+    showInstall();
+    initReveal();
+  }
+
+  /* ---------- motion: the blocks of a page rise in one after another; those further down as they scroll into view.
+     (Pages that animate their own blocks keep their own; with "less motion" asked for, nothing moves.) ---------- */
+  var RV = '.card, .hcard, .tile, .help, .notice, details.trip, .wrap > section, .wrap > main > section';
+  function initReveal(){
+    if (reduce || !('IntersectionObserver' in window) || document.body.classList.contains('mapapp')) return;
+    var wrap = document.querySelector('.wrap'); if (!wrap) return;
+    var all = [].slice.call(wrap.querySelectorAll(RV));
+    var els = all.filter(function(el){
+      if (el.closest('[hidden]') || el.closest('.drawer')) return false;
+      for (var p = el.parentElement; p && p !== wrap; p = p.parentElement) if (all.indexOf(p) >= 0) return false;   // the outer block moves, not each part of it
+      var cs = getComputedStyle(el);
+      return cs.animationName === 'none' && cs.display !== 'none';
+    });
+    if (!els.length) return;
+    root.classList.add('rv-on');
+    var vh = window.innerHeight, i = 0;
+    var done = function(el){ el.addEventListener('transitionend', function f(e){ if (e.target !== el) return; el.removeEventListener('transitionend', f); el.classList.remove('rv', 'rv-in'); el.style.removeProperty('--rv'); }); };
+    var io = new IntersectionObserver(function(list){
+      list.forEach(function(en){ if (en.isIntersecting) { io.unobserve(en.target); done(en.target); en.target.classList.add('rv-in'); } });
+    }, { rootMargin: '0px 0px -6% 0px' });
+    els.forEach(function(el){
+      var top = el.getBoundingClientRect().top;
+      el.classList.add('rv');
+      if (top < vh) { el.style.setProperty('--rv', Math.min(i++, 9)); done(el); requestAnimationFrame(function(){ requestAnimationFrame(function(){ el.classList.add('rv-in'); }); }); }
+      else io.observe(el);
+    });
+  }
+
+  /* A list drawn again from new HTML (live departures every few seconds): rows with the same data-key stay where they
+     are and only their content changes (a number marked data-tick rolls to its new value), new rows come in, rows that
+     moved glide to their new place. Without keys, or with less motion asked for, it is simply replaced. */
+  function morph(box, html){
+    if (!box) return;
+    var tpl = document.createElement('template'); tpl.innerHTML = html;
+    var next = [].slice.call(tpl.content.children);
+    var keyed = next.length && next.every(function(n){ return n.getAttribute('data-key'); });
+    var old = {}, any = false;
+    [].slice.call(box.children).forEach(function(el){ var k = el.getAttribute('data-key'); if (k) { old[k] = el; any = true; } });
+    if (!keyed || !any || reduce) { box.innerHTML = html; return; }
+    var first = {};
+    Object.keys(old).forEach(function(k){ first[k] = old[k].getBoundingClientRect().top; });
+    var rows = next.map(function(n){
+      var k = n.getAttribute('data-key'), o = old[k];
+      if (!o) { n.classList.add('mo-in'); return n; }
+      delete old[k];
+      if (o.outerHTML !== n.outerHTML) {
+        var was = [].slice.call(o.querySelectorAll('[data-tick]')).map(function(e){ return e.textContent; });
+        [].slice.call(o.attributes).forEach(function(a){ if (!n.hasAttribute(a.name)) o.removeAttribute(a.name); });
+        [].slice.call(n.attributes).forEach(function(a){ o.setAttribute(a.name, a.value); });
+        o.innerHTML = n.innerHTML;
+        [].slice.call(o.querySelectorAll('[data-tick]')).forEach(function(e, i){ if (was[i] != null && was[i] !== e.textContent) e.classList.add('ticked'); });
+      }
+      return o;
+    });
+    Object.keys(old).forEach(function(k){ old[k].remove(); });
+    rows.forEach(function(el, i){ if (box.children[i] !== el) box.insertBefore(el, box.children[i] || null); });
+    rows.forEach(function(el){
+      var k = el.getAttribute('data-key');
+      if (first[k] != null && el.animate) { var dy = first[k] - el.getBoundingClientRect().top; if (Math.abs(dy) > 1) el.animate([{ transform: 'translateY(' + dy + 'px)' }, { transform: 'none' }], { duration: 420, easing: 'cubic-bezier(.22,1,.36,1)' }); }
+    });
+    setTimeout(function(){ [].slice.call(box.querySelectorAll('.mo-in, .ticked')).forEach(function(e){ e.classList.remove('mo-in', 'ticked'); }); }, 700);
   }
 
   /* Offline mode: the service worker keeps the pages on the phone (see sw.js). Not in automated browsers, unless a test
@@ -418,9 +486,54 @@
     window.addEventListener('online', show); window.addEventListener('offline', show); show();
   }
 
+  /* Without internet. Telegram itself has to ask its server before it opens a Mini App, so with no connection it only
+     shows its spinner, whatever the page keeps. The same pages installed as an app (from Chrome or Safari) open from
+     their own icon with what sw.js keeps: so the menu offers that. In Telegram: open the site in the phone's browser to
+     install it there; in a browser: Chrome's own install question, or how to do it by hand (Safari). */
+  var askInstall = null, installClosed = false;
+  var installed = function(){ return (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true; };
+  var ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (tg && tg.platform === 'ios');
+  window.addEventListener('beforeinstallprompt', function(e){ e.preventDefault(); askInstall = e; paintInstall(); var b = document.querySelector('.install'); if (b) { b.remove(); } showInstall(); });
+  window.addEventListener('appinstalled', function(){ askInstall = null; paintInstall(); var b = document.querySelector('.install'); if (b) b.remove(); });
+  function installHow(){ return ios ? 'У Safari: «Поділитися» → «На екран „Додому“».' : 'У меню Chrome ⋮ вибери «Установити додаток» або «Додати на головний екран».'; }
+  function paintInstall(){
+    var f = document.getElementById('dfoot'); if (!f) return;
+    if (installed()) { f.innerHTML = ''; return; }
+    var what = tg ? ['tg', 'Працювати без інтернету', 'Встановити D-SIM’YA на телефон як застосунок']
+      : askInstall ? ['ask', 'Встановити застосунок', 'Іконка на екрані, працює й без інтернету']
+      : ['how', 'Встановити застосунок', installHow()];
+    f.innerHTML = '<button class="drawer-install" type="button" data-install="' + what[0] + '"><span class="ic">' + svg('dl') + '</span><span><b>' + what[1] + '</b><small>' + what[2] + '</small></span></button>';
+  }
+  function install(how){
+    if (how === 'tg') {
+      try { if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light'); } catch(e){}
+      try { tg.openLink(SITE + '?install=1', { try_browser: 'chrome' }); } catch(e){ try { tg.openLink(SITE + '?install=1'); } catch(e2){} }
+      return;
+    }
+    if (askInstall) { var a = askInstall; askInstall = null; a.prompt(); if (a.userChoice) a.userChoice.then(function(){ paintInstall(); }); return; }
+    showInstall(true);
+  }
+  // opened from Telegram's button (?install=1): say what installing gives, and offer it
+  function showInstall(force){
+    if (installed() || tg || installClosed || document.querySelector('.install')) return;
+    var asked = /[?&]install=1\b/.test(location.search);
+    if (!force && !asked) return;
+    var b = document.createElement('div');
+    b.className = 'install'; b.setAttribute('role', 'dialog'); b.setAttribute('aria-label', 'Встановити D-SIM’YA');
+    b.innerHTML = '<img src="' + SITE + 'assets/icons/icon-192.png" alt="" width="48" height="48"><div><b>D-SIM’YA на телефоні</b><p>Окрема іконка на екрані, і транспорт, мапа міста, сміття, інструкції працюють навіть без інтернету.</p>' +
+      (askInstall ? '' : '<p class="how">' + installHow() + '</p>') + '<div class="acts">' + (askInstall ? '<button class="primary" type="button" data-i="go">Встановити</button>' : '') +
+      '<button type="button" data-i="no">' + (askInstall ? 'Пізніше' : 'Зрозуміло') + '</button></div></div>';
+    b.addEventListener('click', function(e){
+      var x = e.target.closest('[data-i]'); if (!x) return;
+      if (x.getAttribute('data-i') === 'go') install('ask');
+      installClosed = true; b.classList.add('out'); setTimeout(function(){ b.remove(); }, 250);
+    });
+    document.body.appendChild(b);
+  }
+
   // full screen for a page's own button (the 3D game's pause): can it, is it on, switch it
   function toggleFull(){ try { if (tg.isFullscreen) tg.exitFullscreen(); else tg.requestFullscreen(); } catch(e){ noFull(); } }
-  window.UI = { setTheme: setTheme, sync: sync, tabsThumb: tabsThumb, switchView: switchView, reserve: reserve, reduce: reduce,
+  window.UI = { setTheme: setTheme, sync: sync, tabsThumb: tabsThumb, switchView: switchView, reserve: reserve, reduce: reduce, morph: morph,
     canFull: canFull, isFull: function(){ return !!(tg && tg.isFullscreen); }, toggleFull: toggleFull };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

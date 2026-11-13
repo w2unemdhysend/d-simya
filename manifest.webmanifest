@@ -1,0 +1,24 @@
+{
+  "name": "D-SIM'YA: помічник для життя в Німеччині",
+  "short_name": "D-SIM'YA",
+  "description": "Транспорт, мапа, погода, сміття, покупки, сканер документів, німецька, ігри. Працює й без інтернету.",
+  "lang": "uk",
+  "dir": "ltr",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#12181C",
+  "theme_color": "#12181C",
+  "icons": [
+    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "assets/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Транспорт", "url": "transport/", "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Мапа", "url": "mapa/", "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Сміття", "url": "smittia/", "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

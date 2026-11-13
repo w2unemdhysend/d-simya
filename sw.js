@@ -13,18 +13,19 @@
    Nothing else is kept: not the shopping list, not translations, not searches.
    When the asset version (?v=) changes, update it here too (tests/offline_e2e.py checks that they match). */
 
-const VERSION = '2026-11-13.1';
+const VERSION = '2026-11-13.2';
 const CORE_CACHE = 'dsimya-core-' + VERSION, DATA_CACHE = 'dsimya-data', STATIC_CACHE = 'dsimya-static', AUDIO_CACHE = 'dsimya-audio';
 const CITY_CACHE = 'dsimya-city', TILE_CACHE = 'dsimya-tiles', MAX_TILES = 600;
 const CORE = [
+  'manifest.webmanifest', 'assets/icons/icon-192.png', 'assets/icons/icon-512.png', 'assets/icons/maskable-512.png', 'assets/icons/favicon-48.png', 'assets/icons/apple-180.png',
   './', 'pralka/', 'sushka/', 'scan/', 'smittia/', 'prospekty/', 'spysok/', 'transport/', 'pogoda/', 'igry/', 'bot/', 'ekstreno/', 'rozmovnyk/', 'marshrut/', 'a1/', 'mapa/',
-  'assets/ui.css?v=19', 'assets/ui.js?v=19', 'assets/page.css?v=2', 'rozmovnyk/phrases.js', 'audio/index.js', 'audio/say.js', 'assets/fonts/noto-sans.ttf',
+  'assets/ui.css?v=20', 'assets/ui.js?v=20', 'assets/page.css?v=2', 'rozmovnyk/phrases.js', 'audio/index.js', 'audio/say.js', 'assets/fonts/noto-sans.ttf',
   'smittia/kalender.json', 'smittia/due.js', 'smittia/wohin.js', 'prospekty/week.js', 'pogoda/wx.js', 'igry/words.js', 'igry/games.css?v=2',
   'igry/kit.js', 'igry/progress.js', 'igry/garten.js', 'igry/satz.js', 'igry/zahlen.js', 'igry/dialog.js', 'igry/memory.js', 'igry/skins.js',
   'igry/data/garten.js', 'igry/data/satz.js', 'igry/data/zahlen.js', 'igry/data/dialog.js', 'igry/data/memory.js',
   'igry/hop.js?v=1', 'igry/hop/levels.js?v=1', 'igry/hop/engine.js?v=1', 'igry/hop/physics.js?v=1', 'assets/three/r185/three.module.min.js', 'assets/three/r185/three.core.min.js',
   'a1/a1.css?v=2', 'a1/app.js?v=1', 'a1/text.js', 'a1/data/wortschatz.js', 'a1/data/k01.js', 'a1/data/k02.js', 'a1/data/k03.js', 'a1/data/k04.js', 'a1/data/k05.js',
-  'mapa/mapa.css?v=4', 'mapa/app.js?v=3', 'mapa/style.js?v=3', 'mapa/geo.js?v=3',
+  'mapa/mapa.css?v=4', 'mapa/app.js?v=4', 'mapa/style.js?v=3', 'mapa/geo.js?v=3',
   'a1/data/k06.js', 'a1/data/k07.js', 'a1/data/k08.js', 'a1/data/k09.js', 'a1/data/k10.js', 'a1/data/k11.js', 'a1/data/k12.js', 'a1/data/k13.js', 'a1/data/k14.js', 'a1/data/k15.js', 'a1/data/k16.js',
 ];
 const DATA = /^\/(weather|warnings|transit\/departures|transit\/area)$/;
@@ -48,7 +49,7 @@ self.addEventListener('fetch', (e) => {
   if (url.origin === self.location.origin) {
     // the spoken clips: kept once played or fetched ahead; the name changes when a clip changes, so never stale
     if (url.pathname.includes('/audio/') && url.pathname.endsWith('.mp3')) return e.respondWith(audio(url.href));
-    if (req.mode === 'navigate' || req.destination === 'document') e.respondWith(networkFirst(req, CORE_CACHE, 4000, true));
+    if (req.mode === 'navigate' || req.destination === 'document') e.respondWith(networkFirst(req, CORE_CACHE, 2500, true));
     else e.respondWith(staleWhileRevalidate(req, CORE_CACHE));
   } else if (url.hostname.endsWith('.workers.dev') && DATA.test(url.pathname)) {
     e.respondWith(networkFirst(req, DATA_CACHE, 6000, false));
