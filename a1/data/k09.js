@@ -76,14 +76,14 @@ export default {
   dialog: {
     t: "Понеділок на курсі",
     lines: [
-      ["Anna", "Hallo {Taras|Lesia}! Wie war dein Wochenende?", "Привіт, {Тарасе|Лесю}! Як минули вихідні?"],
-      ["{Taras|Lesia}", "Sehr schön! Am Samstag habe ich mit meinem Bruder Fußball gespielt.", "Дуже гарно! У суботу я {грав|грала} з братом у футбол."],
+      ["Anna", "Hallo {Taras|Lessja}! Wie war dein Wochenende?", "Привіт, {Тарасе|Лесю}! Як минули вихідні?"],
+      ["{Taras|Lessja}", "Sehr schön! Am Samstag habe ich mit meinem Bruder Fußball gespielt.", "Дуже гарно! У суботу я {грав|грала} з братом у футбол."],
       ["Anna", "Und am Sonntag?", "А в неділю?"],
-      ["{Taras|Lesia}", "Da habe ich lange geschlafen und dann für den Test gelernt. Und du?", "Тоді я довго {спав|спала}, а потім {учився|училася} до тесту. А ти?"],
+      ["{Taras|Lessja}", "Da habe ich lange geschlafen und dann für den Test gelernt. Und du?", "Тоді я довго {спав|спала}, а потім {учився|училася} до тесту. А ти?"],
       ["Anna", "Ich war in Düsseldorf. Ich habe meine Freundin besucht, und wir haben eingekauft.", "Я була в Дюссельдорфі. Відвідала подругу, і ми ходили по магазинах."],
-      ["{Taras|Lesia}", "Hast du etwas gekauft?", "Ти щось купила?"],
+      ["{Taras|Lessja}", "Hast du etwas gekauft?", "Ти щось купила?"],
       ["Anna", "Ja, eine Jacke. Am Freitag gehen wir ins Kino. Hast du Lust?", "Так, куртку. У п’ятницю ми йдемо в кіно. Маєш бажання?"],
-      ["{Taras|Lesia}", "Gern! Ich rufe dich an.", "Залюбки! Я тобі подзвоню."],
+      ["{Taras|Lessja}", "Gern! Ich rufe dich an.", "Залюбки! Я тобі подзвоню."],
     ],
   },
   tasks: [

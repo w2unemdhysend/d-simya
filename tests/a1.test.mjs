@@ -27,16 +27,20 @@ t('both forms are written as {for him|for her}: never empty, never nested', !pai
 const heroText = []; const walkShown = (v) => { if (typeof v === 'string') heroText.push(v); else if (Array.isArray(v)) v.forEach(walkShown); else if (v && typeof v === 'object') Object.values(v).forEach(walkShown); };
 CH.forEach(walkShown);
 t('what is shown has no braces left', heroText.every((x) => !/[{}]/.test(x)));
-t('the hero\'s name always comes in both forms (Taras/Lesia, Тарас/Леся, Тарасе/Лесю)', rawStrings.every((x) => !/Taras|Тарас|Lesia|Леся|Лесю/.test(x.replace(/\{[^{}|]+\|[^{}|]+\}/g, ''))));
-t('one hero with one surname: Koval (Herr/Frau Koval, пане Ковалю/пані Коваль)', !rawStrings.some((x) => /Bondar|Бондар/.test(x)) && rawStrings.some((x) => x.includes('{Herr|Frau} Koval')) && rawStrings.some((x) => x.includes('{пане Ковалю|пані Коваль}')));
-const name = G === 'f' ? 'Lesia' : 'Taras', other = G === 'f' ? /Taras|Тарас|Herr Koval|пане Ковалю|Ingenieur\b|інженер\b/ : /Lesia|Леся|Лесю|Frau Koval|пані Коваль|Ingenieurin|інженерка/;
+t('the hero\'s name always comes in both forms (Taras/Lessja, Тарас/Леся, Тарасе/Лесю, Schewtschenko/Ukrajinka)', rawStrings.every((x) => !/Taras|Тарас|Lessja|Lesia|Леся|Лесю|Schewtschenko|Шевченк|Ukrajinka|Українк/.test(x.replace(/\{[^{}|]+\|[^{}|]+\}/g, ''))));
+t('the heroes: Taras Schewtschenko and Lessja Ukrajinka (Herr Schewtschenko / Frau Ukrajinka, пане Шевченку / пані Українко), no one else\'s surname', !rawStrings.some((x) => /Bondar|Бондар|Koval|Коваль/.test(x)) && rawStrings.some((x) => x.includes('{Herr Schewtschenko|Frau Ukrajinka}')) && rawStrings.some((x) => x.includes('{пане Шевченку|пані Українко}')));
+const name = G === 'f' ? 'Lessja' : 'Taras', other = G === 'f' ? /Taras|Тарас|Herr Schewtschenko|пане Шевченку|Dichter und Maler|поет і художник/ : /Lessja|Леся|Лесю|Frau Ukrajinka|пані Українко|Übersetzerin|перекладачка/;
 const heroLines = CH.map((c) => c.dialog.lines.filter((l) => l[0] === name).length);
 t(`the hero (${name}) speaks in the dialogue of every chapter`, heroLines.every((n) => n >= 1), heroLines.join(' '));
 t('the dialogues and examples never mix in the other hero\'s forms', !CH.some((c) => [c.dialog.t, ...c.dialog.lines.flat()].some((x) => other.test(x))),
   CH.flatMap((c) => c.dialog.lines.flat().filter((x) => other.test(x))).slice(0, 4).join(' | '));
-t('the form chosen: past tense, address and job agree (було в неї / був у неї, Тарасе / Лесю, Ingenieur / Ingenieurin)',
-  G === 'f' ? heroText.some((x) => x.includes('я була в неї')) && heroText.some((x) => x.includes('Привіт, Лесю!')) && heroText.some((x) => x.includes('Ich bin Ingenieurin.'))
-    : heroText.some((x) => x.includes('я був у неї')) && heroText.some((x) => x.includes('Привіт, Тарасе!')) && heroText.some((x) => x.includes('Ich bin Ingenieur.')));
+t('the form chosen: past tense, address, work and life agree (була в неї / був у неї, Тарасе / Лесю, Dichterin / Dichter, 1871 / 1814)',
+  G === 'f' ? heroText.some((x) => x.includes('я була в неї')) && heroText.some((x) => x.includes('Привіт, Лесю!')) && heroText.some((x) => x.includes('Ich bin Dichterin und Übersetzerin.')) && heroText.some((x) => x.includes('Ich bin 1871 in Swjahel geboren.'))
+    : heroText.some((x) => x.includes('я був у неї')) && heroText.some((x) => x.includes('Привіт, Тарасе!')) && heroText.some((x) => x.includes('Ich bin Dichter und Maler.')) && heroText.some((x) => x.includes('Ich bin 1814 in Morynzi geboren.')));
+// every speaker of a dialogue has a face and a name in the chat
+const { KEYS } = await import('../a1/people.js');
+const speakers = [...new Set(CH.flatMap((c) => c.dialog.lines.map((l) => l[0]).filter(Boolean)))];
+t('every speaker in the dialogues has an avatar and a name (a1/people.js)', speakers.every((k) => KEYS.includes(k)), speakers.filter((k) => !KEYS.includes(k)).join(', '));
 
 /* ---------- chapters ---------- */
 t('16 chapters numbered 1–16: A1.1 for 1–8 (with the book chapter title), A1.2 for 9–16',

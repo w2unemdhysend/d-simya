@@ -65,14 +65,14 @@ export default {
   dialog: {
     t: "Перший день на роботі",
     lines: [
-      ["Chefin", "Guten Morgen, {Herr|Frau} Koval! Willkommen im Team.", "Доброго ранку, {пане Ковалю|пані Коваль}! Ласкаво просимо в команду."],
-      ["{Taras|Lesia}", "Guten Morgen! Danke. Was soll ich heute machen?", "Доброго ранку! Дякую. Що мені сьогодні робити?"],
+      ["Chefin", "Guten Morgen, {Herr Schewtschenko|Frau Ukrajinka}! Willkommen im Team.", "Доброго ранку, {пане Шевченку|пані Українко}! Ласкаво просимо в команду."],
+      ["{Taras|Lessja}", "Guten Morgen! Danke. Was soll ich heute machen?", "Доброго ранку! Дякую. Що мені сьогодні робити?"],
       ["Chefin", "Zuerst sollen Sie bitte diesen Vertrag unterschreiben. Und hier ist ein Formular.", "Спочатку підпишіть, будь ласка, цей договір. А ось формуляр."],
-      ["{Taras|Lesia}", "Soll ich das gleich ausfüllen?", "Мені заповнити його одразу?"],
+      ["{Taras|Lessja}", "Soll ich das gleich ausfüllen?", "Мені заповнити його одразу?"],
       ["Chefin", "Ja, bitte. Dann zeigt Ihnen Frau Yilmaz das Lager.", "Так, будь ласка. Потім пані Їлмаз покаже Вам склад."],
-      ["{Taras|Lesia}", "Und wann ist die Pause?", "А коли перерва?"],
+      ["{Taras|Lessja}", "Und wann ist die Pause?", "А коли перерва?"],
       ["Chefin", "Um zwölf. Die Arbeit fängt um acht an und hört um halb fünf auf.", "О дванадцятій. Робота починається о восьмій і закінчується о пів на п’яту."],
-      ["{Taras|Lesia}", "Alles klar. Ich bin gespannt!", "Зрозуміло. Мені цікаво!"],
+      ["{Taras|Lessja}", "Alles klar. Ich bin gespannt!", "Зрозуміло. Мені цікаво!"],
     ],
   },
   tasks: [

@@ -513,8 +513,8 @@
   function paintSet(){
     var s = document.getElementById('dset'); if (!s) return;
     var g = gender(), opt = function(v, name, kind){ return '<button type="button" role="radio" data-gender="' + v + '" aria-checked="' + (g === v) + '"><b>' + name + '</b><small>' + kind + '</small></button>'; };
-    s.innerHTML = '<div class="drawer-group">Налаштування</div><div class="set-row"><span class="set-t"><b>Рід у прикладах</b><small>Від чийого імені говорять приклади й діалоги курсу</small></span>' +
-      '<div class="seg" role="radiogroup" aria-label="Рід у прикладах">' + opt('m', 'Тарас', 'чоловічий') + opt('f', 'Леся', 'жіночий') + '</div></div>';
+    s.innerHTML = '<div class="drawer-group">Налаштування</div><div class="set-row"><span class="set-t"><b>Рід у прикладах</b><small>Від чийого імені говорять приклади й діалоги курсу німецької</small></span>' +
+      '<div class="seg" role="radiogroup" aria-label="Рід у прикладах">' + opt('m', 'Тарас Шевченко', 'чоловічий рід') + opt('f', 'Леся Українка', 'жіночий рід') + '</div></div>';
   }
   function paintInstall(){
     var f = document.getElementById('dinst'); if (!f) return;

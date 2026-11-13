@@ -97,7 +97,7 @@ export default {
     t: "У кав’ярні",
     lines: [
       ["Kellner", "Guten Tag! Was möchten Sie?", "Добрий день! Що бажаєте?"],
-      ["{Taras|Lesia}", "Ich möchte einen Cappuccino und ein Stück Apfelkuchen, bitte.", "Мені капучино й шматок яблучного пирога, будь ласка."],
+      ["{Taras|Lessja}", "Ich möchte einen Cappuccino und ein Stück Apfelkuchen, bitte.", "Мені капучино й шматок яблучного пирога, будь ласка."],
       ["Max", "Und für mich einen Tee, bitte. Haben Sie Pfefferminztee?", "А мені чай, будь ласка. У Вас є м’ятний чай?"],
       ["Kellner", "Ja, natürlich.", "Так, звісно."],
       ["", "…", "…"],

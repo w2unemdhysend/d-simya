@@ -48,7 +48,7 @@ export default {
       tables: [
         { head: ["він", "вона", "множина (вона)"], rows: [["der Lehrer", "die Lehrerin", "die Lehrerinnen"], ["der Student", "die Studentin", "die Studentinnen"], ["der Arzt", "die Ärztin", "die Ärztinnen"], ["der Koch", "die Köchin", "die Köchinnen"], ["der Verkäufer", "die Verkäuferin", "die Verkäuferinnen"]] },
       ],
-      ex: [["Was sind Sie von Beruf? – Ich bin {Ingenieur|Ingenieurin}.", "Ким Ви працюєте? – Я {інженер|інженерка}."], ["Was machst du? – Ich studiere Informatik.", "Чим ти займаєшся? – Я вивчаю інформатику."], ["Mein Bruder ist Koch.", "Мій брат — кухар."], ["Ich arbeite als Verkäuferin.", "Я працюю продавчинею."]],
+      ex: [["Was sind Sie von Beruf? – Ich bin {Maler|Übersetzerin}.", "Ким Ви працюєте? – Я {художник|перекладачка}."], ["Was machst du? – Ich studiere Informatik.", "Чим ти займаєшся? – Я вивчаю інформатику."], ["Mein Bruder ist Koch.", "Мій брат — кухар."], ["Ich arbeite als Verkäuferin.", "Я працюю продавчинею."]],
       tips: ["`als` + професія = «як, у ролі»: `Ich arbeite als Fahrer.` — «Я працюю водієм». Теж без артикля."],
       warn: ["`Ich bin ein Lehrer` — так кажуть лише з прикметником: `Ich bin ein guter Lehrer.` Просто про професію — без артикля."],
     },
@@ -90,14 +90,14 @@ export default {
   dialog: {
     t: "Обмін контактами після заняття",
     lines: [
-      ["Max", "Hallo, ich bin Max. Du bist {Taras|Lesia}, oder?", "Привіт, я Макс. Ти {Тарас|Леся}, так?"],
-      ["{Taras|Lesia}", "Ja, genau. Sprichst du Englisch?", "Так, точно. Ти говориш англійською?"],
+      ["Max", "Hallo, ich bin Max. Du bist {Taras|Lessja}, oder?", "Привіт, я Макс. Ти {Тарас|Леся}, так?"],
+      ["{Taras|Lessja}", "Ja, genau. Sprichst du Englisch?", "Так, точно. Ти говориш англійською?"],
       ["Max", "Ja, aber wir lernen Deutsch, also sprechen wir Deutsch!", "Так, але ми вчимо німецьку, тож говорімо німецькою!"],
-      ["{Taras|Lesia}", "Okay! Was machst du, Max?", "Добре! Чим ти займаєшся, Максе?"],
+      ["{Taras|Lessja}", "Okay! Was machst du, Max?", "Добре! Чим ти займаєшся, Максе?"],
       ["Max", "Ich bin Koch. Und du?", "Я кухар. А ти?"],
-      ["{Taras|Lesia}", "Ich bin {Ingenieur|Ingenieurin}. Hast du WhatsApp?", "Я {інженер|інженерка}. У тебе є WhatsApp?"],
+      ["{Taras|Lessja}", "Ich bin {Dichter und Maler|Dichterin und Übersetzerin}. Hast du WhatsApp?", "Я {поет і художник|поетка й перекладачка}. У тебе є WhatsApp?"],
       ["Max", "Ja. Meine Nummer ist null eins sieben sechs, drei zwo, achtundvierzig, fünfzehn.", "Так. Мій номер: 0176 32 48 15."],
-      ["{Taras|Lesia}", "Danke! Bis morgen!", "Дякую! До завтра!"],
+      ["{Taras|Lessja}", "Danke! Bis morgen!", "Дякую! До завтра!"],
     ],
   },
   tasks: [

@@ -58,7 +58,7 @@ export default {
       tables: [
         { head: ["Число", "Який? (der …)", "Коли? (am …)"], rows: [["1.", "der erste", "am ersten"], ["2.", "der zweite", "am zweiten"], ["3.", "der dritte", "am dritten"], ["4.", "der vierte", "am vierten"], ["7.", "der siebte", "am siebten"], ["8.", "der achte", "am achten"], ["12.", "der zwölfte", "am zwölften"], ["20.", "der zwanzigste", "am zwanzigsten"], ["31.", "der einunddreißigste", "am einunddreißigsten"]] },
       ],
-      ex: [["Heute ist der zwölfte November.", "Сьогодні дванадцяте листопада."], ["Mein Termin ist am dritten Dezember um zehn Uhr.", "Мій запис третього грудня о десятій."], ["Ich habe im Juli Geburtstag.", "У мене день народження в липні."], ["Wann hast du Geburtstag? – Am einundzwanzigsten März.", "Коли в тебе день народження? – Двадцять першого березня."]],
+      ex: [["Heute ist der zwölfte November.", "Сьогодні дванадцяте листопада."], ["Mein Geburtstag ist am {neunten März|fünfundzwanzigsten Februar}.", "Мій день народження — {дев’ятого березня|двадцять п’ятого лютого}."], ["Mein Termin ist am dritten Dezember um zehn Uhr.", "Мій запис третього грудня о десятій."], ["Ich habe im Juli Geburtstag.", "У мене день народження в липні."], ["Wann hast du Geburtstag? – Am einundzwanzigsten März.", "Коли в тебе день народження? – Двадцять першого березня."]],
       tips: ["У німецьких документах дата пишеться **день.місяць.рік**: 12.11.2026 — як і в Україні."],
       warn: ["`am drei Dezember` — потрібен порядковий: `am dritten Dezember`.", "`in Mai` — помилка: `im Mai` (in dem)."],
     },
@@ -81,14 +81,14 @@ export default {
   dialog: {
     t: "У сімейної лікарки",
     lines: [
-      ["Ärztin", "Guten Tag, {Herr|Frau} Koval. Was fehlt Ihnen?", "Добрий день, {пане Ковалю|пані Коваль}. Що Вас турбує?"],
-      ["{Taras|Lesia}", "Mir geht es nicht gut. Ich habe Halsschmerzen und Husten.", "Мені погано. У мене болить горло і кашель."],
+      ["Ärztin", "Guten Tag, {Herr Schewtschenko|Frau Ukrajinka}. Was fehlt Ihnen?", "Добрий день, {пане Шевченку|пані Українко}. Що Вас турбує?"],
+      ["{Taras|Lessja}", "Mir geht es nicht gut. Ich habe Halsschmerzen und Husten.", "Мені погано. У мене болить горло і кашель."],
       ["Ärztin", "Seit wann?", "Відколи?"],
-      ["{Taras|Lesia}", "Seit Montag. Und gestern hatte ich auch Fieber.", "З понеділка. А вчора в мене ще була температура."],
+      ["{Taras|Lessja}", "Seit Montag. Und gestern hatte ich auch Fieber.", "З понеділка. А вчора в мене ще була температура."],
       ["Ärztin", "Ich untersuche Sie mal. … Das ist eine Erkältung. Sie müssen viel trinken und im Bett bleiben.", "Я Вас огляну. … Це застуда. Вам треба багато пити й лежати в ліжку."],
-      ["{Taras|Lesia}", "Ich muss morgen arbeiten. Brauche ich eine Krankschreibung?", "Мені завтра на роботу. Мені потрібен лікарняний?"],
+      ["{Taras|Lessja}", "Ich muss morgen arbeiten. Brauche ich eine Krankschreibung?", "Мені завтра на роботу. Мені потрібен лікарняний?"],
       ["Ärztin", "Ja, ich schreibe Sie bis Freitag krank. Hier ist auch ein Rezept.", "Так, я дам Вам лікарняний до п’ятниці. І ось рецепт."],
-      ["{Taras|Lesia}", "Vielen Dank!", "Щиро дякую!"],
+      ["{Taras|Lessja}", "Vielen Dank!", "Щиро дякую!"],
       ["Ärztin", "Gute Besserung!", "Одужуйте!"],
     ],
   },

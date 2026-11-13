@@ -91,13 +91,13 @@ export default {
   dialog: {
     t: "Дорога до Bürgerbüro",
     lines: [
-      ["{Taras|Lesia}", "Entschuldigung, wie komme ich zum Bürgerbüro?", "Перепрошую, як мені дістатися до бюро громадян?"],
+      ["{Taras|Lessja}", "Entschuldigung, wie komme ich zum Bürgerbüro?", "Перепрошую, як мені дістатися до бюро громадян?"],
       ["Mann", "Zum Bürgerbüro? Das ist im Rathaus, am Markt.", "До бюро громадян? Воно в ратуші, біля ринку."],
-      ["{Taras|Lesia}", "Ist das weit?", "Це далеко?"],
+      ["{Taras|Lessja}", "Ist das weit?", "Це далеко?"],
       ["Mann", "Nein, nicht so weit. Gehen Sie hier geradeaus bis zur Ampel. Dann links.", "Ні, не дуже. Ідіть тут прямо до світлофора. Потім ліворуч."],
-      ["{Taras|Lesia}", "Bis zur Ampel und dann links. Und dann?", "До світлофора, а потім ліворуч. А потім?"],
+      ["{Taras|Lessja}", "Bis zur Ampel und dann links. Und dann?", "До світлофора, а потім ліворуч. А потім?"],
       ["Mann", "Dann sehen Sie schon die Kirche. Das Rathaus ist gegenüber der Kirche.", "Тоді Ви вже побачите церкву. Ратуша навпроти церкви."],
-      ["{Taras|Lesia}", "Vielen Dank!", "Щиро дякую!"],
+      ["{Taras|Lessja}", "Vielen Dank!", "Щиро дякую!"],
       ["Mann", "Gern geschehen!", "Нема за що!"],
     ],
   },

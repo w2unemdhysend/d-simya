@@ -129,8 +129,17 @@ async def main():
 
         # ---------------- phrases and the dialogue ----------------
         await pg.click('#tab-phr'); await pg.wait_for_timeout(500)
-        ph = await pg.evaluate("({phr: document.querySelectorAll('#p-phr .phr').length, lines: document.querySelectorAll('#p-phr .dl li').length, n: window.__a1.CHAPTERS[2].dialog.lines.length})")
-        check('phrases tab: the phrase groups and every line of the dialogue', ph['phr'] == 2 and ph['lines'] == ph['n'], str(ph))
+        ph = await pg.evaluate("""() => { const c = window.__a1.CHAPTERS[2], heroL = c.dialog.lines.filter((l) => l[0] === 'Taras').length;
+          return {phr: document.querySelectorAll('#p-phr .phr').length, msgs: document.querySelectorAll('#p-phr .chat .msg').length, n: c.dialog.lines.filter((l) => l[0]).length,
+            out: document.querySelectorAll('#p-phr .chat .msg.out').length, heroL, avas: document.querySelectorAll('#p-phr .chat .msg .ava').length,
+            head: document.querySelector('#p-phr .chead small').textContent, tr: getComputedStyle(document.querySelector('#p-phr .bub .tr')).display}; }""")
+        check('phrases tab: the phrase groups; the dialogue as a chat: every line a message, the hero on the right, avatars, «уявна історія»',
+              ph['phr'] == 2 and ph['msgs'] == ph['n'] and ph['out'] == ph['heroL'] > 0 and ph['avas'] >= 2 and 'уявна історія' in ph['head'] and ph['tr'] != 'none', str(ph))
+        await pg.click('#p-phr [data-chat-tr]'); await pg.wait_for_timeout(100)
+        hid = await pg.evaluate("[getComputedStyle(document.querySelector('#p-phr .bub .tr')).display, localStorage.getItem('a1-chat-tr')]")
+        await pg.click('#p-phr [data-chat-tr]'); await pg.wait_for_timeout(100)
+        check('chat: «Переклад» hides the Ukrainian under the messages and is remembered', hid == ['none', '0'], str(hid))
+        await shot(pg, 'a1-chat.png', False)
 
         # ---------------- exercises ----------------
         await pg.click('#tab-tasks'); await pg.wait_for_timeout(500)
@@ -253,26 +262,26 @@ async def main():
         ctx, pg = await context(browser)
         await pg.goto(base + 'a1/?ch=10&tab=phr'); await pg.wait_for_timeout(600)
         def said():
-            return pg.evaluate("""() => ({who: [...new Set([...document.querySelectorAll('#p-phr .dl li')].map((l) => (l.querySelector('.who') || {}).textContent).filter(Boolean))],
+            return pg.evaluate("""() => ({who: [...new Set([...document.querySelectorAll('#p-phr .chat .nm')].map((x) => x.textContent))],
               text: document.querySelector('#p-phr').textContent, hero: document.querySelector('#herol').textContent, title: document.querySelector('#title').textContent})""")
         m = await said()
-        check('by default the course speaks as Тарас (masculine), and says where to change it',
-              'Taras' in m['who'] and 'Я встав о п’ятій' in m['text'] and 'Лес' not in m['text'] and 'Тараса' in m['hero'] and 'Налаштування' in m['hero'], str({**m, 'text': m['text'][:160]}))
+        check('by default the course speaks as Тарас Шевченко, says what is real and what imagined, and where to change it',
+              'Taras' in m['who'] and 'Я встав о п’ятій' in m['text'] and 'Лес' not in m['text'] and 'Тараса Шевченка' in m['hero'] and 'уявна історія' in m['hero'] and 'Налаштування' in m['hero'], str({**m, 'text': m['text'][:160]}))
         await pg.click('#menubtn'); await pg.wait_for_timeout(400)
         seg = await pg.evaluate("[...document.querySelectorAll('#dset [data-gender]')].map((b) => [b.textContent, b.getAttribute('aria-checked')])")
-        check('the menu has «Налаштування» with «Рід у прикладах»: Тарас (chosen) or Леся', seg == [['Тарасчоловічий', 'true'], ['Лесяжіночий', 'false']] and 'Рід у прикладах' in await text(pg, '#dset'), str(seg))
+        check('the menu has «Налаштування» with «Рід у прикладах»: Тарас Шевченко (chosen) or Леся Українка', seg == [['Тарас Шевченкочоловічий рід', 'true'], ['Леся Українкажіночий рід', 'false']] and 'Рід у прикладах' in await text(pg, '#dset'), str(seg))
         await pg.click('#dset [data-gender="f"]'); await pg.wait_for_timeout(300)
         f = await said()
         check('Леся chosen: the open chapter changes at once, names, endings and how others address her',
-              'Lesia' in f['who'] and 'Taras' not in f['who'] and 'Я встала о п’ятій' in f['text'] and 'А що ти робила у Берліні?' in f['text'] and 'Тарас' not in f['text'] and 'Лесі' in f['hero'], str({**f, 'text': f['text'][:160]}))
+              'Lessja' in f['who'] and 'Taras' not in f['who'] and 'Я встала о п’ятій' in f['text'] and 'А що ти робила у Берліні?' in f['text'] and 'Тарас' not in f['text'] and 'Лесі' in f['hero'], str({**f, 'text': f['text'][:160]}))
         await pg.keyboard.press('Escape'); await pg.wait_for_timeout(300)
         await pg.goto(base + 'a1/?ch=1&tab=phr'); await pg.wait_for_timeout(600)
         f1 = await pg.evaluate("document.querySelector('#p-phr').textContent")
-        check('… and stays chosen: chapter 1 in the feminine (Frau Koval, пані Коваль, Lesia Koval)', 'Frau Koval' in f1 and 'пані Коваль' in f1 and 'Ich heiße Lesia Koval.' in f1 and 'Herr Koval' not in f1, f1[:200])
+        check('… and stays chosen: chapter 1 as Lessja Ukrajinka (Frau Ukrajinka, пані Українко, spelled U-K-R-A-J-I-N-K-A)', 'Frau Ukrajinka' in f1 and 'пані Українко' in f1 and 'Ich heiße Lessja Ukrajinka.' in f1 and 'U-K-R-A-J-I-N-K-A.' in f1 and 'Schewtschenko' not in f1, f1[:200])
         await shot(pg, 'a1-lesia.png', False)
         await pg.click('#menubtn'); await pg.wait_for_timeout(400)
         await pg.click('#dset [data-gender="m"]'); await pg.wait_for_timeout(300)
-        back = await pg.evaluate("[document.querySelector('#p-phr').textContent.includes('Ich heiße Taras Koval.'), localStorage.getItem('dsimya-gender')]")
+        back = await pg.evaluate("[document.querySelector('#p-phr').textContent.includes('Ich heiße Taras Schewtschenko.'), localStorage.getItem('dsimya-gender')]")
         check('back to Тарас in one tap', back == [True, 'm'], str(back))
         await ctx.close()
 

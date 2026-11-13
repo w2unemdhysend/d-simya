@@ -98,13 +98,13 @@ export default {
   dialog: {
     t: "{Новенький|Новенька} на курсі",
     lines: [
-      ["{Taras|Lesia}", "Entschuldigung, wie heißt das auf Deutsch?", "Перепрошую, як це німецькою?"],
+      ["{Taras|Lessja}", "Entschuldigung, wie heißt das auf Deutsch?", "Перепрошую, як це німецькою?"],
       ["Max", "Das ist ein Radiergummi.", "Це гумка."],
-      ["{Taras|Lesia}", "Der oder die Radiergummi?", "Der чи die Radiergummi?"],
+      ["{Taras|Lessja}", "Der oder die Radiergummi?", "Der чи die Radiergummi?"],
       ["Max", "Der Radiergummi. Und das hier ist ein Kuli.", "Der Radiergummi. А це ручка."],
-      ["{Taras|Lesia}", "Ist das dein Kuli?", "Це твоя ручка?"],
+      ["{Taras|Lessja}", "Ist das dein Kuli?", "Це твоя ручка?"],
       ["Max", "Nein, das ist nicht mein Kuli. Mein Kuli ist blau.", "Ні, це не моя ручка. Моя ручка синя."],
-      ["{Taras|Lesia}", "Und wo ist mein Wörterbuch? Ich habe kein Wörterbuch!", "А де мій словник? У мене немає словника!"],
+      ["{Taras|Lessja}", "Und wo ist mein Wörterbuch? Ich habe kein Wörterbuch!", "А де мій словник? У мене немає словника!"],
       ["Max", "Es ist dort, auf dem Stuhl.", "Він там, на стільці."],
     ],
   },

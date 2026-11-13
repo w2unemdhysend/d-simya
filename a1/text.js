@@ -6,9 +6,10 @@ export const md = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/
 export const norm = (s) => String(s).normalize('NFC').trim().toLowerCase().replace(/ß/g, 'ss').replace(/[’‘`´]/g, "'").replace(/[.!?,;]+$/, '').replace(/\s+/g, ' ');
 // the search: ä = a, ö = o, ü = u, ß = ss, apostrophes ignored, so "tschuss" finds Tschüss and "пам'ять" finds пам’ять
 export const fold = (s) => String(s).normalize('NFC').toLowerCase().replace(/ä/g, 'a').replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ß/g, 'ss').replace(/[’'ʼ]/g, '');
-// Who speaks in the course: the examples, phrases and dialogues say "I" as Тарас (a man) or Леся (a woman), chosen in
-// the menu's settings. A chapter writes both forms, {for him|for her}: names, endings (я був / я була), jobs
-// (Ingenieur / Ingenieurin), how others address the hero (Herr / Frau Koval, Тарасе / Лесю).
+// Who speaks in the course: the examples, phrases and dialogues say "I" as Тарас Шевченко or Леся Українка, chosen in
+// the menu's settings (their birth, work and books are real; living in Xanten and learning German is an imagined story).
+// A chapter writes both forms, {for him|for her}: names, endings (я був / я була), jobs (Maler / Übersetzerin), how
+// others address the hero (Herr Schewtschenko / Frau Ukrajinka, Тарасе / Лесю).
 export const GENDER_KEY = 'dsimya-gender';
 export const hero = (s, g) => String(s).replace(/\{([^{}|]*)\|([^{}|]*)\}/g, (m, a, b) => (g === 'f' ? b : a));
 export const heroAll = (v, g) => (typeof v === 'string' ? hero(v, g) : Array.isArray(v) ? v.map((x) => heroAll(x, g))

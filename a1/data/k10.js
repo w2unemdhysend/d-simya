@@ -43,7 +43,7 @@ export default {
       tables: [
         { head: ["-ieren", "be-, ver-, er-…"], rows: [["studiert", "bezahlt"], ["telefoniert", "besucht"], ["fotografiert", "verstanden"], ["repariert", "erzählt"], ["probiert", "vergessen"], ["buchstabiert", "bekommen"]] },
       ],
-      ex: [["Ich habe in Sumy Informatik studiert.", "Я {вивчав|вивчала} інформатику в Сумах."], ["Hast du das verstanden?", "Ти це зрозумів?"], ["Wir haben schon bezahlt.", "Ми вже заплатили."], ["Er hat mir viel erzählt.", "Він мені багато розповів."]],
+      ex: [["Ich habe {an der Kunstakademie Malerei|zu Hause Sprachen} studiert.", "Я {вивчав живопис в Академії мистецтв|вивчала вдома мови}."], ["Hast du das verstanden?", "Ти це зрозумів?"], ["Wir haben schon bezahlt.", "Ми вже заплатили."], ["Er hat mir viel erzählt.", "Він мені багато розповів."]],
       warn: ["`gestudiert`, `gebezahlt`, `geverstanden` — помилки."],
     },
     {
@@ -53,15 +53,15 @@ export default {
         "Рік кажуть **без прийменника** або з `im Jahr`: `2015 bin ich nach Kyjiw gezogen.` / `Im Jahr 2015…`. Варіант `in 2015` — англіцизм, у стандартній німецькій неправильний.",
       ],
       tables: [
-        { head: ["Рік", "Як сказати"], rows: [["1989", "neunzehnhundertneunundachtzig"], ["2000", "zweitausend"], ["2005", "zweitausendfünf"], ["2014", "zweitausendvierzehn"], ["2026", "zweitausendsechsundzwanzig"]] },
+        { head: ["Рік", "Як сказати"], rows: [["1814", "achtzehnhundertvierzehn"], ["1871", "achtzehnhunderteinundsiebzig"], ["1989", "neunzehnhundertneunundachtzig"], ["2000", "zweitausend"], ["2005", "zweitausendfünf"], ["2014", "zweitausendvierzehn"], ["2026", "zweitausendsechsundzwanzig"]] },
       ],
-      ex: [["Ich bin 2005 geboren.", "Я {народився|народилася} 2005 року."], ["2022 sind wir umgezogen.", "2022 року ми переїхали."], ["Im Jahr 2026 habe ich den Deutschkurs angefangen.", "У 2026 році я {почав|почала} курс німецької."]],
+      ex: [["Ich bin {1814|1871} geboren.", "Я {народився 1814|народилася 1871} року."], ["2022 sind wir umgezogen.", "2022 року ми переїхали."], ["Im Jahr 2026 habe ich den Deutschkurs angefangen.", "У 2026 році я {почав|почала} курс німецької."]],
       tips: ["У грі «Числа на слух» є режим «Роки»: послухай, як їх вимовляють."],
     },
     {
       id: "lebenslauf", t: "Біографія і подорож: розповідь", cat: "rede",
       text: [
-        "Біографію розповідають у Perfekt, із роками на початку речень: `2005 bin ich in Sumy geboren. 2022 habe ich die Schule abgeschlossen. …`",
+        "Біографію розповідають у Perfekt, із роками на початку речень: `{1814 bin ich in Morynzi geboren. 1838 bin ich frei geworden. 1840 ist mein Buch „Kobsar“ erschienen. …|1871 bin ich in Swjahel geboren. 1892 habe ich Gedichte von Heinrich Heine übersetzt. 1911 habe ich „Das Waldlied“ geschrieben. …}`",
         "Тут саме вживати слова-зв’язки: `zuerst` (спочатку), `dann` (потім), `danach` (після того), `später` (пізніше), `zum Schluss` (наприкінці). Після них — дієслово, потім підмет.",
       ],
       ex: [["Zuerst bin ich nach Polen gefahren, dann nach Deutschland.", "Спочатку я {поїхав|поїхала} до Польщі, потім до Німеччини."], ["In Duisburg bin ich umgestiegen.", "У Дуйсбурзі я {пересів|пересіла}."], ["Danach habe ich ein Zimmer gesucht.", "Після того я {шукав|шукала} кімнату."], ["Zum Schluss sind wir nach Xanten gezogen.", "Наприкінці ми переїхали до Ксантена."]],
@@ -69,19 +69,19 @@ export default {
   ],
   phrases: [
     { t: "Подорож", list: [["Wann fährt der Zug nach Düsseldorf?", "Коли потяг до Дюссельдорфа?"], ["Von welchem Gleis?", "З якої колії?"], ["Wo muss ich umsteigen?", "Де мені пересідати?"], ["Der Zug hat Verspätung.", "Потяг запізнюється."], ["Gute Reise!", "Щасливої дороги!"]] },
-    { t: "Про себе", list: [["Ich bin 2005 in Sumy geboren.", "Я {народився|народилася} 2005 року в Сумах."], ["Ich habe Informatik studiert.", "Я {вивчав|вивчала} інформатику."], ["Seit Oktober lerne ich Deutsch.", "З жовтня я вчу німецьку."], ["Ich bin im September nach Deutschland gekommen.", "Я {приїхав|приїхала} до Німеччини у вересні."]] },
+    { t: "Про себе", list: [["Ich bin {1814 in Morynzi|1871 in Swjahel} geboren.", "Я {народився 1814 року в Моринцях|народилася 1871 року у Звягелі}."], ["Ich habe {Malerei|Sprachen} studiert.", "Я {вивчав живопис|вивчала мови}."], ["Seit Oktober lerne ich Deutsch.", "З жовтня я вчу німецьку."], ["Ich bin im September nach Deutschland gekommen.", "Я {приїхав|приїхала} до Німеччини у вересні."]] },
   ],
   dialog: {
     t: "Як ти {доїхав|доїхала}?",
     lines: [
       ["Anna", "Wie war deine Reise nach Berlin?", "Як минула твоя поїздка до Берліна?"],
-      ["{Taras|Lesia}", "Lang! Ich bin um fünf Uhr aufgestanden und mit dem Bus nach Wesel gefahren.", "Довга! Я {встав|встала} о п’ятій і {поїхав|поїхала} автобусом до Везеля."],
+      ["{Taras|Lessja}", "Lang! Ich bin um fünf Uhr aufgestanden und mit dem Bus nach Wesel gefahren.", "Довга! Я {встав|встала} о п’ятій і {поїхав|поїхала} автобусом до Везеля."],
       ["Anna", "Und dann?", "А потім?"],
-      ["{Taras|Lesia}", "In Wesel bin ich in den Zug eingestiegen. In Duisburg bin ich umgestiegen.", "У Везелі я {сів|сіла} на потяг. У Дуйсбурзі {пересів|пересіла}."],
+      ["{Taras|Lessja}", "In Wesel bin ich in den Zug eingestiegen. In Duisburg bin ich umgestiegen.", "У Везелі я {сів|сіла} на потяг. У Дуйсбурзі {пересів|пересіла}."],
       ["Anna", "Ist der Zug pünktlich gekommen?", "Потяг прийшов вчасно?"],
-      ["{Taras|Lesia}", "Nein, er hatte vierzig Minuten Verspätung! Ich bin erst um zwölf in Berlin angekommen.", "Ні, він запізнився на сорок хвилин! Я {приїхав|приїхала} до Берліна лише о дванадцятій."],
+      ["{Taras|Lessja}", "Nein, er hatte vierzig Minuten Verspätung! Ich bin erst um zwölf in Berlin angekommen.", "Ні, він запізнився на сорок хвилин! Я {приїхав|приїхала} до Берліна лише о дванадцятій."],
       ["Anna", "Oh je! Und was hast du in Berlin gemacht?", "Ой лишенько! А що ти {робив|робила} у Берліні?"],
-      ["{Taras|Lesia}", "Ich habe meinen Cousin besucht, und wir haben die Stadt besichtigt.", "Я {відвідав|відвідала} двоюрідного брата, і ми оглянули місто."],
+      ["{Taras|Lessja}", "Ich habe meinen Cousin besucht, und wir haben die Stadt besichtigt.", "Я {відвідав|відвідала} двоюрідного брата, і ми оглянули місто."],
     ],
   },
   tasks: [
@@ -91,7 +91,7 @@ export default {
     { t: "gap", q: "Ich bin um sechs Uhr ___. (aufstehen)", a: ["aufgestanden"] },
     { t: "gap", q: "Wir haben am Samstag ___. (einkaufen)", a: ["eingekauft"] },
     { t: "gap", q: "Hast du Mama ___? (anrufen)", a: ["angerufen"] },
-    { t: "gap", q: "Ich habe in Sumy Informatik ___. (studieren)", a: ["studiert"], why: "-ieren — без ge-." },
+    { t: "gap", q: "Ich habe an der Kunstakademie ___. (studieren)", a: ["studiert"], why: "-ieren — без ge-." },
     { t: "gap", q: "Hast du das ___? (verstehen)", a: ["verstanden"], why: "ver- — без ge-." },
     { t: "mc", q: "Was ist ___?", o: ["passiert", "gepassiert", "passieret"], a: 0 },
     { t: "mc", q: "Як прочитати рік 1998?", o: ["eintausendneunhundertachtundneunzig", "neunzehnhundertachtundneunzig", "neunzehnachtundneunzig"], a: 1 },

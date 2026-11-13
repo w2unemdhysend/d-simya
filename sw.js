@@ -13,18 +13,18 @@
    Nothing else is kept: not the shopping list, not translations, not searches.
    When the asset version (?v=) changes, update it here too (tests/offline_e2e.py checks that they match). */
 
-const VERSION = '2026-11-13.4';
+const VERSION = '2026-11-13.5';
 const CORE_CACHE = 'dsimya-core-' + VERSION, DATA_CACHE = 'dsimya-data', STATIC_CACHE = 'dsimya-static', AUDIO_CACHE = 'dsimya-audio';
 const CITY_CACHE = 'dsimya-city', TILE_CACHE = 'dsimya-tiles', MAX_TILES = 600;
 const CORE = [
   'manifest.webmanifest', 'assets/icons/icon-192.png', 'assets/icons/icon-512.png', 'assets/icons/maskable-512.png', 'assets/icons/favicon-48.png', 'assets/icons/apple-180.png',
   './', 'pralka/', 'sushka/', 'scan/', 'smittia/', 'prospekty/', 'spysok/', 'transport/', 'pogoda/', 'igry/', 'bot/', 'ekstreno/', 'rozmovnyk/', 'marshrut/', 'a1/', 'mapa/',
-  'assets/ui.css?v=21', 'assets/ui.js?v=21', 'assets/page.css?v=2', 'rozmovnyk/phrases.js', 'audio/index.js', 'audio/say.js', 'assets/fonts/noto-sans.ttf',
+  'assets/ui.css?v=21', 'assets/ui.js?v=22', 'assets/page.css?v=2', 'rozmovnyk/phrases.js', 'audio/index.js', 'audio/say.js', 'assets/fonts/noto-sans.ttf',
   'smittia/kalender.json', 'smittia/due.js', 'smittia/wohin.js', 'prospekty/week.js', 'pogoda/wx.js', 'igry/words.js', 'igry/games.css?v=3',
   'igry/kit.js', 'igry/progress.js', 'igry/garten.js', 'igry/satz.js', 'igry/zahlen.js', 'igry/dialog.js', 'igry/memory.js', 'igry/skins.js',
   'igry/data/garten.js', 'igry/data/satz.js', 'igry/data/zahlen.js', 'igry/data/dialog.js', 'igry/data/memory.js',
   'igry/hop.js?v=2', 'igry/hop/levels.js?v=2', 'igry/hop/engine.js?v=2', 'igry/hop/physics.js?v=2', 'igry/hop/art.js?v=1', 'assets/three/r185/three.module.min.js', 'assets/three/r185/three.core.min.js',
-  'a1/a1.css?v=3', 'a1/app.js?v=2', 'a1/text.js', 'a1/data/wortschatz.js', 'a1/data/k01.js', 'a1/data/k02.js', 'a1/data/k03.js', 'a1/data/k04.js', 'a1/data/k05.js',
+  'a1/a1.css?v=4', 'a1/app.js?v=3', 'a1/text.js', 'a1/people.js', 'a1/data/wortschatz.js', 'a1/data/k01.js', 'a1/data/k02.js', 'a1/data/k03.js', 'a1/data/k04.js', 'a1/data/k05.js',
   'mapa/mapa.css?v=4', 'mapa/app.js?v=4', 'mapa/style.js?v=3', 'mapa/geo.js?v=3',
   'a1/data/k06.js', 'a1/data/k07.js', 'a1/data/k08.js', 'a1/data/k09.js', 'a1/data/k10.js', 'a1/data/k11.js', 'a1/data/k12.js', 'a1/data/k13.js', 'a1/data/k14.js', 'a1/data/k15.js', 'a1/data/k16.js',
 ];

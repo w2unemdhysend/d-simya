@@ -9,6 +9,7 @@ import k09 from './data/k09.js'; import k10 from './data/k10.js'; import k11 fro
 import k13 from './data/k13.js'; import k14 from './data/k14.js'; import k15 from './data/k15.js'; import k16 from './data/k16.js';
 import { $, $$, tg, haptic, toast, load, store, cloudGet, cloudSet, plural, SPEAKER } from '../igry/kit.js';
 import { esc, md, norm, fold, order, CATS, heroAll, GENDER_KEY } from './text.js';
+import { person, avatar, isHero } from './people.js';
 import * as sound from '../audio/say.js';
 import * as garden from '../igry/garten.js';
 
@@ -165,7 +166,7 @@ function renderChapter() {
       `<button class="btn primary" type="button" data-tabgo="phr">Далі: фрази й діалог</button></div>` +
     `<div class="view panel" id="p-phr" role="tabpanel" aria-labelledby="tab-phr"${tab === 'phr' ? '' : ' hidden'}>` +
       c.phrases.map((g) => `<div class="card phr"><h2>${esc(g.t)}</h2><ul class="ex">${g.list.map(([de, uk]) => `<li><span lang="de">${md(de)}</span><small>${md(uk)}</small></li>`).join('')}</ul></div>`).join('') +
-      `<div class="card dialog"><h2>Діалог: ${esc(c.dialog.t)}</h2><ol class="dl">${c.dialog.lines.map(([who, de, uk]) => who ? `<li><span class="who">${esc(who)}</span><span lang="de">${md(de)}</span><small>${md(uk)}</small></li>` : '<li class="gap" aria-hidden="true">· · ·</li>').join('')}</ol></div>` +
+      chatHTML(c) +
       `<button class="btn primary" type="button" data-tabgo="tasks">Далі: вправи</button></div>` +
     `<div class="view panel" id="p-tasks" role="tabpanel" aria-labelledby="tab-tasks"${tab === 'tasks' ? '' : ' hidden'}>` +
       `<div class="card thead" id="thead"></div>` + c.tasks.map((t, i) => taskHTML(c.n, t, i)).join('') +
@@ -174,6 +175,34 @@ function renderChapter() {
     `</div>`;
   renderTasksHead();
   sound.prefetch(words.slice(0, 6).map(sayOf));
+}
+/* The dialogue as a chat in a messenger: the hero writes on the right, the others on the left with their avatars and
+   names; the time under each message, read ticks on the hero's; the translation under the German (it can be hidden) */
+const TICKS = '<svg viewBox="0 0 18 10" width="16" height="9" aria-hidden="true"><path d="M1 5.5l2.6 2.6L9 2.4M6.6 8.1L12.4 2.4M10.2 8.1l5.6-5.7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const NAMEC = ['#2F7D4F', '#2F5DB3', '#B0451F', '#8A3FA0', '#1F7F86', '#9A5800', '#B3261E'];
+const chatTr = () => { try { return localStorage.getItem('a1-chat-tr') !== '0'; } catch (e) { return true; } };
+function chatHTML(c) {
+  const d = c.dialog, keys = [...new Set(d.lines.map((l) => l[0]).filter(Boolean))], others = keys.filter((k) => !isHero(k));
+  let t = 9 * 60 + ((c.n * 37) % 150);
+  const hhmm = () => `${String(Math.floor(t / 60) % 24).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
+  const body = d.lines.map(([who, de, uk], i) => {
+    if (!who) { t += 45; return '<li class="chip" role="presentation"><span>Згодом</span></li>'; }
+    if (i) t += 1;
+    const prev = d.lines[i - 1] || [], next = d.lines[i + 1] || [], first = prev[0] !== who, last = next[0] !== who;
+    const p = person(who), out = isHero(who), col = NAMEC[others.indexOf(who) % NAMEC.length];
+    return `<li class="msg ${out ? 'out' : 'in'}${first ? ' first' : ''}${last ? ' last' : ''}">` +
+      `<span class="av">${last ? avatar(who, 30) : ''}</span>` +
+      `<div class="bub">${first ? `<b class="nm" style="--nc:${out ? 'var(--chat-me-ink)' : col}">${esc(p.de)}</b>` : ''}` +
+      `<span class="de" lang="de">${md(de)}</span><span class="tr">${md(uk)}</span>` +
+      `<span class="meta">${hhmm()}${out ? TICKS : ''}</span></div></li>`;
+  }).join('');
+  const names = [...others.map((k) => person(k).de), ...keys.filter(isHero).map((k) => person(k).de)];
+  const on = chatTr();
+  return `<div class="card chat${on ? '' : ' notr'}"><div class="chead">` +
+    `<span class="avs">${others.slice(0, 2).map((k) => avatar(k, 38)).join('')}</span>` +
+    `<span class="ct"><b>${esc(d.t)}</b><small>${esc(names.join(', '))} · уявна історія</small></span>` +
+    `<button class="trbtn" type="button" data-chat-tr aria-pressed="${on}">Переклад</button></div>` +
+    `<ol class="cbody" aria-label="Діалог: ${esc(d.t)}"><li class="chip" role="presentation"><span>Сьогодні</span></li>${body}</ol></div>`;
 }
 function setTab(t) {
   if (current !== 'ch' || !TABS.includes(t)) return;
@@ -244,6 +273,13 @@ $('#view-ch').addEventListener('click', (e) => {
   if (e.target.closest('#plant')) {
     const n = nounsOf(chapter).reduce((k, x) => k + (garden.plant(x.word) ? 1 : 0), 0);
     toast(n ? `🌱 Посаджено ${n} ${plural(n, 'слово', 'слова', 'слів')}. Перше повторення завтра в «Саду слів».` : 'Ці слова вже ростуть у «Саду слів».', 3600); haptic('ok'); return;
+  }
+  const ctr = e.target.closest('[data-chat-tr]');
+  if (ctr) {
+    const on = ctr.getAttribute('aria-pressed') !== 'true';
+    ctr.setAttribute('aria-pressed', String(on)); ctr.closest('.chat').classList.toggle('notr', !on);
+    try { localStorage.setItem('a1-chat-tr', on ? '1' : '0'); } catch (err) {}
+    haptic(); return;
   }
   const hu = e.target.closest('#hideuk');
   if (hu) { const on = hu.getAttribute('aria-pressed') !== 'true'; hu.setAttribute('aria-pressed', String(on)); hu.textContent = on ? 'Показати переклад' : 'Сховати переклад'; $('#p-words').classList.toggle('quiz', on); haptic(); return; }
@@ -317,8 +353,10 @@ garden.onChange(() => { if (current === 'hub') renderHub(); });
 // under the title: who speaks in the examples, and where to change it
 function heroLine() {
   const l = $('#herol'); if (!l) return;
-  l.innerHTML = gender() === 'f' ? 'Приклади й діалоги — від імені <b>Лесі</b> (жіночий рід). Змінити: меню → «Налаштування».'
-    : 'Приклади й діалоги — від імені <b>Тараса</b> (чоловічий рід). Змінити: меню → «Налаштування».';
+  l.innerHTML = (gender() === 'f'
+    ? 'Приклади й діалоги — від імені <b>Лесі Українки</b> (жіночий рід). Справжні тут рік і місце народження, професія та твори; а що вона живе в Ксантені й учить німецьку — уявна історія.'
+    : 'Приклади й діалоги — від імені <b>Тараса Шевченка</b> (чоловічий рід). Справжні тут рік і місце народження, професія та твори; а що він живе в Ксантені й учить німецьку — уявна історія.')
+    + ' Змінити героя: меню → «Налаштування».';
 }
 heroLine();
 const [v0, o0] = fromUrl();
