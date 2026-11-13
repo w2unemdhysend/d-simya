@@ -2,7 +2,7 @@
 // minutes, the Xanten time stamp, and that both map styles hang together (every layer's source exists, ids unique).
 // Run: node tests/mapa.test.mjs
 import { readFileSync } from 'node:fs';
-import { whereNow, cellsFor, walkMin, fmtDist, metres, measure, locate, pointAt, slice, berlinStamp, ring, XANTEN, bearing, headingAt, distTo, shareNear, stopPositions } from '../mapa/geo.js';
+import { whereNow, cellsFor, walkMin, fmtDist, metres, measure, locate, pointAt, slice, berlinStamp, ring, XANTEN, bearing, headingAt, distTo, shareNear, stopPositions, catchPlan, cityTiles, tileKey, tileOf } from '../mapa/geo.js';
 import { mapStyle, OVERLAY_SOURCES, LIGHT, DARK } from '../mapa/style.js';
 
 let fails = 0;
@@ -53,6 +53,35 @@ t('the way back on the other side of the same street counts as the same streets'
 t('a way back two streets away does not; half and half is half', shareNear(path, [other], 30) === 0 && Math.abs(shareNear(path, [parallel, other], 30) - 0.5) < 0.05);
 const sp = stopPositions(OB, obPath, measure(obPath));
 t('stop positions along an out-and-back road go only forward', sp[0] === 0 && sp[1] > sp[0] && sp[2] > sp[1] && Math.abs(sp[2] - measure(obPath)[3]) < 1, JSON.stringify(sp));
+
+// "I want this bus": which of its stops to walk to (S: A at 0, B at 10, C at 20 minutes; a 75 m/min walk)
+const C4 = [...S, { name: 'D', coord: [51.66, 6.47], arr: at(30) }];
+const mePt = [51.6605, 6.45];   // about 55 m from B
+const p0 = catchPlan(C4, ms(2), whereNow(C4, ms(2), path), mePt);
+t('catch: the nearest stop still ahead (B, a minute away on foot, the bus there at 12:12): go there, time left', p0.nearest.k === 1 && p0.best.k === 1 && p0.best.slack > 5 && p0.all.every((x) => x.k >= 1), JSON.stringify(p0.best));
+const p1 = catchPlan(C4, ms(11.5), whereNow(C4, ms(11.5), path), mePt);
+t('catch: the bus is at B now: B no longer counts, C is next', p1.nearest.k === 2 && p1.all[0].k === 2, JSON.stringify(p1.nearest));
+const slow = (m) => Math.round(m / 27);   // a slow walker 200 m from B, 480 m from C: B is too close in time, C is not
+const p2 = catchPlan(C4, ms(2), whereNow(C4, ms(2), path), [51.66, 6.453], slow);
+t('catch: when the nearest is too close in time, the nearest one there is time for', p2.nearest.k === 1 && p2.nearest.slack < 1 && p2.best && p2.best.k === 2, JSON.stringify([p2.nearest, p2.best]));
+const p3 = catchPlan(C4, ms(15), whereNow(C4, ms(15), path), [51.66, 6.44], (m) => 60);
+t('catch: none reachable in time: nearest given, best is null; the last stop never counts', p3.best === null && p3.nearest && p3.all.every((x) => x.k < C4.length - 1), JSON.stringify(p3));
+t('catch: a finished trip or no place known', catchPlan(C4, ms(40), whereNow(C4, ms(40), path), mePt).done && catchPlan(C4, ms(2), whereNow(C4, ms(2), path), null).nearest === null);
+
+// the town map without internet: Xanten's tiles down to street level, the way to Wesel, a few coarse ones around
+const ct = cityTiles(), z14 = ct.filter(([z]) => z === 14);
+const [mx, my] = tileOf(51.6586, 6.4536, 14), [wx, wy] = tileOf(51.6585, 6.6186, 14);
+t('town map: Markt Xanten and the middle of Wesel at street level, every zoom from 6 to 14, under 200 tiles', z14.some(([, x, y]) => x === mx && y === my) && z14.some(([, x, y]) => x === wx && y === wy)
+  && [6, 7, 8, 9, 10, 11, 12, 13, 14].every((z) => ct.some((c) => c[0] === z)) && ct.length < 200 && new Set(ct.map((c) => c.join())).size === ct.length, ct.length);
+t('tile names: the weekly version and ?keep=city drop out; other files keep their address', tileKey('https://tiles.openfreemap.org/planet/20261101_080013_pt/14/8484/5440.pbf?keep=city') === 'https://tiles.openfreemap.org/__tile/14/8484/5440.pbf'
+  && tileKey('https://tiles.openfreemap.org/planet/20251201_x/14/8484/5440.pbf') === tileKey('https://tiles.openfreemap.org/planet/20261101_080013_pt/14/8484/5440.pbf')
+  && tileKey('https://tiles.openfreemap.org/fonts/Noto%20Sans%20Bold/0-255.pbf?keep=city') === 'https://tiles.openfreemap.org/fonts/Noto%20Sans%20Bold/0-255.pbf');
+{ // sw.js names the tiles the same way
+  const sw = readFileSync(new URL('../sw.js', import.meta.url), 'utf8'), src = sw.slice(sw.indexOf('function tileKey'), sw.indexOf('\n}', sw.indexOf('function tileKey')) + 2);
+  const swKey = new Function(src + '; return tileKey;')();
+  const urls = ['https://tiles.openfreemap.org/planet/20261101_080013_pt/14/8484/5440.pbf?keep=city', 'https://tiles.openfreemap.org/planet', 'https://tiles.openfreemap.org/fonts/Noto%20Sans%20Regular/256-511.pbf'];
+  t('sw.js and the map page name every map file alike', urls.every((u) => swKey(u) === tileKey(u)), urls.map(swKey).join(' '));
+}
 
 // grid cells
 const cells = cellsFor({ s: 51.655, w: 6.44, n: 51.668, e: 6.462 });

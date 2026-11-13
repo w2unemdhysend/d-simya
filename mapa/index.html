@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@600;700&display=swap">
 <link rel="stylesheet" href="../assets/page.css?v=2">
 <link rel="stylesheet" href="../assets/maplibre/maplibre-gl.css?v=5.24.0">
-<link rel="stylesheet" href="mapa.css?v=3">
+<link rel="stylesheet" href="mapa.css?v=4">
 <link rel="stylesheet" href="../assets/ui.css?v=19">
 </head>
 <body class="mapapp">
@@ -30,6 +30,8 @@
     <button class="themebtn" id="themebtn" type="button" aria-label="Увімкнути темну тему"><svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M5.3 18.7L7 17M17 7l1.7-1.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.6A8.2 8.2 0 0 1 9.4 4a8.2 8.2 0 1 0 10.6 10.6z" fill="currentColor"/></svg></button>
   </header>
 
+  <div class="pickpin" id="pickpin" aria-hidden="true"><svg viewBox="0 0 30 40"><path d="M15 39s13-13.4 13-23.5A13 13 0 0 0 2 15.5C2 25.6 15 39 15 39z" fill="var(--walk)" stroke="#fff" stroke-width="2"/><circle cx="15" cy="15.5" r="5" fill="#fff"/></svg><span></span></div>
+  <button class="refocus" id="refocus" type="button" aria-hidden="true" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5V4h4.5M15.5 4H20v4.5M20 15.5V20h-4.5M8.5 20H4v-4.5"/><circle cx="12" cy="12" r="3.2"/></svg><span>Назад</span></button>
   <div class="fabs" id="fabs">
     <button class="fab" id="locate" type="button" aria-label="Показати, де я"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="7.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22"/></svg></button>
   </div>
@@ -46,6 +48,6 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="../assets/ui.js?v=19"></script>
 <script src="../assets/maplibre/maplibre-gl.js?v=5.24.0"></script>
-<script type="module" src="app.js?v=2"></script>
+<script type="module" src="app.js?v=3"></script>
 </body>
 </html>

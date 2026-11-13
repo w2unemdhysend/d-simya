@@ -148,6 +148,11 @@ t('trip: first one 07:29 → 09:40 in Xanten time (06:29Z → 08:40Z), 131 min, 
 t('trip: legs carry line, direction, platform, stops and the walk to the next one', tr[0].legs[0].line === 'X28' && tr[0].legs[0].mode === 'bus' && tr[0].legs[0].dir === 'Wesel Bahnhof' && tr[0].legs[0].from.plat === '2'
   && tr[0].legs[0].stops === 16 && tr[0].legs[0].walkAfter === 8 && tr[0].legs[0].to.name === 'Wesel Bahnhof', JSON.stringify(tr[0].legs[0]));
 t('trip: a rail replacement bus is a bus, a regional train a train; platforms as stop names', tr[1].legs[0].line.startsWith('SEV') && tr[1].legs[0].mode === 'bus' && tr[1].legs[1].mode === 'train' && tr[1].legs[1].from.name === 'Moers Bahnhof' && tr[1].legs[1].from.plat === '2', JSON.stringify(tr[1].legs.map((l) => [l.line, l.mode, l.from.name, l.from.plat])));
+t('trip: a bus leg carries what the map needs to show that very bus: line, trip and the stop it is boarded at; a walk does not', tr[0].legs[0].ref && tr[0].legs[0].ref.line === 'bvr:88X28:W:H:j26' && tr[0].legs[0].ref.trip === '22'
+  && tr[0].legs[0].stop === 'de:05170:37032' && tr.every((x) => x.legs.every((l) => !l.walk || !('ref' in l))), JSON.stringify(tr[0].legs[0]));
+await get('/transit/trip?from=de:05170:37032&to=de:05112:16032&when=2026-11-12T09:00&arr=1');
+const arrCall = calls.filter((u) => u.pathname.endsWith('XML_TRIP_REQUEST2')).pop();
+t('trip: arr=1 asks for arriving by that time', arrCall.searchParams.get('itdDateTimeDepArr') === 'arr' && tripCall.searchParams.get('itdDateTimeDepArr') === 'dep', arrCall.search);
 t('trip: nothing of the bulky parts is passed on', JSON.stringify(r.body).length < 6000 && !JSON.stringify(r.body).includes('stopSequence'), JSON.stringify(r.body).length);
 await get('/transit/trip?from=de:05170:37032&to=de:05112:16032&long=1');
 const longCall = calls.filter((u) => u.pathname.endsWith('XML_TRIP_REQUEST2')).pop();

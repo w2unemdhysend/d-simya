@@ -64,6 +64,9 @@
 .ln.sev{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
 .ln.long{border-color:var(--danger);color:var(--danger);background:transparent}
 .ln.walk{border-style:dashed;font-weight:600;color:var(--muted);border-color:var(--line)}
+a.lnmap{color:inherit;text-decoration:none;display:inline-flex;align-items:center;gap:3px;min-height:30px;padding-right:5px}
+a.lnmap::after{content:"";width:6px;height:6px;border-right:2px solid currentColor;border-top:2px solid currentColor;transform:rotate(45deg);margin-left:2px;opacity:.6}
+a.lnmap:active{transform:scale(.95)}
 .lines .sep{color:var(--muted);font-size:13px}
 .legs{list-style:none;margin:0;padding:0 14px 14px;display:grid;gap:0}
 .onmap{display:flex;align-items:center;justify-content:center;gap:8px;min-height:44px;margin:0 14px 14px;border-radius:12px;border:1px solid var(--line);background:var(--bg);
@@ -112,8 +115,9 @@
       </div>
       <div class="when" id="when" role="radiogroup" aria-label="Коли виїжджати">
         <button class="chip" type="button" role="radio" data-when="now" aria-checked="true">Зараз</button>
-        <button class="chip" type="button" role="radio" data-when="at" aria-checked="false">Пізніше</button>
-        <input id="at" type="datetime-local" aria-label="Дата й час відправлення" hidden>
+        <button class="chip" type="button" role="radio" data-when="at" aria-checked="false">Виїхати о…</button>
+        <button class="chip" type="button" role="radio" data-when="arr" aria-checked="false">Прибути до…</button>
+        <input id="at" type="datetime-local" aria-label="Дата й час" hidden>
       </div>
       <div class="opt">
         <div><b id="h-dt">Тільки з D-Ticket</b><small>Без ICE, IC та EC: там Deutschlandticket не діє.</small></div>
@@ -238,8 +242,9 @@ $('#when').addEventListener('click', (e) => {
   const b = e.target.closest('[data-when]'); if (!b) return;
   whenMode = b.dataset.when;
   document.querySelectorAll('#when .chip').forEach((c) => c.setAttribute('aria-checked', String(c === b)));
-  const at = $('#at'); at.hidden = whenMode !== 'at';
-  if (whenMode === 'at' && !at.value) at.value = berlinStamp(new Date(Date.now() + 3600000));
+  const at = $('#at'); at.hidden = whenMode === 'now';
+  at.setAttribute('aria-label', whenMode === 'arr' ? 'Прибути не пізніше: дата й час' : 'Виїхати о: дата й час');
+  if (whenMode !== 'now' && !at.value) at.value = berlinStamp(new Date(Date.now() + 3600000));
   haptic();
 });
 $('#dt').addEventListener('click', () => { dticket = !dticket; store('marshrut-dticket', dticket); renderEnds(); haptic(); });
@@ -258,7 +263,8 @@ function tripHTML(t, i) {
     const d1 = late(l.from.plan, l.from.est), d2 = late(l.to.plan, l.to.est);
     const plat = (p) => (p.plat ? `<small>${l.mode === 'train' ? 'колія' : 'стоянка'} ${esc(p.plat)}${p.platOld ? ` (замість ${esc(p.platOld)})` : ''}</small>` : '');
     legs += `<li class="leg"><div class="t">${hm(l.from.est || l.from.plan)}${d1 >= 1 ? `<small>+${d1}</small>` : ''}</div><div class="b"><div class="st" lang="de">${esc(l.from.name)} ${l.walk ? '' : plat(l.from)}</div>` +
-      `<div class="ride"><span class="ln ${lineCls(l)}">${esc(lineName(l))}</span>` + (l.walk ? '' : `<span>${MODE[l.mode] || 'автобус'} у бік <span lang="de">${esc(l.dir)}</span></span><span>${dur(l.mins)}${l.stops > 1 ? `, ${l.stops} ${plural(l.stops, 'зупинка', 'зупинки', 'зупинок')}` : ''}</span>`) + '</div>' +
+      `<div class="ride">` + (!l.walk && l.ref && l.stop && !l.gone ? `<a class="ln ${lineCls(l)} lnmap" href="../mapa/?line=${encodeURIComponent(l.ref.line)}&amp;trip=${encodeURIComponent(l.ref.trip)}&amp;at=${encodeURIComponent(l.stop)}&amp;plan=${encodeURIComponent(l.from.plan)}&amp;ln=${encodeURIComponent(l.line)}&amp;dest=${encodeURIComponent(l.dir)}&amp;mode=${encodeURIComponent(l.mode)}&amp;sn=${encodeURIComponent(l.from.name)}" aria-label="${esc(lineName(l))} на мапі: де він зараз і як встигнути">${esc(lineName(l))}</a>`
+        : `<span class="ln ${lineCls(l)}">${esc(lineName(l))}</span>`) + (l.walk ? '' : `<span>${MODE[l.mode] || 'автобус'} у бік <span lang="de">${esc(l.dir)}</span></span><span>${dur(l.mins)}${l.stops > 1 ? `, ${l.stops} ${plural(l.stops, 'зупинка', 'зупинки', 'зупинок')}` : ''}</span>`) + '</div>' +
       (l.gone ? '<p class="note" style="color:var(--danger)">Цей рейс скасовано.</p>' : '') + (l.long ? '<p class="note" style="color:var(--danger)">Deutschlandticket тут не діє: потрібен окремий квиток.</p>' : '') +
       l.notes.map((n) => `<p class="note" lang="de">${esc(n)}</p>`).join('') + '</div></li>' +
       `<li class="leg"><div class="t">${hm(l.to.est || l.to.plan)}${d2 >= 1 ? `<small>+${d2}</small>` : ''}</div><div class="b"><div class="st" lang="de">${esc(l.to.name)} ${l.walk ? '' : plat(l.to)}</div></div></li>`;
@@ -285,7 +291,8 @@ async function search(when, more) {
   $('#go').disabled = true; $('#later').hidden = true; msg.hidden = true;
   if (!more) { list.innerHTML = '<li class="skel"></li><li class="skel"></li><li class="skel"></li>'; $('#res-head').hidden = true; }
   try {
-    const d = await api(`transit/trip?from=${encodeURIComponent(from.id)}&to=${encodeURIComponent(to.id)}` + (when ? `&when=${encodeURIComponent(when)}` : '') + (dticket ? '' : '&long=1'));
+    const arr = !more && when && whenMode === 'arr';   // "there by 9:00": the connections that arrive by then
+    const d = await api(`transit/trip?from=${encodeURIComponent(from.id)}&to=${encodeURIComponent(to.id)}` + (when ? `&when=${encodeURIComponent(when)}` : '') + (arr ? '&arr=1' : '') + (dticket ? '' : '&long=1'));
     // keep the names the person chose, and remember the pair for next time
     shown = { from, to, trips: more ? shown.trips.concat(d.trips.filter((t) => !shown.trips.some((x) => x.dep === t.dep && x.arr === t.arr))) : d.trips };
     store('marshrut-last', { from, to });
@@ -300,7 +307,7 @@ async function search(when, more) {
   }
   $('#go').disabled = !(from && to && from.id !== to.id);
 }
-$('#go').addEventListener('click', () => search(whenMode === 'at' && $('#at').value ? $('#at').value.slice(0, 16) : ''));
+$('#go').addEventListener('click', () => search(whenMode !== 'now' && $('#at').value ? $('#at').value.slice(0, 16) : ''));
 $('#later').addEventListener('click', () => {
   const lastDep = shown.trips[shown.trips.length - 1].dep;
   search(berlinStamp(new Date(Date.parse(lastDep) + 60000)), true);

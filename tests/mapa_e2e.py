@@ -9,11 +9,13 @@ known yet; a stop (title, the address in the URL, departures, the walk with minu
 stops as a line with the bus between them, the road in two colours and the bus marker, arrows along it, where to wait
 for it and for the way back; the way back in its own colour only when it takes other streets); the phone's Back and
 Telegram's Back step back through the sheet; search for an address and its nearest stops; a connection from «Маршрут»
-drawn with its legs; the sheet dragged and tapped; the theme switch keeps what is drawn; without WebGL the lists still
-work; links from Транспорт and Маршрут; 360 px. Exits 1 if a check fails.
+drawn with its legs; the sheet dragged and tapped; the theme switch keeps what is drawn; a line number from Транспорт:
+this very bus, which of its stops to walk to and whether there is time, the button back after the whole road, the bus
+gliding; my places (add with the pin, the chip and the sign, its nearest stops, remove); the town map saved for
+offline; without WebGL the lists still work; links from Транспорт and Маршрут; 360 px. Exits 1 if a check fails.
 """
 import asyncio, datetime, functools, http.server, json, os, re, sys, threading
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, urlencode
 from playwright.async_api import async_playwright
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -65,7 +67,7 @@ class Worker:
 # no base map in tests: an empty TileJSON, empty tiles, no glyphs (the names are not drawn, nothing else changes)
 TILEJSON = json.dumps({'tilejson': '3.0.0', 'tiles': ['https://tiles.openfreemap.org/planet/t/{z}/{x}/{y}.pbf'], 'minzoom': 0, 'maxzoom': 14, 'vector_layers': []})
 async def tiles(route):
-    u = route.request.url
+    u = route.request.url.split('?')[0]
     if u.rstrip('/').endswith('/planet'): return await route.fulfill(body=TILEJSON, content_type='application/json', headers={'Access-Control-Allow-Origin': '*'})
     await route.fulfill(status=204, body='', headers={'Access-Control-Allow-Origin': '*'})
 
@@ -221,10 +223,71 @@ async def main():
             check('theme: the map turns dark and keeps the connection', await pg.evaluate("window.__mapa.map().getStyle().name") == 'd-simya-dark' and await src(pg, 'route') == before)
         await ctx.close()
 
+        # ---------------- a line number from «Транспорт»: this very bus, where I am, which of its stops to walk to ----------------
+        x = next(d for d in FX['deps']['deps'] if d.get('ref') and d['ref']['line'] == FX['course_ref'])
+        now = datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+        link = base + 'mapa/?' + urlencode({'line': x['ref']['line'], 'trip': x['ref']['trip'], 'at': FX['deps']['stop']['id'], 'plan': now, 'ln': x['line'], 'dest': x['dest'], 'mode': 'bus', 'sn': 'Xanten, Dom'})
+        ctx, pg, w = await page(browser, link, store=[['mapa-loc', '1']])
+        await pg.wait_for_function("document.querySelector('#catch .catch') && document.querySelectorAll('#course .cs').length > 0", timeout=15000)
+        await pg.wait_for_function("document.querySelector('#catch p') && !/Показати, де я/.test(document.querySelector('#catch').textContent)", timeout=15000); await settle(pg, 900)
+        st = await pg.evaluate("({title: document.querySelector('#stitle').textContent, sub: document.querySelector('#ssub').textContent, catch: document.querySelector('#catch').textContent, back: !!document.querySelector('#sback:not([hidden])')})")
+        cq = next(c for c in w.calls if c[0] == '/transit/course')
+        check('line from a link: this very bus is asked for (line, trip, the stop, the time) and shown', cq[1]['line'] == [x['ref']['line']] and cq[1]['trip'] == [x['ref']['trip']] and cq[1]['stop'] == [FX['deps']['stop']['id']]
+              and st['title'] == 'Лінія SL42' and 'Xanten Bahnhof' in st['sub'] and st['back'], str(st))
+        check('«Хочу на цей автобус»: the nearest of its stops ahead, minutes on foot, when it is there, whether there is time', 'Хочу на цей автобус' in st['catch'] and 'хв пішки' in st['catch'] and re.search(r'о \d\d:\d\d', st['catch'])
+              and ('Встигаєш' in st['catch'] or 'Встигнеш на' in st['catch'] or 'не встигнеш' in st['catch']), st['catch'])
+        wq = [c for c in w.calls if c[0] == '/transit/walk']
+        check('… the walk there from the walking router, from where I am', wq and wq[-1][1]['from'][0].startswith('51.6617'), str(wq[-1:] if wq else 'none'))
+        if gl:
+            check('map: the walk drawn, the bus on its road', await src(pg, 'walk') == 1 and await src(pg, 'route') >= 1 and await pg.evaluate("!!document.querySelector('.busmk')"))
+            r0 = await pg.evaluate("document.querySelector('#refocus').classList.contains('on')")
+            await pg.click('#fitall'); await settle(pg, 900)
+            z1 = await pg.evaluate("window.__mapa.map().getZoom()")
+            r1 = await pg.evaluate("({on: document.querySelector('#refocus').classList.contains('on'), t: document.querySelector('#refocus').textContent.trim()})")
+            check('«Увесь маршрут» zooms out and brings up «Наблизити назад» over the map', not r0 and r1['on'] and r1['t'] == 'Наблизити назад', f'{r0} {r1}')
+            await pg.click('#refocus'); await settle(pg, 1000)
+            z2 = await pg.evaluate("window.__mapa.map().getZoom()")
+            check('… which zooms back in to the stop, me and the bus, and goes away', z2 > z1 + 0.5 and not await pg.evaluate("document.querySelector('#refocus').classList.contains('on')"), f'{z1} → {z2}')
+            b0 = await pg.evaluate("(() => { const m = document.querySelector('.busmk'); return m ? m.style.transform : ''; })()"); await settle(pg, 1200)
+            b1 = await pg.evaluate("(() => { const m = document.querySelector('.busmk'); return m ? m.style.transform : ''; })()")
+            check('the bus glides: its place changes between the once-a-second updates', b0 and b1 and b0 != b1, f'{b0} | {b1}')
+        await pg.evaluate("window.__back()"); await settle(pg, 500)
+        check('Back from a link: the stops around', await text(pg, '#stitle') == 'Зупинки поруч')
+        await ctx.close()
+
+        # ---------------- my places ----------------
+        ctx, pg, w = await page(browser, base + 'mapa/', store=[['mapa-loc', '1']])
+        await pg.wait_for_function('window.__mapa && window.__mapa.me() && document.querySelectorAll("#nearlist .row").length > 0', timeout=15000); await settle(pg)
+        check('my places: offered at the top of the stops around', await pg.is_visible('#addplace') and 'дім, робота' in await text(pg, '#addplace'))
+        await pg.click('#addplace'); await settle(pg, 700)
+        st = await pg.evaluate("({title: document.querySelector('#stitle').textContent, pin: getComputedStyle(document.querySelector('#pickpin')).display, kinds: document.querySelectorAll('.pkinds [data-kind]').length, home: document.querySelector('.pkinds [data-kind=home]').getAttribute('aria-checked')})")
+        check('a new place: a pin in the middle of the map, six kinds, «Дім» first', st['title'] == 'Нове місце' and st['pin'] == 'block' and st['kinds'] == 6 and st['home'] == 'true', str(st))
+        await pg.click('#picksave'); await settle(pg, 700)
+        pl = await pg.evaluate("JSON.parse(localStorage.getItem('mapa-places') || '[]')")
+        check('saved: «Дім» where the pin was, kept on the phone and in Telegram; the chip in the list', len(pl) == 1 and pl[0]['name'] == 'Дім' and pl[0]['kind'] == 'home' and abs(pl[0]['coord'][0] - 51.6617) < 0.01
+              and 'places' in await pg.evaluate("Object.keys(window.__cloud || {})") and await text(pg, '#stitle') == 'Зупинки поруч' and await pg.locator('.pchip[data-pl]').count() == 1, str(pl))
+        if gl: check('… and a sign on the map', await pg.locator('.myplace').count() == 1)
+        await pg.click('.pchip[data-pl]'); await pg.wait_for_function("document.querySelectorAll('#sbody .rows .row').length > 0", timeout=8000)
+        st = await pg.evaluate("({title: document.querySelector('#stitle').textContent, sub: document.querySelector('#ssub').textContent, route: !!document.querySelector('#sbody a[href*=\"marshrut/?to=\"]'), del: !!document.querySelector('#delplace')})")
+        sq = [c for c in w.calls if c[0] == '/transit/stops' and 'lat' in c[1]]
+        check('a place of mine: the nearest stops (asked by its point only), the way there, change or remove', st['title'] == 'Дім' and 'Моє місце' in st['sub'] and st['route'] and st['del'] and sq, str(st))
+        await pg.click('#delplace'); await settle(pg, 600)
+        check('removed: gone from the list and the phone', await pg.locator('.pchip[data-pl]').count() == 0 and await pg.evaluate("JSON.parse(localStorage.getItem('mapa-places')).length") == 0)
+
+        # ---------------- the map of the town without internet ----------------
+        await pg.wait_for_function("localStorage.getItem('mapa-city')", timeout=20000); await settle(pg, 300)
+        kept = await pg.evaluate("caches.open('dsimya-city').then(c => c.keys()).then(k => k.map(r => r.url))")
+        city = await text(pg, '#city')
+        check('the town map is saved by itself (wi-fi): the tiles of Xanten and towards Wesel, letters, under names without the weekly version',
+              len(kept) >= 150 and any('/__tile/14/' in u for u in kept) and not any('/planet/t/' in u for u in kept) and any('/fonts/' in u for u in kept) and 'без інтернету' in city, f'{len(kept)} {city}')
+        await ctx.close()
+
         # ---------------- links into the map ----------------
         ctx, pg, w = await page(browser, base + 'transport/')
         await settle(pg, 600)
         check('Транспорт: the chosen stop opens on the map', (await pg.get_attribute('#onmap', 'href')).startswith('../mapa/?stop=de%3A05170%3A37032'))
+        hrefs = await pg.evaluate("[...document.querySelectorAll('#deps a.deplink')].map(a => a.getAttribute('href'))")
+        check('Транспорт: a departure (its line number) opens that very bus on the map', hrefs and all(h.startswith('../mapa/?line=') and '&at=' in h and '&plan=' in h and '&ln=' in h for h in hrefs), str(hrefs[:2]))
         await ctx.close()
         await browser.close()
 

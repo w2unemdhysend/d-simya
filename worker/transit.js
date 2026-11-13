@@ -62,12 +62,13 @@ export async function transit(request, env, ctx, reply, cors) {
       return await cached(`dep:${stop}`, 30, ctx, cors, url.origin, () => departures(stop));
     }
     if (url.pathname === '/transit/trip') {
-      const from = String(p.get('from') || ''), to = String(p.get('to') || ''), when = String(p.get('when') || ''), long = p.get('long') === '1', paths = p.get('paths') === '1';
+      const from = String(p.get('from') || ''), to = String(p.get('to') || ''), when = String(p.get('when') || ''), long = p.get('long') === '1', paths = p.get('paths') === '1', arr = p.get('arr') === '1';
       if (!STOP_ID.test(from) || !STOP_ID.test(to) || from === to) return reply(400, { ok: false, error: 'from and to: two different stop ids' });
       if (when && !STAMP.test(when)) return reply(400, { ok: false, error: 'when: YYYY-MM-DDTHH:MM' });
       // "now" is kept by the minute it was asked in, a chosen time a little longer
       const stamp = when || berlinStamp(new Date());
-      return await cached(`trip:${from}:${to}:${stamp}:${long ? 1 : 0}:${paths ? 1 : 0}`, when ? 60 : 30, ctx, cors, url.origin, () => trip(from, to, stamp, long, paths));
+      // arr=1: the time is when to arrive at the latest ("there by 9:00"), otherwise when to leave
+      return await cached(`trip:${from}:${to}:${stamp}:${long ? 1 : 0}:${paths ? 1 : 0}:${arr ? 1 : 0}`, when ? 60 : 30, ctx, cors, url.origin, () => trip(from, to, stamp, long, paths, arr));
     }
     if (url.pathname === '/transit/area') {
       const lat = Number(p.get('lat')), lon = Number(p.get('lon'));
@@ -193,11 +194,13 @@ async function area(lat, lon) {
 }
 
 // One trip from first stop to last: the stops with planned and live times, and the road it takes
+// VRR's server now and then answers this one with an error that is gone a moment later: one more try.
 async function course(line, code, stop, stamp) {
   const u = new URL(EFA + 'XML_STOPSEQCOORD_REQUEST');
   Object.entries({ outputFormat: 'rapidJSON', coordOutputFormat: 'WGS84[dd.ddddd]', line, stop, tripCode: code,
     date: stamp.slice(0, 10).replace(/-/g, ''), time: stamp.slice(11).replace(':', ''), tStOTType: 'all', useRealtime: '1' }).forEach(([k, v]) => u.searchParams.set(k, v));
-  const d = await getJson(u);
+  let d;
+  try { d = await getJson(u); } catch (e) { d = await getJson(u); }
   const l = d.leg;
   if (!l || !Array.isArray(l.stopSequence) || l.stopSequence.length < 2) throw new Error('course: no stops');
   const t = l.transportation || {}, prod = t.product || {};
@@ -209,6 +212,8 @@ async function course(line, code, stop, stamp) {
     at: new Date().toISOString(),
   };
 }
+// the stop's id of a place in an answer (a platform belongs to its stop)
+const stopIdOf = (s) => (s.parent && STOP_ID.test(s.parent.id || '') ? s.parent.id : (String(s.id || '').match(/^de:\d{5}:\d{1,7}/) || [''])[0]) || null;
 // a stop of a stop sequence: the stop's id (not its platform), name, times, and where exactly the bus stops: the
 // platform's point (on the side of the street the bus drives on) and its name
 function seqStop(s) {
@@ -336,10 +341,10 @@ function berlinStamp(date) {
 // the Deutschlandticket is not valid on them. The answer from VRR is large (alternatives for every leg); only what
 // the page shows is passed on.
 const LONG = [14, 15, 16], WALK = [99, 100];
-export async function trip(from, to, stamp, long = false, paths = false) {
+export async function trip(from, to, stamp, long = false, paths = false, arr = false) {
   const u = new URL(EFA + 'XML_TRIP_REQUEST2');
   Object.entries({ outputFormat: 'rapidJSON', coordOutputFormat: 'WGS84[dd.ddddd]', type_origin: 'any', name_origin: from, type_destination: 'any', name_destination: to,
-    itdDateTimeDepArr: 'dep', itdDate: stamp.slice(0, 10).replace(/-/g, ''), itdTime: stamp.slice(11).replace(':', ''), calcNumberOfTrips: '4', useRealtime: '1',
+    itdDateTimeDepArr: arr ? 'arr' : 'dep', itdDate: stamp.slice(0, 10).replace(/-/g, ''), itdTime: stamp.slice(11).replace(':', ''), calcNumberOfTrips: '4', useRealtime: '1',
     routeType: 'LEASTTIME', useProxFootSearch: '0', locationServerActive: '1', genC: paths ? '1' : '0', genMaps: '0', genP: '0',
     ...(long ? {} : { excludedMeans: 'checkbox', exclMOT_14: '1', exclMOT_15: '1', exclMOT_16: '1' }) }).forEach(([k, v]) => u.searchParams.set(k, v));
   const d = await getJson(u);
@@ -360,6 +365,8 @@ export async function trip(from, to, stamp, long = false, paths = false) {
         mins: Math.round((l.duration || 0) / 60), stops: Math.max(0, (l.stopSequence || []).length - 1), walkAfter: after ? Math.round(after.duration / 60) : 0,
         gone: !!l.isCancelled || status.includes('TRIP_CANCELLED') || status.includes('CANCELLED'),
         notes: (l.infos || []).map((i) => clip(((i.infoLinks || [])[0] || {}).title || ((i.infoLinks || [])[0] || {}).urlText, 160)).filter(Boolean).slice(0, 2),
+        // what the map needs to show this very bus (/transit/course): its line and trip, and the stop where it is boarded
+        ...(walk ? {} : { ref: LINE_ID.test(t.id || '') && /^\d{1,6}$/.test(String((t.properties || {}).tripCode)) ? { line: t.id, trip: String(t.properties.tripCode) } : null, stop: stopIdOf(l.origin || {}) }),
         ...(paths ? { path: simplify(l.coords || [], 4), on: (l.stopSequence || []).map(seqStop).filter((x) => x.coord).map((x) => ({ name: x.name, coord: x.coord })) } : {}),
       };
     }).filter((l) => l.from.plan && l.to.plan);

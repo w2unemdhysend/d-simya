@@ -8,11 +8,14 @@
    · fonts: kept once, used from then on
    · the spoken clips (phrasebook, games, the A1 dictionary): kept once fetched
    · the 3D game and three.js are kept with the rest (about 200 KB over the wire), so it plays in the cellar too
+   · the map: the tiles of Xanten and the way to Wesel, saved by the map page once (about 5 MB), and the tiles seen in
+     passing (up to 600); a tile is kept under one name whatever weekly version the tile server is at
    Nothing else is kept: not the shopping list, not translations, not searches.
    When the asset version (?v=) changes, update it here too (tests/offline_e2e.py checks that they match). */
 
-const VERSION = '2026-11-12.11';
+const VERSION = '2026-11-13.1';
 const CORE_CACHE = 'dsimya-core-' + VERSION, DATA_CACHE = 'dsimya-data', STATIC_CACHE = 'dsimya-static', AUDIO_CACHE = 'dsimya-audio';
+const CITY_CACHE = 'dsimya-city', TILE_CACHE = 'dsimya-tiles', MAX_TILES = 600;
 const CORE = [
   './', 'pralka/', 'sushka/', 'scan/', 'smittia/', 'prospekty/', 'spysok/', 'transport/', 'pogoda/', 'igry/', 'bot/', 'ekstreno/', 'rozmovnyk/', 'marshrut/', 'a1/', 'mapa/',
   'assets/ui.css?v=19', 'assets/ui.js?v=19', 'assets/page.css?v=2', 'rozmovnyk/phrases.js', 'audio/index.js', 'audio/say.js', 'assets/fonts/noto-sans.ttf',
@@ -21,7 +24,7 @@ const CORE = [
   'igry/data/garten.js', 'igry/data/satz.js', 'igry/data/zahlen.js', 'igry/data/dialog.js', 'igry/data/memory.js',
   'igry/hop.js?v=1', 'igry/hop/levels.js?v=1', 'igry/hop/engine.js?v=1', 'igry/hop/physics.js?v=1', 'assets/three/r185/three.module.min.js', 'assets/three/r185/three.core.min.js',
   'a1/a1.css?v=2', 'a1/app.js?v=1', 'a1/text.js', 'a1/data/wortschatz.js', 'a1/data/k01.js', 'a1/data/k02.js', 'a1/data/k03.js', 'a1/data/k04.js', 'a1/data/k05.js',
-  'mapa/mapa.css?v=3', 'mapa/app.js?v=2', 'mapa/style.js?v=2', 'mapa/geo.js?v=2',
+  'mapa/mapa.css?v=4', 'mapa/app.js?v=3', 'mapa/style.js?v=3', 'mapa/geo.js?v=3',
   'a1/data/k06.js', 'a1/data/k07.js', 'a1/data/k08.js', 'a1/data/k09.js', 'a1/data/k10.js', 'a1/data/k11.js', 'a1/data/k12.js', 'a1/data/k13.js', 'a1/data/k14.js', 'a1/data/k15.js', 'a1/data/k16.js',
 ];
 const DATA = /^\/(weather|warnings|transit\/departures|transit\/area)$/;
@@ -53,8 +56,38 @@ self.addEventListener('fetch', (e) => {
     e.respondWith(cacheFirst(req, STATIC_CACHE));
   } else if (url.hostname === 'telegram.org') {
     e.respondWith(networkFirst(req, STATIC_CACHE, 4000, false));
+  } else if (url.hostname === 'tiles.openfreemap.org') {
+    e.respondWith(mapFile(req, url));
   }
 });
+
+// The same as tileKey() in mapa/geo.js: one name for a tile whatever weekly version the tile server is at
+function tileKey(href) {
+  const m = String(href).match(/^(https:\/\/tiles\.openfreemap\.org)\/planet\/[^/?]+\/(\d+)\/(\d+)\/(\d+)\.pbf/);
+  return m ? `${m[1]}/__tile/${m[2]}/${m[3]}/${m[4]}.pbf` : String(href).split('?')[0];
+}
+// The map's files. Tiles and letters: the kept copy (the city's first), else the network, kept for next time. The
+// description of the tiles (TileJSON): the network when it answers in 3 s, else the kept one. ?keep=city is the map
+// page saving the city: always from the network, into the city's cache, which is never trimmed.
+async function mapFile(req, url) {
+  const key = tileKey(url.href), city = await caches.open(CITY_CACHE), saving = url.searchParams.get('keep') === 'city';
+  if (!key.includes('/__tile/') && !url.pathname.startsWith('/fonts/')) {
+    const net = fetch(req).then((res) => { if (res.ok) city.put(key, res.clone()); return res; });
+    try {
+      const first = await Promise.race([net, new Promise((r) => setTimeout(r, saving ? 15000 : 3000, 'late'))]);
+      if (first !== 'late') return first;
+      return (await city.match(key)) || (await net);
+    } catch (err) { return (await city.match(key)) || Response.error(); }
+  }
+  const passing = await caches.open(TILE_CACHE);
+  const kept = saving ? null : (await city.match(key)) || (await passing.match(key));
+  if (kept) return kept;
+  try {
+    const res = await fetch(req);
+    if (res.ok) { await (saving ? city : passing).put(key, res.clone()); if (!saving) trim(passing, MAX_TILES); }
+    return res;
+  } catch (err) { return Response.error(); }   // not kept and no network: the map shows the coarser tile it has
+}
 
 // The network, but not longer than `wait` ms when a kept copy exists; a late answer still refreshes the copy
 async function networkFirst(req, name, wait, page) {
@@ -106,7 +139,7 @@ async function cacheFirst(req, name) {
   return res;
 }
 
-async function trim(cache) {
+async function trim(cache, max = MAX_DATA) {
   const keys = await cache.keys();
-  for (let i = 0; i < keys.length - MAX_DATA; i++) await cache.delete(keys[i]);
+  for (let i = 0; i < keys.length - max; i++) await cache.delete(keys[i]);
 }

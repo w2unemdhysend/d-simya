@@ -96,7 +96,7 @@ async def page(browser, url, tg='', width=390, worker=None, prefs=None, scheme='
 
 ROWS = """() => [...document.querySelectorAll('#deps li')].map(li => ({t: li.querySelector('.t b').textContent, s: (li.querySelector('.t small')||{}).textContent || '',
   line: li.querySelector('.line').textContent, dest: li.querySelector('.dest').textContent, l2: li.querySelector('.l2').textContent,
-  gone: li.classList.contains('gone'), hint: (li.querySelector('.hint')||{}).textContent || '', label: li.getAttribute('aria-label')}))"""
+  gone: li.classList.contains('gone'), hint: (li.querySelector('.hint')||{}).textContent || '', label: li.querySelector('.deplink').getAttribute('aria-label')}))"""
 
 async def main():
     url = serve()

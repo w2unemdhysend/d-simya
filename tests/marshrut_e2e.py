@@ -79,6 +79,9 @@ async def main():
         legs = re.sub(r'\s+', ' ', await pg.inner_text('.trip >> nth=0 >> .legs'))
         check('legs: stop with platform, line, direction, duration and stops', 'Xanten Bahnhof стоянка 2' in legs and 'автобус у бік Wesel Bahnhof' in legs and '29 хв, 16 зупинок' in legs and 'Duisburg Hbf' in legs, legs[:300])
         check('legs: the change with its minutes and the walk', 'Пересадка: 30 хв, з них 8 хв пішки' in legs, legs)
+        lnk = await pg.get_attribute('.trip >> nth=0 >> .legs a.lnmap', 'href')
+        check('a bus of a connection opens on the map by its number: line, trip, the stop to get on, the time', lnk and lnk.startswith('../mapa/?line=bvr%3A88X28%3AW%3AH%3Aj26&trip=22&at=de%3A05170%3A37032&plan=') and '&ln=X28' in lnk
+              and await pg.locator('.trip >> nth=0 >> .legs a.lnmap').count() == 1, str(lnk))
         check('"now" does not send the phone\'s own clock', 'when' not in call)
         onmap = await pg.get_attribute('.trip >> nth=0 >> .onmap', 'href')
         check('«Показати на мапі»: the map gets both ends, the departure in Xanten time and which connection', onmap == '../mapa/?from=de%3A05170%3A37032&to=de%3A05112%3A16032&when=2026-11-12T07%3A29&dep=2026-11-12T06%3A29%3A00Z', onmap)
@@ -92,10 +95,14 @@ async def main():
         await pg.click('#swap'); await pg.wait_for_timeout(100)
         check('swap: the ends change places', await pg.text_content('#from-name') == 'Duisburg Hbf' and await pg.text_content('#to-name') == 'Xanten Bahnhof')
         await pg.click('#when [data-when="at"]'); await pg.wait_for_timeout(100)
-        check('"Пізніше": a date and time field appears, set an hour ahead in Xanten time', await pg.is_visible('#at') and await pg.input_value('#at') == '2026-11-12T08:00', await pg.input_value('#at'))
+        check('«Виїхати о…»: a date and time field appears, set an hour ahead in Xanten time', await pg.is_visible('#at') and await pg.input_value('#at') == '2026-11-12T08:00', await pg.input_value('#at'))
         await pg.fill('#at', '2026-11-13T06:45'); await pg.click('#dt'); await pg.click('#go'); await pg.wait_for_timeout(400)
         call = [c for c in w.calls if c[0] == '/transit/trip'][-1][1]
         check('request with a chosen time, swapped ends and long-distance trains allowed', call == {'from': 'de:05112:16032', 'to': 'de:05170:37032', 'when': '2026-11-13T06:45', 'long': '1'}, str(call))
+        await pg.click('#when [data-when="arr"]'); await pg.wait_for_timeout(100); await pg.click('#go'); await pg.wait_for_timeout(400)
+        call = [c for c in w.calls if c[0] == '/transit/trip'][-1][1]
+        check('«Прибути до…»: the same field, the time is when to arrive by', call == {'from': 'de:05112:16032', 'to': 'de:05170:37032', 'when': '2026-11-13T06:45', 'arr': '1', 'long': '1'}
+              and await pg.get_attribute('#at', 'aria-label') == 'Прибути не пізніше: дата й час', str(call))
         await pg.reload(); await pg.wait_for_timeout(400)
         check('after reload: the last pair, the saved route and the D-Ticket choice are remembered', await pg.text_content('#from-name') == 'Duisburg Hbf' and await pg.locator('#routes .chip').count() == 1
               and await pg.get_attribute('#dt', 'aria-checked') == 'false' and await pg.is_hidden('#pick'))

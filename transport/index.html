@@ -118,8 +118,11 @@ details[open] > summary .chev{transform:rotate(180deg)}
 .tolink small{display:block;color:var(--muted);font-size:14px}
 .tolink svg{flex:none;width:20px;height:20px;color:var(--muted)}
 .deps{list-style:none;margin:10px 0 0;padding:0;display:grid;grid-template-columns:max-content minmax(0,1fr);column-gap:12px}
-.dep{grid-column:1/-1;display:grid;grid-template-columns:subgrid;padding:10px 0;border-top:1px solid var(--line);animation:in .25s ease backwards}
-@supports not (grid-template-columns:subgrid){.dep{grid-template-columns:4.6em minmax(0,1fr);column-gap:12px}}
+.dep{grid-column:1/-1;display:grid;grid-template-columns:subgrid;border-top:1px solid var(--line);animation:in .25s ease backwards}
+.deplink{grid-column:1/-1;display:grid;grid-template-columns:subgrid;padding:10px 0;color:inherit;text-decoration:none;border-radius:10px;-webkit-tap-highlight-color:transparent;transition:background-color .15s ease, transform .15s ease}
+@supports not (grid-template-columns:subgrid){.dep,.deplink{grid-template-columns:4.6em minmax(0,1fr);column-gap:12px}}
+a.deplink:active{background:var(--bg);transform:scale(.99)}
+.dep .mapgo{flex:none;width:18px;height:18px;margin-left:auto;color:var(--muted);align-self:center}
 .dep:first-child{border-top:0}
 @keyframes in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 .dep .t{font-variant-numeric:tabular-nums;line-height:1.15}
@@ -492,12 +495,17 @@ function row(d) {
   const hints = d.hints.map((i) => hintText(data.hints[i])).filter(Boolean)
     .map((h) => `<div class="hint">${esc(h.uk)}<small lang="de">${esc(h.de)}</small></div>`).join('');
   const label = `${kind} ${d.line} до ${d.dest}, ` + (d.gone ? 'скасовано' : mins <= 0 ? 'відправляється зараз' : `через ${mins} хвилин, о ${hm(t)}`);
-  return `<li class="dep${d.gone ? ' gone' : ''}${!d.gone && mins <= 2 ? ' soon' : ''}" aria-label="${esc(label)}">` +
-    `<div class="t" aria-hidden="true"><b>${esc(big)}</b>${small ? `<small>${esc(small)}</small>` : ''}</div><div>` +
-    `<div class="l1"><span class="line ${lineCls(d)}">${esc(d.line.replace(/^SEV\s*RB\s*/, 'SEV '))}</span><span class="dest" lang="de">${esc(d.dest)}</span></div>` +
+  // the line number (the whole row) opens this very bus on the map: its road, where it is, where I am, how to catch it
+  const map = d.ref && !d.gone && data.stop.id ? `../mapa/?line=${encodeURIComponent(d.ref.line)}&amp;trip=${encodeURIComponent(d.ref.trip)}&amp;at=${encodeURIComponent(data.stop.id)}` +
+    `&amp;plan=${encodeURIComponent(d.plan)}&amp;ln=${encodeURIComponent(d.line)}&amp;dest=${encodeURIComponent(d.dest)}&amp;mode=${encodeURIComponent(d.mode)}&amp;sn=${encodeURIComponent(data.stop.name || '')}` : '';
+  const inner = `<div class="t" aria-hidden="true"><b>${esc(big)}</b>${small ? `<small>${esc(small)}</small>` : ''}</div><div>` +
+    `<div class="l1"><span class="line ${lineCls(d)}">${esc(d.line.replace(/^SEV\s*RB\s*/, 'SEV '))}</span><span class="dest" lang="de">${esc(d.dest)}</span>${map ? MAPGO : ''}</div>` +
     `<div class="l2"><span>${esc(kind)}</span>${where ? `<span>${esc(where)}</span>` : ''}${live}` +
-    (d.notes.length ? `<span class="warn">${WARN}є зміни на лінії</span>` : '') + `</div>${hints}</div></li>`;
+    (d.notes.length ? `<span class="warn">${WARN}є зміни на лінії</span>` : '') + `</div>${hints}</div>`;
+  return `<li class="dep${d.gone ? ' gone' : ''}${!d.gone && mins <= 2 ? ' soon' : ''}${map ? ' has-map' : ''}">` +
+    (map ? `<a class="deplink" href="${map}" aria-label="${esc(label)}. На мапі: де він зараз і як на нього встигнути">${inner}</a>` : `<div class="deplink" aria-label="${esc(label)}">${inner}</div>`) + '</li>';
 }
+const MAPGO = '<svg class="mapgo" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
 
 function render() {
   if (!data) return;

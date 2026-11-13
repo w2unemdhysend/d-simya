@@ -107,11 +107,12 @@ export const leave = (s) => T(s.depEst || s.dep || s.arrEst || s.arr);
 // Where a bus or train is now, worked out from the times of its stops (VRR gives no GPS): before its first stop,
 // standing at stop i, between stop i and i+1 (`frac` of the way, by time), or done. `at` is the distance along the
 // path when a path is given, so the page can put a marker there and colour the part already driven.
-export function whereNow(stops, now, path = null) {
+// `pre` ({cum, pos}) are measure() and stopPositions() of this path, worked out once: the map asks every frame.
+export function whereNow(stops, now, path = null, pre = null) {
   const n = stops.length;
   if (!n) return null;
-  const cum = path && path.length > 1 ? measure(path) : null;
-  const pos = cum ? stopPositions(stops, path, cum) : null;
+  const cum = pre && pre.cum ? pre.cum : path && path.length > 1 ? measure(path) : null;
+  const pos = pre && pre.pos ? pre.pos : cum ? stopPositions(stops, path, cum) : null;
   const place = (i, j = i, f = 0) => {
     if (cum && Number.isFinite(pos[i]) && Number.isFinite(pos[j])) { const d = pos[i] + f * (pos[j] - pos[i]); return { at: d, point: pointAt(path, cum, d) }; }
     const a = stops[i].coord, b = stops[j].coord || a;
@@ -141,4 +142,51 @@ export function ring(c, r, n = 40) {
   const k = Math.cos(c[0] * Math.PI / 180), out = [];
   for (let i = 0; i <= n; i++) { const a = (i / n) * 2 * Math.PI; out.push([c[1] + (r * Math.sin(a)) / (111320 * k), c[0] + (r * Math.cos(a)) / 111320]); }
   return out;
+}
+
+// "I want this bus": which of its stops to walk to from `me`. Only stops it has not reached yet count, and not its last
+// one (nobody gets on there). For each: the straight-line walk (walkMin) and the minutes left until the bus is there;
+// `slack` is what is left over. The nearest stop if there is time (a minute or more), else the nearest one there is
+// time for; `best` is null when none is reachable before the bus.
+export function catchPlan(stops, now, pos, me, walk = (m) => walkMin(m)) {
+  if (!pos || pos.state === 'done' || !me) return { done: !!pos && pos.state === 'done', nearest: null, best: null, all: [] };
+  const first = pos.state === 'before' ? 0 : pos.state === 'at' ? pos.i + 1 : pos.j;
+  const all = [];
+  for (let k = first; k < stops.length - 1; k++) {
+    const s = stops[k], t = k === 0 ? leave(s) : reach(s);
+    if (!s.coord || !Number.isFinite(t)) continue;
+    const m = metres(me, s.coord), w = walk(m);
+    all.push({ k, m, walk: w, t, left: (t - now) / 60000, slack: (t - now) / 60000 - w });
+  }
+  if (!all.length) return { done: true, nearest: null, best: null, all };
+  const near = (a, b) => (b.m < a.m ? b : a);
+  const nearest = all.reduce(near), ok = all.filter((x) => x.slack >= 1);
+  return { done: false, nearest, best: nearest.slack >= 1 ? nearest : ok.length ? ok.reduce(near) : null, all };
+}
+
+// The map without internet: the tiles of Xanten (down to its streets) and of the way to Wesel, coarser further out.
+// [zoom, south, west, north, east]; the tile server has no tiles above zoom 14 (the map enlarges those).
+export const CITY = [
+  [14, 51.625, 6.385, 51.700, 6.505], [14, 51.645, 6.595, 51.675, 6.645],   // Xanten; the middle of Wesel
+  [13, 51.600, 6.360, 51.720, 6.660],
+  [12, 51.560, 6.280, 51.760, 6.720], [11, 51.540, 6.250, 51.780, 6.750], [10, 51.550, 6.300, 51.750, 6.700],
+  [9, 51.45, 6.2, 51.85, 6.8], [8, 51.55, 6.35, 51.75, 6.65], [7, 51.6, 6.4, 51.7, 6.6], [6, 51.6, 6.4, 51.7, 6.6],
+];
+export function tileOf(lat, lon, z) {
+  const n = 2 ** z;
+  return [Math.floor(((lon + 180) / 360) * n), Math.floor(((1 - Math.asinh(Math.tan((lat * Math.PI) / 180)) / Math.PI) / 2) * n)];
+}
+export function cityTiles(boxes = CITY) {
+  const out = new Set();
+  for (const [z, s, w, n, e] of boxes) {
+    const [x0, y0] = tileOf(n, w, z), [x1, y1] = tileOf(s, e, z);
+    for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) out.add(`${z}/${x}/${y}`);
+  }
+  return [...out].map((k) => k.split('/').map(Number));
+}
+// One name for a tile whatever weekly version the tile server is at (its address changes every week): a kept tile
+// stays good when the server moves on. sw.js names tiles the same way (tests/mapa.test.mjs checks they agree).
+export function tileKey(url) {
+  const m = String(url).match(/^(https:\/\/tiles\.openfreemap\.org)\/planet\/[^/?]+\/(\d+)\/(\d+)\/(\d+)\.pbf/);
+  return m ? `${m[1]}/__tile/${m[2]}/${m[3]}/${m[4]}.pbf` : String(url).split('?')[0];
 }
