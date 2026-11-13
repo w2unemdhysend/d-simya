@@ -177,7 +177,7 @@ body.playing .top .eyebrow,body.playing .top h1,body.playing .top .lede,body.pla
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 @media (min-width:480px){h1{font-size:38px}}
 </style>
-<link rel="stylesheet" href="games.css?v=2">
+<link rel="stylesheet" href="games.css?v=3">
 <link rel="stylesheet" href="../assets/ui.css?v=20">
 </head>
 <body>
@@ -206,7 +206,7 @@ body.playing .top .eyebrow,body.playing .top h1,body.playing .top .lede,body.pla
     </div>
     <div class="group">Для перерви</div>
     <a class="hcard hopcard" id="h-hop" href="?tab=hop" data-game="hop" style="--i:6">
-      <div class="ch"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.5h6v10a5.5 5.5 0 0 1-5.5 5.5H6a2.5 2.5 0 0 1 0-5h4z"/><path d="M10 7h6"/></svg></span><span class="lab">3D-гра</span><svg class="go" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
+      <div class="ch"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.5h6v10a5.5 5.5 0 0 1-5.5 5.5H6a2.5 2.5 0 0 1 0-5h4z"/><path d="M10 7h6"/></svg></span><span class="lab">2.5D-гра</span><svg class="go" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
       <div class="big">Пригоди шкарпетки</div><p class="sub" data-status="hop"></p><div id="h-hop-art"></div>
     </a>
     <div class="grid2">
@@ -312,7 +312,7 @@ import * as satz from './satz.js';
 import * as zahlen from './zahlen.js';
 import * as dialog from './dialog.js';
 import * as memory from './memory.js';
-import * as hop from './hop.js?v=1';
+import * as hop from './hop.js?v=2';
 import { SKINS, SKIN, reach, reached, drumSVG } from './skins.js';
 (function(){
   var $ = function(s, r){ return (r || document).querySelector(s); };
@@ -406,7 +406,7 @@ import { SKINS, SKIN, reach, reached, drumSVG } from './skins.js';
     e.preventDefault(); openGame(a.getAttribute('data-game'));
   });
   $('#backbtn').addEventListener('click', function(){ haptic(); home(); });
-  // a game may answer Back itself (the 3D game pauses first); otherwise Back ends a round, then goes to the menu
+  // a game may answer Back itself (the platformer pauses first); otherwise Back ends a round, then goes to the menu
   if (tg && tg.BackButton) try { tg.BackButton.onClick(function(){ var m = made[current]; if (m && m.back && m.back()) return; if (busy(current)) stopGame(current); else home(); }); } catch(e){}
 
   function points(n){ return {one:'бал', few:'бали', many:'балів'}[plural.select(n)] || 'балів'; }

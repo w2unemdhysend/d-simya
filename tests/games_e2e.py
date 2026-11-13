@@ -58,7 +58,7 @@ async def main():
         # ---------------- the menu ----------------
         await pg.goto(base + 'igry/'); await pg.wait_for_timeout(700)
         tiles = await pg.evaluate("[...document.querySelectorAll('#view-hub [data-game]')].map(a => [a.dataset.game, (a.querySelector('[data-status]') || {}).textContent || ''])")
-        check('menu: the garden card, five German games, the 3D game\'s card and two more for a break, each with a status line', [t[0] for t in tiles] == ['garten', 'art', 'memory', 'satz', 'zahlen', 'dialog', 'hop', 'click', 'sort'] and all(t[1] for t in tiles[1:]), str(tiles))
+        check('menu: the garden card, five German games, the 2.5D game\'s card and two more for a break, each with a status line', [t[0] for t in tiles] == ['garten', 'art', 'memory', 'satz', 'zahlen', 'dialog', 'hop', 'click', 'sort'] and all(t[1] for t in tiles[1:]), str(tiles))
         check('menu: an empty garden invites to plant', await text(pg, '#h-g-big') == 'Посади перші слова' and await pg.evaluate("document.querySelectorAll('#h-g-bed svg').length") == 5)
         check('menu: groups «Німецька» and «Для перерви», title «Мініігри», no Back', await pg.evaluate("[...document.querySelectorAll('#view-hub .group')].map(g => g.textContent).join('|')") == 'Німецька|Для перерви'
               and await text(pg, 'h1') == 'Мініігри' and not await pg.evaluate('Telegram.WebApp.BackButton.shown') and await pg.is_hidden('#backbtn'))

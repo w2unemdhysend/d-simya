@@ -1,15 +1,17 @@
-"""«Пригоди шкарпетки», the 3D platformer among the games, in headless Chrome (WebGL in software).
+"""«Пригоди шкарпетки», the 2.5D platformer among the games (a side view drawn in 3D as pixel art), in headless Chrome
+(WebGL in software).
 
   python3 tests/hop_e2e.py            (CHROME=/path/to/chrome to use a system browser)
 
 Covers: the card on the games menu and its status, the list of levels (the first open, the rest locked), a phone or
-browser without WebGL (a calm note, no play button, no errors), a level that starts: the 3D picture is drawn, the word
-being collected with its article, the clock; Telegram's vertical swipes off while playing and on again after; the stick
-and the jump by touch (each half of the screen) and by keys; the pause (button, Escape, Telegram's Back) with the clock
-standing still; Back from the pause to the levels; a level played to the end by the pilot (the real rules, the real page):
-the stars, the time, the word with its translation, saved progress, the next level unlocked, the word planted in the
-garden when every letter was found; full screen from the pause (the top bar then below Telegram's buttons); the dark
-theme with an evening sky. Exits 1 if a check fails.
+browser without WebGL 2 (a calm note, no play button, no errors), a level that starts: the picture is drawn as pixel art
+(a small picture enlarged by whole pixels, covering the screen), the word being collected with its article, the clock;
+Telegram's vertical swipes off while playing and on again after; the stick (sideways) and the jump by touch (each half
+of the screen) and by keys; the pause (button, Escape, Telegram's Back) with the clock standing still; Back from the
+pause to the levels; a level played to the end by the pilot (the real rules, the real page): the stars, the time, the
+word with its translation, saved progress, the next level unlocked, the word planted in the garden when every letter was
+found; full screen from the pause (the top bar then below Telegram's buttons); every one of the six places drawn.
+Exits 1 if a check fails.
 """
 import asyncio, functools, http.server, io, json, os, sys, threading
 from PIL import Image
@@ -66,14 +68,14 @@ async def main():
         await pg.goto(base + 'igry/'); await pg.wait_for_timeout(500)
         card = await pg.evaluate("""() => { const c = document.querySelector('#h-hop'); return {big: c.querySelector('.big').textContent, sub: c.querySelector('[data-status="hop"]').textContent,
           art: !!c.querySelector('svg.hop-art'), group: c.previousElementSibling.textContent}; }""")
-        check('menu: the 3D game is a big card under «Для перерви», with its status', card['big'] == 'Пригоди шкарпетки' and card['sub'] == '3D-платформер · 6 рівнів' and card['art'] and card['group'] == 'Для перерви', str(card))
+        check('menu: the 2.5D game is a big card under «Для перерви», with its status', card['big'] == 'Пригоди шкарпетки' and card['sub'] == '2.5D-платформер · 6 рівнів' and card['art'] and card['group'] == 'Для перерви', str(card))
         await pg.click('#h-hop'); await pg.wait_for_timeout(500)
         lst = await pg.evaluate("""() => ({title: document.querySelector('#title').textContent, url: location.search, go: document.querySelector('#hp-go').textContent,
           open: [...document.querySelectorAll('.hop-lv')].map(b => !b.disabled), names: [...document.querySelectorAll('.hop-lv b')].map(b => b.textContent),
           lock: document.querySelectorAll('.hop-lv.locked').length, no: document.querySelector('#hp-no').hidden, keys: document.querySelector('#hp-keys').textContent})""")
         check('levels: six, the first open, the rest locked until the one before is done', lst['title'] == 'Пригоди шкарпетки' and lst['url'] == '?tab=hop' and lst['open'] == [True] + [False] * 5 and lst['lock'] == 5
               and lst['names'] == ['Пральня', 'Двір', 'Вулиця', 'Рейн', 'Римський парк', 'Вітряк'] and lst['go'] == 'Почати: Пральня' and lst['no'], str(lst))
-        check('levels: how to play, for a touch screen', 'лівій половині' in lst['keys'], lst['keys'])
+        check('levels: how to play, for a touch screen', 'ліворуч або праворуч у лівій половині' in lst['keys'], lst['keys'])
         await pg.screenshot(path=os.path.join(SHOTS, 'hop-list.png'), full_page=True)
         gl = await pg.evaluate("window.__games.hop.canPlay()")
         await ctx.close()
@@ -82,11 +84,11 @@ async def main():
         ctx, pg = await context(browser, webgl=False)
         await pg.goto(base + 'igry/?tab=hop'); await pg.wait_for_timeout(500)
         st = await pg.evaluate("() => ({no: !document.querySelector('#hp-no').hidden, go: document.querySelector('#hp-go').disabled, lv: document.querySelector('.hop-lv').disabled})")
-        check('without WebGL: a note that 3D does not run here, nothing to start', st['no'] and st['go'] and st['lv'], str(st))
+        check('without WebGL: a note that the game does not run here, nothing to start', st['no'] and st['go'] and st['lv'], str(st))
         await ctx.close()
 
         if not gl:   # a browser without WebGL even in software: only what such a phone sees can be checked
-            print('(no WebGL in this browser: the 3D checks are skipped)')
+            print('(no WebGL 2 in this browser: the game checks are skipped)')
             await browser.close()
             print('ALL PASS' if not fails else f'{len(fails)} FAILED: {fails}')
             sys.exit(1 if fails else 0)
@@ -102,24 +104,30 @@ async def main():
         check('level 1: the game covers the page, Telegram\'s swipe-to-close is off', st['stage'] and st['cls'] and st['vs'] is False and st['back'], str(st))
         check('level 1: the word to collect is shown: die and five empty letters; the hint for the first time', st['art'] == 'die' and st['slots'] == 5 and st['hint'] and st['touch'] and st['hist'] == 0, str(st))
         colours = await painted(pg)
-        check('the 3D picture is drawn (many colours, not an empty canvas)', colours > 25, colours)
+        check('the picture is drawn (many colours, not an empty canvas)', colours > 25, colours)
+        pix = await pg.evaluate("""() => { const c = document.querySelector('#hp-cv'), r = c.getBoundingClientRect(), s = document.querySelector('#hop-stage').getBoundingClientRect(), i = window.__hop.engine.info();
+          return {buf: [c.width, c.height], css: [r.width, r.height], cover: r.left <= s.left + 0.01 && r.top <= s.top + 0.01 && r.right >= s.right - 0.01 && r.bottom >= s.bottom - 0.01, px: i.px, dpr: devicePixelRatio,
+            render: getComputedStyle(c).imageRendering}; }""")
+        short = min(pix['buf'])
+        check('pixel art: a small picture (about 220 pixels on its short side) enlarged by whole pixels with hard edges, covering the screen',
+              150 <= short <= 300 and abs(pix['buf'][0] * pix['px'] / pix['dpr'] - pix['css'][0]) < 0.01 and pix['render'] == 'pixelated' and pix['cover'], str(pix))
         await pg.screenshot(path=os.path.join(SHOTS, 'hop-level1.png'))
 
-        # touch: the left half moves, the right half jumps
-        z0 = await pg.evaluate("window.__hop.engine.world.p.z")
+        # touch: the left half moves (sideways), the right half jumps
+        x0 = await pg.evaluate("window.__hop.engine.world.p.x")
         cdp = await ctx.new_cdp_session(pg)
         async def touches(kind, pts):
             await cdp.send('Input.dispatchTouchEvent', {'type': kind, 'touchPoints': [{'x': x, 'y': y, 'id': i} for i, (x, y) in pts]})
         await touches('touchStart', [(0, (90, 600))]); await pg.wait_for_timeout(50)
-        for k in range(1, 3): await touches('touchMove', [(0, (90, 600 - k * 12))]); await pg.wait_for_timeout(20)
+        for k in range(1, 3): await touches('touchMove', [(0, (90 + k * 12, 600))]); await pg.wait_for_timeout(20)
         await pg.wait_for_timeout(250)   # a small push: a slow walk, so a slow software picture cannot run it off the start platform
-        mid = await pg.evaluate("({z: window.__hop.engine.world.p.z, joy: document.querySelector('#hp-joy').classList.contains('on')})")
+        mid = await pg.evaluate("({x: window.__hop.engine.world.p.x, joy: document.querySelector('#hp-joy').classList.contains('on')})")
         await touches('touchMove', [(0, (90, 600))]); await pg.wait_for_timeout(350)   # the first finger stays, the stick back in the middle: the sock stops
         await touches('touchStart', [(0, (90, 600)), (1, (320, 600))]); await pg.wait_for_timeout(250)
         jumped = await pg.evaluate("({j: window.__hop.engine.world.jumps, btn: document.querySelector('#hp-jump').classList.contains('on')})")
         await touches('touchEnd', []); await pg.wait_for_timeout(700)
-        after = await pg.evaluate("({z: window.__hop.engine.world.p.z, joy: document.querySelector('#hp-joy').classList.contains('on'), hint: document.querySelector('#hp-hint').hidden})")
-        check('touch: a finger dragged up on the left walks forward, the stick shows under it', mid['z'] < z0 - 0.2 and mid['joy'], f'{z0} → {mid}')
+        after = await pg.evaluate("({x: window.__hop.engine.world.p.x, joy: document.querySelector('#hp-joy').classList.contains('on'), hint: document.querySelector('#hp-hint').hidden})")
+        check('touch: a finger dragged right on the left half walks right, the stick shows under it', mid['x'] > x0 + 0.2 and mid['joy'], f'{x0} → {mid}')
         check('touch: a second finger on the right jumps, the button shows it; letting go stops', jumped['j'] >= 1 and jumped['btn'] and not after['joy'], f'{jumped} {after}')
         check('the hint goes after the first jump', after['hint'], str(after))
 
@@ -129,7 +137,9 @@ async def main():
         await pg.keyboard.down('ArrowRight'); await pg.wait_for_timeout(500); await pg.keyboard.up('ArrowRight')
         await pg.keyboard.down('Space'); await pg.wait_for_timeout(120); await pg.keyboard.up('Space'); await pg.wait_for_timeout(300)
         k = await pg.evaluate("({x: window.__hop.engine.world.p.x, j: window.__hop.engine.world.jumps})")
-        check('keys: an arrow runs, the space bar jumps', k['x'] > x0 + 1 and k['j'] == 1, f'{x0} → {k}')
+        await pg.keyboard.down('ArrowUp'); await pg.wait_for_timeout(120); await pg.keyboard.up('ArrowUp'); await pg.wait_for_timeout(700)
+        k2 = await pg.evaluate("window.__hop.engine.world.jumps")
+        check('keys: an arrow runs, the space bar jumps, the up arrow too', k['x'] > x0 + 1 and k['j'] == 1 and k2 == 2, f'{x0} → {k} {k2}')
 
         # pause: the button, Escape, Telegram's Back; the clock stands still
         await pg.click('#hp-pause'); await pg.wait_for_timeout(300)
@@ -149,7 +159,7 @@ async def main():
         # the whole level, played by the pilot through the real page; every letter, so the word is planted
         await pg.click('#hp-go'); await ready(pg)
         await pg.evaluate("""async () => { const m = await import('/tests/hop_pilot.mjs'); const e = window.__hop.engine, W = e.world, L = window.__hop.LEVELS[0];
-          const d = m.makePilot(W, L.route); e.drive = () => { if (W.p.z < -33) W.got.fill(true); return d(); }; }""")
+          const d = m.makePilot(W, L.route); e.drive = () => { if (W.p.x > 44) W.got.fill(true); return d(); }; }""")
         await pg.wait_for_function("window.__hop.state() === 'end' && !document.querySelector('#hp-end').hidden", timeout=60000)
         end = await pg.evaluate("""() => ({title: document.querySelector('#hp-etitle').textContent, stars: document.querySelectorAll('#hp-end .hop-stars svg.on').length,
           goals: [...document.querySelectorAll('.hop-goals li')].map(l => l.className), word: document.querySelector('.hop-wordcard b').textContent, uk: document.querySelector('.hop-wordcard small').textContent,
@@ -194,15 +204,16 @@ async def main():
         check('full screen: the pause button moves below the status bar and Telegram\'s buttons', abs(top - top0 - 76) < 1.5 and top >= 86 - 1, f'{top0} → {top}')
         await ctx.close()
 
-        # the dark theme: the evening sky
+        # every place is drawn: its own sky, light and scenery
         ctx, pg = await context(browser)
-        await pg.goto(base + 'igry/?tab=hop'); await pg.evaluate("localStorage.setItem('dsimya-theme', 'dark')")
         await pg.goto(base + 'igry/?tab=hop'); await pg.wait_for_timeout(400)
-        await pg.click('#hp-go'); await ready(pg); await pg.wait_for_timeout(1500)
-        im = Image.open(io.BytesIO(await pg.screenshot(clip={'x': 0, 'y': 60, 'width': 390, 'height': 120}))).convert('L').resize((39, 12))
-        sky = sum(im.tobytes()) / (39 * 12)
-        check('dark theme: an evening scene (a dark sky), still drawn', sky < 90 and await painted(pg) > 20, sky)
-        await pg.screenshot(path=os.path.join(SHOTS, 'hop-dark.png'))
+        await pg.click('#hp-go'); await ready(pg)
+        seen = []
+        for lv in range(6):
+            await pg.evaluate(f"window.__hop.begin({lv}); window.__hop.engine.adaptive = false"); await pg.wait_for_timeout(900)
+            seen.append(await painted(pg))
+            await pg.screenshot(path=os.path.join(SHOTS, f'hop-place{lv + 1}.png'))
+        check('all six places are drawn (many colours each)', all(c > 20 for c in seen), str(seen))
         await ctx.close()
         await browser.close()
     print('ALL PASS' if not fails else f'{len(fails)} FAILED: {fails}')

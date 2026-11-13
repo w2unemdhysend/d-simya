@@ -1,11 +1,12 @@
-// "Пригоди шкарпетки": the 3D platformer among the games. This module is the light part: the list of levels, the
-// screen around the 3D view (stick, jump, the word being collected, pause, the end of a level) and saving what was done.
-// The 3D view itself (three.js, ~750 KB) loads only when a level starts: hop/engine.js (kept for offline play by sw.js).
+// "Пригоди шкарпетки": the 2.5D platformer among the games (seen from the side, drawn in 3D as pixel art). This module
+// is the light part: the list of levels, the screen around the picture (stick, jump, the word being collected, pause,
+// the end of a level) and saving what was done. The picture itself (three.js, ~750 KB) loads only when a level starts:
+// hop/engine.js and hop/art.js (kept for offline play by sw.js).
 import { $, esc, haptic, tg, load, store, toast, reduce, plural, SPEAKER } from './kit.js';
 import * as progress from './progress.js';
 import * as garden from './garten.js';
 import * as sound from '../audio/say.js';
-import { LEVELS } from './hop/levels.js?v=1';
+import { LEVELS } from './hop/levels.js?v=2';
 
 const SOUND_KEY = 'dsimya-hop-sound';
 
@@ -18,10 +19,10 @@ const open = (i) => i === 0 || done(LEVELS[i - 1].id);
 const fmtT = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 export function status() {
   const n = LEVELS.filter((l) => done(l.id)).length, st = LEVELS.reduce((a, l) => a + starsOf(l.id), 0);
-  if (!n) return `3D-платформер · ${LEVELS.length} ${plural(LEVELS.length, 'рівень', 'рівні', 'рівнів')}`;
+  if (!n) return `2.5D-платформер · ${LEVELS.length} ${plural(LEVELS.length, 'рівень', 'рівні', 'рівнів')}`;
   return (n === LEVELS.length ? 'Пару знайдено!' : `Пройдено ${n} з ${LEVELS.length}`) + ` · ★ ${st} з ${LEVELS.length * 3}`;
 }
-export const canPlay = () => { try { const c = document.createElement('canvas'); return !!(window.WebGLRenderingContext && (c.getContext('webgl2') || c.getContext('webgl'))); } catch (e) { return false; } };
+export const canPlay = () => { try { const c = document.createElement('canvas'); return !!(window.WebGL2RenderingContext && c.getContext('webgl2')); } catch (e) { return false; } };
 
 /* ---------------- little sounds, made on the spot (no files) ---------------- */
 let ac = null, soundOn = load(SOUND_KEY) !== false;
@@ -55,24 +56,33 @@ const SFX = {
   goal: () => [523, 659, 784, 1047, 784, 1047].forEach((f, i) => tone(f, f, i > 3 ? 0.3 : 0.14, 'triangle', 0.07, i * 0.1)),
 };
 
-/* ---------------- the picture on the menu card and the first screen ---------------- */
+/* ---------------- the picture on the menu card and the first screen: a rainy night street, pixel by pixel ---------------- */
 export function strip(big) {
-  return `<svg viewBox="0 -30 320 96" class="hop-art${big ? ' big' : ''}" aria-hidden="true" preserveAspectRatio="xMidYMax meet">
-    <g>
-    <path d="M58 30 Q98 -8 136 22" fill="none" stroke="var(--muted)" stroke-width="2" stroke-dasharray="1 6" stroke-linecap="round" opacity=".7"/>
-    <path d="M168 18 Q206 -14 238 12" fill="none" stroke="var(--muted)" stroke-width="2" stroke-dasharray="1 6" stroke-linecap="round" opacity=".7"/>
-    <rect x="6" y="40" width="74" height="22" rx="7" fill="#9CB3C4"/><rect x="5" y="37" width="76" height="9" rx="4.5" fill="#F4F7FA" stroke="var(--line)"/>
-    <rect x="118" y="30" width="44" height="34" rx="7" fill="#E3E9EE" stroke="var(--line)"/><circle cx="140" cy="50" r="8.5" fill="#7FB2D6" stroke="#AEB9C2" stroke-width="2.5"/>
-    <rect x="224" y="24" width="56" height="40" rx="8" fill="#B87E3E"/><rect x="222" y="20" width="60" height="9" rx="4.5" fill="#D9A35F"/>
-    <g transform="translate(96 -2) rotate(-14)"><rect x="-8" y="-8" width="16" height="16" rx="4" fill="${'#D6453A'}"/><text x="0" y="5" font-family="Unbounded, Arial Black, sans-serif" font-weight="700" font-size="11" fill="#fff" text-anchor="middle">S</text></g>
-    <g transform="translate(206 -6) rotate(10)"><rect x="-8" y="-8" width="16" height="16" rx="4" fill="#D6453A"/><text x="0" y="5" font-family="Unbounded, Arial Black, sans-serif" font-weight="700" font-size="11" fill="#fff" text-anchor="middle">O</text></g>
-    <g transform="translate(158 6) rotate(-12)">
-      <path d="M-7 -20h14v20q0 8 -8 8h-10q-7 0 -7 -6t7 -6h4z" fill="#F2C230"/>
-      <rect x="-7" y="-14" width="14" height="3" fill="#2F5DB3"/><rect x="-7" y="-9" width="14" height="3" fill="#2F5DB3"/>
-      <rect x="-8" y="-23" width="16" height="4" rx="2" fill="#2F5DB3"/>
-      <circle cx="-2.5" cy="-5" r="2" fill="#fff"/><circle cx="2.8" cy="-5" r="2" fill="#fff"/><circle cx="-2" cy="-4.6" r="1" fill="#1B1F24"/><circle cx="3.3" cy="-4.6" r="1" fill="#1B1F24"/>
-      <path d="M-18 6q-3 -6 3 -6" fill="#D6453A"/>
-    </g></g></svg>`;
+  const id = big ? 'hpSkyB' : 'hpSky', r = (x, y, w, h, c) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${c}"/>`;
+  let city = '', lit = '';
+  [[0, 34, 22], [22, 22, 16], [38, 40, 20], [58, 14, 18], [76, 30, 24], [100, 20, 14], [114, 36, 22], [136, 10, 20], [156, 28, 18], [174, 18, 24], [198, 34, 16], [214, 12, 22], [236, 26, 18], [254, 38, 20], [274, 16, 22], [296, 30, 24]]
+    .forEach(([x, y, w], k) => { city += r(x, y, w, 96 - y, k % 2 ? '#1C1636' : '#231B42'); for (let wy = y + 4; wy < 70; wy += 7) for (let wx = x + 3; wx < x + w - 3; wx += 5) if ((wx * 7 + wy * 13 + k) % 5 === 0) lit += r(wx, wy, 2, 3, (wx + wy) % 3 ? '#FFC870' : '#8AD8FF'); });
+  let rain = '';
+  for (let k = 0; k < 26; k++) { const x = (k * 53) % 320, y = (k * 29) % 70; rain += `<path d="M${x} ${y}l-2 9" stroke="#A8B8F0" stroke-opacity=".45" stroke-width="1"/>`; }
+  return `<svg viewBox="0 0 320 96" class="hop-art${big ? ' big' : ''}" aria-hidden="true" preserveAspectRatio="xMidYMid slice" shape-rendering="crispEdges">
+    <defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#05040C"/><stop offset=".6" stop-color="#1A1230"/><stop offset="1" stop-color="#4A2850"/></linearGradient></defs>
+    <rect width="320" height="96" rx="14" fill="url(#${id})"/>
+    <g>${city}${lit}</g>
+    ${r(150, 26, 34, 11, '#0A0A10')}<text x="167" y="35" font-family="system-ui, sans-serif" font-weight="800" font-size="10" fill="#FF4D7D" text-anchor="middle" style="filter:drop-shadow(0 0 3px #FF4D7D)">KINO</text>
+    ${r(30, 30, 2, 66, '#0E0C18')}${r(30, 30, 12, 2, '#0E0C18')}${r(40, 32, 6, 3, '#FFE9B0')}<path d="M43 35 L28 96 L62 96 Z" fill="#FFE9B0" fill-opacity=".14" shape-rendering="auto"/>
+    ${r(0, 70, 96, 26, '#14121E')}${r(0, 68, 96, 3, '#5A5E6A')}
+    ${r(126, 62, 52, 34, '#14121E')}${r(126, 60, 52, 3, '#5A5E6A')}
+    ${r(214, 52, 40, 14, '#B98443')}${r(228, 52, 10, 14, '#E0C89A')}
+    ${r(270, 60, 50, 36, '#14121E')}${r(270, 58, 50, 3, '#5A5E6A')}
+    <g transform="translate(102 34) rotate(-12)">${r(-8, -8, 16, 16, '#D6453A')}<text x="0" y="5" font-family="Unbounded, Arial Black, sans-serif" font-weight="700" font-size="11" fill="#fff" text-anchor="middle">S</text></g>
+    <g transform="translate(196 30) rotate(10)">${r(-8, -8, 16, 16, '#D6453A')}<text x="0" y="5" font-family="Unbounded, Arial Black, sans-serif" font-weight="700" font-size="11" fill="#fff" text-anchor="middle">O</text></g>
+    <path d="M70 58 Q110 18 140 52" fill="none" stroke="#FFFFFF" stroke-opacity=".35" stroke-width="2" stroke-dasharray="2 5" shape-rendering="auto"/>
+    <g transform="translate(150 50)">
+      ${r(-6, -18, 12, 16, '#F2C230')}${r(-14, -4, 20, 8, '#F2C230')}${r(-16, -4, 6, 8, '#D6453A')}${r(-6, 2, 6, 2, '#D6453A')}
+      ${r(-6, -13, 12, 2, '#2F5DB3')}${r(-6, -9, 12, 2, '#2F5DB3')}${r(-7, -21, 14, 3, '#2F5DB3')}
+      ${r(-4, -7, 3, 3, '#FFFFFF')}${r(1, -7, 3, 3, '#FFFFFF')}${r(-3, -6, 1, 2, '#14171B')}${r(2, -6, 1, 2, '#14171B')}
+    </g>
+    <g>${rain}</g></svg>`;
 }
 
 /* ---------------- the game screen ---------------- */
@@ -80,19 +90,15 @@ const PAUSE = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><
 const UP = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 13l6-6 6 6"/><path d="M6 18.5l6-6 6 6" opacity=".45"/></svg>';
 const STAR = (on, i) => `<svg viewBox="0 0 24 24" class="${on ? 'on' : ''}" style="--k:${i}" aria-hidden="true"><path d="M12 2.8l2.75 5.75 6.3.8-4.62 4.38 1.17 6.27L12 16.95 6.4 20l1.17-6.27L2.95 9.35l6.3-.8z"/></svg>`;
 const touch = () => ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
-const isDark = () => {
-  const t = document.documentElement.getAttribute('data-theme');
-  return t ? t === 'dark' : !!(window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
-};
 
 export function create(root) {
   root.innerHTML = `
     <div class="card hop-intro">
       <div class="hop-hero">${strip(true)}</div>
-      <p class="note rules" id="hp-story">Шкарпетка втекла з пральні й шукає свою пару. Шість місць Ксантена: стрибай з платформи на платформу і збирай літери, з них складеться німецьке слово.</p>
+      <p class="note rules" id="hp-story">Шкарпетка втекла з пральні й шукає свою пару. Шість місць Ксантена вночі, у тумані й на заході сонця: біжи й стрибай з платформи на платформу і збирай літери, з них складеться німецьке слово.</p>
       <button class="btn primary" id="hp-go" type="button"></button>
     </div>
-    <div class="card hop-no" id="hp-no" hidden><h2>3D тут не запускається</h2><p class="note">Цей пристрій або браузер не вміє показувати 3D (WebGL). Спробуй у Telegram на телефоні чи в Chrome, Safari або Firefox.</p></div>
+    <div class="card hop-no" id="hp-no" hidden><h2>Гра тут не запускається</h2><p class="note">Цей пристрій або браузер не вміє показувати 3D-графіку (WebGL 2). Спробуй у Telegram на телефоні чи в Chrome, Safari або Firefox.</p></div>
     <ol class="hop-list" id="hp-list" aria-label="Рівні"></ol>
     <p class="note small" id="hp-keys"></p>`;
   const list = $('#hp-list', root);
@@ -112,8 +118,8 @@ export function create(root) {
         <span class="t"><b>${esc(l.name)}</b><small>${what}</small></span>
         <span class="stars" role="img" aria-label="${st} ${plural(st, 'зірка', 'зірки', 'зірок')} з 3">${[0, 1, 2].map((k) => STAR(k < st, k)).join('')}</span></button></li>`;
     }).join('');
-    $('#hp-keys', root).textContent = touch() ? 'Рух — тягни пальцем у лівій половині екрана. Стрибок — торкнись правої половини; довше тримаєш — вище стрибок.'
-      : 'Рух — стрілки або WASD. Стрибок — пробіл; довше тримаєш — вище стрибок. Пауза — Esc.';
+    $('#hp-keys', root).textContent = touch() ? 'Рух — тягни пальцем ліворуч або праворуч у лівій половині екрана. Стрибок — торкнись правої половини; довше тримаєш — вище стрибок.'
+      : 'Рух — стрілки ← → або A і D. Стрибок — пробіл або ↑; довше тримаєш — вище стрибок. Пауза — Esc.';
     const can = canPlay();
     $('#hp-no', root).hidden = can; $('#hp-go', root).disabled = !can;
     list.querySelectorAll('.hop-lv').forEach((b) => { if (!can) b.disabled = true; });
@@ -130,7 +136,7 @@ export function create(root) {
     stage.className = 'hop-stage'; stage.id = 'hop-stage'; stage.hidden = true;
     stage.setAttribute('data-noswipe', ''); stage.setAttribute('data-noedge', '');
     stage.setAttribute('role', 'application');
-    stage.setAttribute('aria-label', 'Пригоди шкарпетки, 3D-гра. Стрілки — рух, пробіл — стрибок, Escape — пауза.');
+    stage.setAttribute('aria-label', 'Пригоди шкарпетки, гра. Стрілки вліво й управо — рух, пробіл або стрілка вгору — стрибок, Escape — пауза.');
     stage.innerHTML = `<canvas class="hop-cv" id="hp-cv"></canvas>
       <div class="hop-top"><button class="hop-b" id="hp-pause" type="button" aria-label="Пауза">${PAUSE}</button>
         <div class="hop-word" id="hp-word" aria-live="polite"></div><div class="hop-time" id="hp-time" aria-hidden="true">0:00</div></div>
@@ -146,7 +152,7 @@ export function create(root) {
         <button class="btn" id="hp-sound" type="button" aria-pressed="true"></button>
         <button class="btn" id="hp-leave" type="button">До рівнів</button></div></div>
       <div class="hop-sheet" id="hp-end" hidden role="dialog" aria-modal="true" aria-labelledby="hp-etitle"><div class="hop-card" id="hp-endcard"></div></div>
-      <div class="hop-load" id="hp-load"><span class="spin" aria-hidden="true"></span><span>Завантажую 3D…</span></div>`;
+      <div class="hop-load" id="hp-load"><span class="spin" aria-hidden="true"></span><span>Завантажую гру…</span></div>`;
     stage.classList.toggle('touch', touch());
     document.body.appendChild(stage);
     stage.addEventListener('click', onClick);
@@ -178,7 +184,7 @@ export function create(root) {
   }
   try { if (tg && tg.onEvent) { tg.onEvent('fullscreenChanged', paintFull); tg.onEvent('fullscreenFailed', paintFull); } } catch (e) {}
 
-  /* the stick (left half) and the jump (right half), each finger on its own */
+  /* the stick (left half: left and right) and the jump (right half), each finger on its own */
   const joy = { id: null, x0: 0, y0: 0 }, jumpers = new Set();
   function bindTouch() {
     const J = $('#hp-joy', stage), R = 56;
@@ -197,16 +203,15 @@ export function create(root) {
     });
     stage.addEventListener('pointermove', (e) => {
       if (e.pointerId !== joy.id || !eng) return;
-      let dx = e.clientX - joy.x0, dy = e.clientY - joy.y0; const d = Math.hypot(dx, dy);
-      if (d > R) { joy.x0 += (dx / d) * (d - R); joy.y0 += (dy / d) * (d - R); dx = (dx / d) * R; dy = (dy / d) * R; J.style.transform = `translate(${joy.x0 - 60}px, ${joy.y0 - 60}px)`; }
-      knob.style.transform = `translate(${dx}px, ${dy}px)`;
-      const k = Math.min(1, Math.hypot(dx, dy) / R), dead = 0.14, s = k < dead ? 0 : (k - dead) / (1 - dead);
-      const a = Math.atan2(dy, dx);
-      eng.stick(Math.cos(a) * s, Math.sin(a) * s);
+      let dx = e.clientX - joy.x0;   // only sideways counts: the stick follows a finger that goes on past its edge
+      if (Math.abs(dx) > R) { joy.x0 += Math.sign(dx) * (Math.abs(dx) - R); dx = Math.sign(dx) * R; J.style.transform = `translate(${joy.x0 - 60}px, ${joy.y0 - 60}px)`; }
+      knob.style.transform = `translate(${dx}px, 0)`;
+      const k = Math.min(1, Math.abs(dx) / R), dead = 0.14, s = k < dead ? 0 : (k - dead) / (1 - dead);
+      eng.stick(Math.sign(dx) * s);
       if (s > 0.3) hideHint();
     });
     const up = (e) => {
-      if (e.pointerId === joy.id) { joy.id = null; if (eng) eng.stick(0, 0); J.classList.remove('on'); knob.style.transform = ''; }
+      if (e.pointerId === joy.id) { joy.id = null; if (eng) eng.stick(0); J.classList.remove('on'); knob.style.transform = ''; }
       if (jumpers.delete(e.pointerId) && !jumpers.size) { if (eng) eng.jump(false); $('#hp-jump', stage).classList.remove('on'); }
     };
     stage.addEventListener('pointerup', up); stage.addEventListener('pointercancel', up);
@@ -214,23 +219,21 @@ export function create(root) {
   }
   const keys = new Set();
   function bindKeys() {
-    const MOVE = { ArrowLeft: 1, ArrowRight: 1, ArrowUp: 1, ArrowDown: 1, KeyA: 1, KeyD: 1, KeyW: 1, KeyS: 1 };
+    const MOVE = { ArrowLeft: 1, ArrowRight: 1, KeyA: 1, KeyD: 1 }, JUMP = { Space: 1, ArrowUp: 1, KeyW: 1, KeyK: 1 };
     const apply = () => {
       if (!eng) return;
-      const x = (keys.has('ArrowRight') || keys.has('KeyD') ? 1 : 0) - (keys.has('ArrowLeft') || keys.has('KeyA') ? 1 : 0);
-      const z = (keys.has('ArrowDown') || keys.has('KeyS') ? 1 : 0) - (keys.has('ArrowUp') || keys.has('KeyW') ? 1 : 0);
-      eng.stick(x, z);
+      eng.stick((keys.has('ArrowRight') || keys.has('KeyD') ? 1 : 0) - (keys.has('ArrowLeft') || keys.has('KeyA') ? 1 : 0));
     };
     document.addEventListener('keydown', (e) => {
       if (!stage || stage.hidden) return;
       if (e.code === 'Escape' || e.code === 'KeyP') { e.preventDefault(); if (state === 'play') pause(); else if (state === 'pause') resume(); return; }
       if (state !== 'play') return;
       if (MOVE[e.code]) { e.preventDefault(); keys.add(e.code); apply(); hideHint(); }
-      if ((e.code === 'Space' || e.code === 'KeyK') && !e.repeat) { e.preventDefault(); if (eng) eng.jump(true); hideHint(true); }
+      if (JUMP[e.code]) { e.preventDefault(); if (!e.repeat) { if (eng) eng.jump(true); hideHint(true); } }
     });
     document.addEventListener('keyup', (e) => {
       if (MOVE[e.code]) { keys.delete(e.code); apply(); }
-      if ((e.code === 'Space' || e.code === 'KeyK') && eng) eng.jump(false);
+      if (JUMP[e.code] && eng) eng.jump(false);
     });
   }
 
@@ -250,7 +253,7 @@ export function create(root) {
   }
   function showHint() {
     const h = $('#hp-hint', stage);
-    h.innerHTML = touch() ? '<span><b>Рух</b> — тягни пальцем тут</span><span><b>Стрибок</b> — торкнись тут</span>' : '<span><b>Рух</b> — стрілки</span><span><b>Стрибок</b> — пробіл</span>';
+    h.innerHTML = touch() ? '<span><b>Рух</b> — тягни пальцем ліворуч і праворуч</span><span><b>Стрибок</b> — торкнись тут</span>' : '<span><b>Рух</b> — стрілки ← →</span><span><b>Стрибок</b> — пробіл</span>';
     h.classList.toggle('keys', !touch()); h.hidden = false; h.classList.remove('out');
     clearTimeout(hintTimer); hintTimer = setTimeout(() => hideHint(true), 9000);
   }
@@ -260,7 +263,7 @@ export function create(root) {
     clearTimeout(hintTimer); h.classList.add('out'); setTimeout(() => { h.hidden = true; }, 350);
   }
 
-  /* events from the 3D world */
+  /* events from the world of the game */
   function onEvent(e, W) {
     if (e.type === 'jump') SFX.jump();
     else if (e.type === 'land' && e.v > 9) { SFX.land(); }
@@ -324,12 +327,12 @@ export function create(root) {
     if (!eng) {
       $('#hp-load', stage).hidden = false;
       try {
-        const mod = await import('./hop/engine.js?v=1');
-        if (document.fonts && document.fonts.load) await Promise.race([document.fonts.load('700 84px Unbounded'), new Promise((r) => setTimeout(r, 1500))]).catch(() => {});
-        eng = mod.createEngine($('#hp-cv', stage), { dark: isDark(), onEvent });
+        const mod = await import('./hop/engine.js?v=2');
+        if (document.fonts && document.fonts.load) await Promise.race([document.fonts.load('700 44px Unbounded'), new Promise((r) => setTimeout(r, 1500))]).catch(() => {});
+        eng = mod.createEngine($('#hp-cv', stage), { onEvent });
         window.__hop = { get engine() { return eng; }, LEVELS, begin, state: () => state };
       } catch (e) {
-        closeStage(); toast(navigator.onLine === false ? 'Немає інтернету: 3D-гру треба один раз відкрити з інтернетом.' : 'Не вдалося запустити 3D на цьому пристрої.', 4200);
+        closeStage(); toast(navigator.onLine === false ? 'Немає інтернету: гру треба один раз відкрити з інтернетом.' : 'Не вдалося запустити гру на цьому пристрої.', 4200);
         return;
       }
       $('#hp-load', stage).hidden = true;
@@ -342,8 +345,8 @@ export function create(root) {
     cur = i; state = 'play'; lastSec = -1;
     clearTimeout(endTimer);
     $('#hp-end', stage).hidden = true; $('#hp-pausebox', stage).hidden = true;
-    eng.stop(); eng.stick(0, 0); eng.jump(false); keys.clear(); jumpers.clear(); joy.id = null;
-    eng.load(LEVELS[i], { dark: isDark() });
+    eng.stop(); eng.stick(0); eng.jump(false); keys.clear(); jumpers.clear(); joy.id = null;
+    eng.load(LEVELS[i]);
     word(); $('#hp-time', stage).textContent = '0:00';
     try { history.replaceState({ ...(history.state || {}), hopLevel: i }, ''); } catch (e) {}
     if (i === 0 && !done(LEVELS[0].id)) showHint(); else $('#hp-hint', stage).hidden = true;
@@ -352,7 +355,7 @@ export function create(root) {
   }
   function pause() {
     if (state !== 'play') return;
-    state = 'pause'; eng.stop(); eng.stick(0, 0); eng.jump(false); keys.clear(); jumpers.clear(); joy.id = null;
+    state = 'pause'; eng.stop(); eng.stick(0); eng.jump(false); keys.clear(); jumpers.clear(); joy.id = null;
     $('#hp-joy', stage).classList.remove('on');
     const W = eng.world, l = LEVELS[cur];
     $('#hp-pinfo', stage).textContent = `${cur + 1}. ${l.name} · ${fmtT(W.t)} · літер ${W.got.filter(Boolean).length} з ${W.got.length}`;
@@ -366,7 +369,7 @@ export function create(root) {
   function closeStage() {
     if (!stage || stage.hidden) return;
     state = 'idle'; clearTimeout(endTimer);
-    if (eng) { eng.stop(); eng.stick(0, 0); eng.jump(false); }
+    if (eng) { eng.stop(); eng.stick(0); eng.jump(false); }
     stage.hidden = true; document.documentElement.classList.remove('hop-on');
     const page = document.querySelector('.wrap'); if (page) page.inert = false;
     try { if (tg) tg.enableVerticalSwipes(); } catch (e) {}

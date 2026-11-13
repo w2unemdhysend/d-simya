@@ -1,136 +1,97 @@
-// "Пригоди шкарпетки", the rules of the world without any drawing: platforms (boxes and round ones, some moving, turning,
-// crumbling or springy), the sock that runs and jumps among them, letters to pick up, checkpoints and the goal.
-// One step is 1/120 s, always the same, so a level plays the same on every phone and in the tests (node tests/hop.test.mjs).
-// Y is up; a level runs away from the camera, towards −Z. A platform's y is the height of its top.
+// "Пригоди шкарпетки", the rules of the world without any drawing. The game is seen from the side (2.5D): the sock runs
+// left and right (X) and jumps (Y is up); a platform's depth (z) is only for the picture. Platforms can move to and fro,
+// go round an upright circle (the sails of the mill), crumble or bounce; there are letters to pick up, checkpoints and
+// the goal. One step is 1/120 s, always the same, so a level plays the same on every phone and in the tests
+// (node tests/hop.test.mjs). A platform's y is the height of its top, `h` how far down it is solid.
 
 export const K = {
   DT: 1 / 120,
   G: 34, FALL: 1.35, TERM: 26,           // gravity, a little stronger on the way down (a jump feels snappier), the fastest fall
   JUMP: 12, CUT: 0.5,                     // the speed of a jump; letting go early halves what is left of it (a short hop)
-  MAXV: 6.2, ACC: 60, DEC: 70, AIR: 30,   // running: top speed, speeding up and stopping on the ground, steering in the air
+  MAXV: 6.2, ACC: 60, DEC: 70, AIR: 34,   // running: top speed, speeding up and stopping on the ground, steering in the air
   COYOTE: 0.1, BUFFER: 0.13,              // a jump still works a moment after running off an edge, and a tap a moment before landing counts
-  R: 0.32, H: 0.95,                       // the sock: radius and height
+  R: 0.3, H: 0.95,                        // the sock: half its width and its height
   STEP: 0.22,                             // low steps are walked up without a jump
-  EDGE: 0.24,                             // standing on a platform counts this far past its edge (forgiving on a phone)
+  EDGE: 0.2,                              // standing on a platform counts this far past its edge (forgiving on a phone)
   DRIFT: 2.5,                             // what a moving platform gave the sock fades in the air by this rate
   CRUMBLE: 0.55, BACK: 3.2,               // a crumbling platform falls this long after it was stepped on, and is back after this
 };
 
-// Where a platform is at time t: its place, plus how it moves (to and fro, round in a circle, turning), minus how far it fell
+// Where a platform is at time t: its place, plus how it moves (to and fro, round an upright circle), minus how far it fell
 export function pose(p, t, st) {
-  let x = p.x, y = p.y, z = p.z, yaw = p.yaw || 0;
+  let x = p.x, y = p.y;
   if (p.move) {
     const m = p.move, k = (1 - Math.cos(2 * Math.PI * (t / m.period + (m.phase || 0)))) / 2;
-    x += m.to[0] * k; y += m.to[1] * k; z += m.to[2] * k;
+    x += m.to[0] * k; y += m.to[1] * k;
   }
   if (p.orbit) {   // like a gondola of a big wheel: round in an upright circle, the platform itself stays level
     const o = p.orbit, a = 2 * Math.PI * (t / o.period + (o.phase || 0));
-    if (o.plane === 'zy') { z += o.r * Math.cos(a); y += o.r * Math.sin(a); } else { x += o.r * Math.cos(a); y += o.r * Math.sin(a); }
+    x += o.r * Math.cos(a); y += o.r * Math.sin(a);
   }
-  if (p.turn) yaw += p.turn * t;
   if (st && st.trig != null) {
     const k = t - st.trig - K.CRUMBLE;
     if (k > 0) y -= 10 * k * k;
   }
-  return { x, y, z, yaw };
+  return { x, y };
 }
 const solid = (p, t, st) => !(st && st.trig != null && t - st.trig > K.CRUMBLE);
 
-// the same turn as three.js's rotation.y, so the drawing and the rules agree
-export function toLocal(q, x, z) {
-  const dx = x - q.x, dz = z - q.z, c = Math.cos(q.yaw), s = Math.sin(q.yaw);
-  return [dx * c - dz * s, dx * s + dz * c];
-}
-export function toWorld(q, lx, lz) {
-  const c = Math.cos(q.yaw), s = Math.sin(q.yaw);
-  return [q.x + lx * c + lz * s, q.z - lx * s + lz * c];
-}
-// is the point (x, z) over the platform's top, counting `m` past its edge
-export function over(p, q, x, z, m = 0) {
-  const [lx, lz] = toLocal(q, x, z);
-  if (p.t === 'cyl') return lx * lx + lz * lz <= (p.r + m) * (p.r + m);
-  return Math.abs(lx) <= p.w / 2 + m && Math.abs(lz) <= p.d / 2 + m;
-}
-// how far the point is from the platform's outline, sideways (0 inside)
-export function gapTo(p, q, x, z) {
-  const [lx, lz] = toLocal(q, x, z);
-  if (p.t === 'cyl') return Math.max(0, Math.hypot(lx, lz) - p.r);
-  return Math.hypot(Math.max(0, Math.abs(lx) - p.w / 2), Math.max(0, Math.abs(lz) - p.d / 2));
-}
-// a circle of radius r at (x, z) pushed out of the platform's side; null if it does not touch
-function pushOut(p, q, x, z, r) {
-  const [lx, lz] = toLocal(q, x, z);
-  let nx, nz;
-  if (p.t === 'cyl') {
-    const d = Math.hypot(lx, lz), need = p.r + r;
-    if (d >= need) return null;
-    const ux = d > 1e-6 ? lx / d : 0, uz = d > 1e-6 ? lz / d : 1;
-    nx = ux * need; nz = uz * need;
-  } else {
-    const hw = p.w / 2, hd = p.d / 2;
-    const cx = Math.max(-hw, Math.min(hw, lx)), cz = Math.max(-hd, Math.min(hd, lz));
-    const dx = lx - cx, dz = lz - cz, d = Math.hypot(dx, dz);
-    if (d >= r) return null;
-    if (d > 1e-6) { nx = cx + (dx / d) * r; nz = cz + (dz / d) * r; }
-    else {   // the centre is inside: out by the nearest side
-      const px = hw - Math.abs(lx), pz = hd - Math.abs(lz);
-      if (px < pz) { nx = Math.sign(lx || 1) * (hw + r); nz = lz; } else { nx = lx; nz = Math.sign(lz || 1) * (hd + r); }
-    }
-  }
-  return toWorld(q, nx, nz);
-}
+// half the width of a platform as seen from the side
+export const half = (p) => (p.t === 'cyl' ? p.r : p.w / 2);
+// is x over the platform's top, counting `m` past its edge
+export const over = (p, q, x, m = 0) => Math.abs(x - q.x) <= half(p) + m;
+// how far x is from the platform's side (0 over it)
+export const gapTo = (p, q, x) => Math.max(0, Math.abs(x - q.x) - half(p));
 
-export function killHeight(L) { return L.kill != null ? L.kill : Math.min(...L.platforms.map((p) => p.y - (p.orbit ? p.orbit.r : 0) + Math.min(0, p.move ? p.move.to[1] : 0))) - 6; }
+// below this the sock has fallen: into the water, the foam or the dark (the level says where its floor is)
+export function killHeight(L) {
+  if (L.kill != null) return L.kill;
+  if (L.floor != null) return L.floor - 1;
+  return Math.min(...L.platforms.map((p) => p.y - (p.orbit ? p.orbit.r : 0) + Math.min(0, p.move ? p.move.to[1] : 0))) - 6;
+}
 
 export function createWorld(L) {
-  const [sx, sy, sz] = L.start;
+  const [sx, sy] = L.start;
   return {
     L, t: 0, st: L.platforms.map(() => ({ trig: null })), kill: killHeight(L),
-    p: { x: sx, y: sy, z: sz, vx: 0, vy: 0, vz: 0, ex: 0, ez: 0, pvx: 0, pvz: 0, ground: -1, coyote: 0, buffer: 0, jumping: false, cut: false, face: 0, last: -1 },
-    got: L.letters.map(() => false), cp: [sx, sy, sz], cpi: -1, falls: 0, jumps: 0, done: false, events: [],
+    p: { x: sx, y: sy, vx: 0, vy: 0, ex: 0, pvx: 0, ground: -1, coyote: 0, buffer: 0, jumping: false, cut: false, face: 1, last: -1 },
+    got: L.letters.map(() => false), cp: [sx, sy], cpi: -1, falls: 0, jumps: 0, done: false, events: [],
   };
 }
 
 export function respawn(W) {
-  const p = W.p, [x, y, z] = W.cp;
-  Object.assign(p, { x, y, z, vx: 0, vy: 0, vz: 0, ex: 0, ez: 0, pvx: 0, pvz: 0, ground: -1, coyote: 0, buffer: 0, jumping: false, cut: false, face: 0 });
+  const p = W.p, [x, y] = W.cp;
+  Object.assign(p, { x, y, vx: 0, vy: 0, ex: 0, pvx: 0, ground: -1, coyote: 0, buffer: 0, jumping: false, cut: false, face: 1 });
 }
 
-// One step. input: x, z in −1…1 (the stick, in the world's directions), hold (jump held), press (jump pressed in this step)
+// One step. input: x in −1…1 (left, right), hold (jump held), press (jump pressed in this step)
 export function step(W, input = {}, dt = K.DT) {
   if (W.done) return;
   const L = W.L, P = L.platforms, p = W.p, ev = W.events, t0 = W.t, t1 = t0 + dt;
   for (const s of W.st) if (s.trig != null && t1 - s.trig > K.BACK) s.trig = null;
 
-  // standing on something that moves: go with it (also round with a turning one)
+  // standing on something that moves: go with it
   if (p.ground >= 0) {
     const pl = P[p.ground], st = W.st[p.ground];
     if (solid(pl, t1, st)) {
       const a = pose(pl, t0, st), b = pose(pl, t1, st);
-      const [lx, lz] = toLocal(a, p.x, p.z), [wx, wz] = toWorld(b, lx, lz);
-      p.pvx = (wx - p.x) / dt; p.pvz = (wz - p.z) / dt;
-      p.x = wx; p.z = wz; p.y += b.y - a.y; p.face += b.yaw - a.yaw;
+      p.pvx = (b.x - a.x) / dt; p.x += b.x - a.x; p.y += b.y - a.y;
     }
   }
   const grounded = p.ground >= 0;
 
   // running and steering
-  let ix = input.x || 0, iz = input.z || 0;
-  const m = Math.hypot(ix, iz);
-  if (m > 1) { ix /= m; iz /= m; }
-  const acc = grounded ? (m > 0.05 ? K.ACC : K.DEC) : K.AIR;
-  let dx = ix * K.MAXV - p.vx, dz = iz * K.MAXV - p.vz;
-  const d = Math.hypot(dx, dz), most = acc * dt;
-  if (d > most) { dx *= most / d; dz *= most / d; }
-  p.vx += dx; p.vz += dz;
-  if (Math.hypot(p.vx, p.vz) > 0.4) p.face = Math.atan2(p.vx, p.vz);
-  if (grounded) { p.ex = 0; p.ez = 0; } else { const f = Math.exp(-K.DRIFT * dt); p.ex *= f; p.ez *= f; }
+  const ix = Math.max(-1, Math.min(1, input.x || 0)), moving = Math.abs(ix) > 0.05;
+  const acc = grounded ? (moving ? K.ACC : K.DEC) : K.AIR, most = acc * dt;
+  p.vx += Math.max(-most, Math.min(most, ix * K.MAXV - p.vx));
+  if (moving) p.face = ix > 0 ? 1 : -1;
+  if (grounded) p.ex = 0; else p.ex *= Math.exp(-K.DRIFT * dt);
 
   // jumping: a tap just before landing and a jump just after running off the edge both count
   p.buffer = input.press ? K.BUFFER : Math.max(0, p.buffer - dt);
   p.coyote = grounded ? K.COYOTE : Math.max(0, p.coyote - dt);
   if (p.buffer > 0 && (grounded || p.coyote > 0)) {
-    if (grounded) { p.ex = p.pvx; p.ez = p.pvz; }
+    if (grounded) p.ex = p.pvx;
     p.vy = K.JUMP; p.ground = -1; p.coyote = 0; p.buffer = 0; p.jumping = true; p.cut = false; W.jumps++;
     ev.push({ type: 'jump' });
   }
@@ -138,20 +99,20 @@ export function step(W, input = {}, dt = K.DT) {
   if (p.ground < 0) p.vy = Math.max(-K.TERM, p.vy - K.G * (p.vy < 0 ? K.FALL : 1) * dt);
   else p.vy = 0;
 
-  // sideways, then out of any wall
-  p.x += (p.vx + p.ex) * dt; p.z += (p.vz + p.ez) * dt;
+  // sideways, then out of any wall, back to the side the sock came from
+  const x0 = p.x;
+  p.x += (p.vx + p.ex) * dt;
   for (let i = 0; i < P.length; i++) {
     const pl = P[i], st = W.st[i];
     if (pl.ghost || !solid(pl, t1, st)) continue;
     const q = pose(pl, t1, st), h = pl.h || 1;
     if (p.y >= q.y - K.STEP || p.y + K.H <= q.y - h) continue;
-    const out = pushOut(pl, q, p.x, p.z, K.R);
-    if (out) {
-      const nx = out[0] - p.x, nz = out[1] - p.z, n = Math.hypot(nx, nz) || 1;
-      p.x = out[0]; p.z = out[1];
-      const along = (p.vx * nx + p.vz * nz) / n;   // stop running into the wall, keep sliding along it
-      if (along < 0) { p.vx -= (along * nx) / n; p.vz -= (along * nz) / n; }
-    }
+    const reach = half(pl) + K.R, d = p.x - q.x;
+    if (Math.abs(d) >= reach) continue;
+    const side = Math.sign(x0 - pose(pl, t0, st).x || d || 1);
+    p.x = q.x + side * reach;
+    if (p.vx * side < 0) p.vx = 0;
+    if (p.ex * side < 0) p.ex = 0;
   }
 
   // up and down: land on the highest top the feet came down onto (or walk up a low step)
@@ -164,14 +125,14 @@ export function step(W, input = {}, dt = K.DT) {
       if (pl.ghost || !solid(pl, t1, st)) continue;
       const q = pose(pl, t1, st);
       if (q.y > y0 + K.STEP + 1e-6 || q.y < p.y - 1e-6 || q.y <= top) continue;
-      if (over(pl, q, p.x, p.z, K.EDGE)) { best = i; top = q.y; }
+      if (over(pl, q, p.x, K.EDGE)) { best = i; top = q.y; }
     }
   } else {   // a head under a platform stops the jump
     for (let i = 0; i < P.length; i++) {
       const pl = P[i], st = W.st[i];
       if (pl.ghost || !solid(pl, t1, st)) continue;
       const q = pose(pl, t1, st), bottom = q.y - (pl.h || 1);
-      if (y0 + K.H <= bottom + 1e-6 && p.y + K.H > bottom && over(pl, q, p.x, p.z, -0.05)) { p.y = bottom - K.H; p.vy = 0; p.cut = true; ev.push({ type: 'bump' }); }
+      if (y0 + K.H <= bottom + 1e-6 && p.y + K.H > bottom && over(pl, q, p.x, -0.05)) { p.y = bottom - K.H; p.vy = 0; p.cut = true; ev.push({ type: 'bump' }); }
     }
   }
   if (best >= 0) {
@@ -186,20 +147,20 @@ export function step(W, input = {}, dt = K.DT) {
       if (pl.fall && W.st[best].trig == null) { W.st[best].trig = t1; ev.push({ type: 'crumble', i: best }); }
     }
   } else if (p.ground >= 0) {   // ran off the edge (or the platform fell): keep the platform's speed, a jump still works for a moment
-    p.ex = p.pvx; p.ez = p.pvz; p.ground = -1; p.coyote = K.COYOTE;
+    p.ex = p.pvx; p.ground = -1; p.coyote = K.COYOTE;
   }
 
   // letters, checkpoints, the goal, falling down
   const cy = p.y + K.H / 2;
-  L.letters.forEach(([x, y, z], k) => {
-    if (!W.got[k] && Math.hypot(p.x - x, cy - y, p.z - z) < 0.8) { W.got[k] = true; ev.push({ type: 'letter', k }); }
+  L.letters.forEach(([x, y], k) => {
+    if (!W.got[k] && Math.hypot(p.x - x, cy - y) < 0.8) { W.got[k] = true; ev.push({ type: 'letter', k }); }
   });
-  (L.checkpoints || []).forEach(([x, y, z], k) => {
-    if (k > W.cpi && Math.hypot(p.x - x, p.z - z) < 1.1 && Math.abs(p.y - y) < 1.2) { W.cpi = k; W.cp = [x, y, z]; ev.push({ type: 'checkpoint', k }); }
+  (L.checkpoints || []).forEach(([x, y], k) => {
+    if (k > W.cpi && Math.abs(p.x - x) < 1.1 && Math.abs(p.y - y) < 1.2) { W.cpi = k; W.cp = [x, y]; ev.push({ type: 'checkpoint', k }); }
   });
-  const [gx, gy, gz] = L.goal;
-  if (Math.hypot(p.x - gx, p.z - gz) < 0.9 && p.y > gy - 0.3 && p.y < gy + 2.2) { W.done = true; W.t = t1; ev.push({ type: 'goal' }); return; }
-  if (p.y < W.kill) { W.falls++; ev.push({ type: 'fall', at: [p.x, p.z] }); respawn(W); }
+  const [gx, gy] = L.goal;
+  if (Math.abs(p.x - gx) < 0.9 && p.y > gy - 0.3 && p.y < gy + 2.2) { W.done = true; W.t = t1; ev.push({ type: 'goal' }); return; }
+  if (p.y < W.kill) { W.falls++; ev.push({ type: 'fall', at: p.x }); respawn(W); }
   W.t = t1;
 }
 

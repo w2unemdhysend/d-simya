@@ -3,7 +3,7 @@
   python3 tests/offline_e2e.py     (CHROME=/path/to/chrome to use a system browser)
 
 Covers: sw.js keeps every page of the menu and every local file the pages import (also what a module loads later,
-like the 3D game and three.js), with the same asset version the
+like the 2.5D game and three.js), with the same asset version the
 pages use (so a release never mixes old and new files); after one visit with internet, pages open without internet,
 even ones not opened before, and with a ?query; the last weather answer is shown offline; the "no internet" label
 comes and goes with the connection; the shopping list and translations are never kept. Exits 1 if a check fails.

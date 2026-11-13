@@ -1,4 +1,4 @@
-// What a player has done across all the games: records, counts, finished scenes and themes, the 3D levels (best time
+// What a player has done across all the games: records, counts, finished scenes and themes, the platformer levels (best time
 // in tenths of a second, all letters found, within the par time). The laundry's skins are
 // unlocked from it, the menu shows it. Kept on the device and in Telegram's cloud (the larger of the two counts).
 import { load, store, cloudGet, cloudSet } from './kit.js';

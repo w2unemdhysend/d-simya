@@ -224,9 +224,9 @@
 @media (prefers-reduced-motion: reduce){.mcard{transition:none}}
 
 /* ---------- "Пригоди шкарпетки": the 3D platformer ---------- */
-.hopcard .hop-art{display:block;width:100%;height:76px;margin-top:8px}
+.hopcard .hop-art{display:block;width:100%;height:76px;margin-top:8px;border-radius:14px}
 .hop-intro{display:grid;gap:12px}
-.hop-hero .hop-art{display:block;width:100%;height:auto;max-height:140px;margin:4px 0 2px}
+.hop-hero .hop-art{display:block;width:100%;height:auto;aspect-ratio:320/96;margin:4px 0 2px;border-radius:14px}
 .hop-intro .rules{margin:0}
 .hop-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
 .hop-lv{display:flex;align-items:center;gap:12px;width:100%;min-height:64px;padding:10px 12px;border-radius:16px;border:1px solid var(--line);background:var(--surface);
@@ -246,9 +246,10 @@
 /* the game itself covers the page; the page stays under it */
 .hop-on,.hop-on body{overflow:hidden}
 .hop-on .toast{z-index:60}   /* a new laundry skin, said over the game */
-.hop-stage{position:fixed;inset:0;z-index:45;background:var(--bg);touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
+.hop-stage{position:fixed;inset:0;z-index:45;background:#06080C;color:#FFFFFF;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
   overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
-.hop-cv{position:absolute;inset:0;width:100%;height:100%;display:block;outline:none}
+/* a small picture enlarged with hard edges: pixel art (its size and place are set by the engine, whole pixels each) */
+.hop-cv{position:absolute;left:0;top:0;display:block;outline:none;image-rendering:crisp-edges;image-rendering:pixelated}
 .hop-top{position:absolute;left:0;right:0;top:0;display:flex;align-items:center;gap:10px;pointer-events:none;
   padding:calc(var(--sat) + 10px) max(12px, env(safe-area-inset-right, 0px)) 0 max(12px, env(safe-area-inset-left, 0px))}
 .hop-b,.hop-time,.hop-word{background:var(--surface);background:color-mix(in srgb, var(--surface) 86%, transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
@@ -305,7 +306,7 @@
 .hop-wordcard b{display:block;font-family:var(--f-display);font-weight:700;font-size:20px;line-height:1.2}
 .hop-wordcard small{display:block;color:var(--muted);font-size:14px}
 .hop-card .note.small{margin:0 0 14px;text-align:center}
-.hop-load{position:absolute;inset:0;display:grid;place-items:center;align-content:center;gap:12px;color:var(--ink);font-weight:600}
-.hop-load .spin{width:38px;height:38px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--ink);animation:hopSpin 1s linear infinite}
+.hop-load{position:absolute;inset:0;display:grid;place-items:center;align-content:center;gap:12px;color:#FFFFFF;font-weight:600}
+.hop-load .spin{width:38px;height:38px;border-radius:50%;border:3px solid rgba(255,255,255,.25);border-top-color:#FFFFFF;animation:hopSpin 1s linear infinite}
 @keyframes hopSpin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion: reduce){.hop-card,.hop-sheet,.hop-stars.big svg.on,.hop-word i.pop{animation:none}}
