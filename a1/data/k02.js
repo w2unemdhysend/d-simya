@@ -48,7 +48,7 @@ export default {
       tables: [
         { head: ["він", "вона", "множина (вона)"], rows: [["der Lehrer", "die Lehrerin", "die Lehrerinnen"], ["der Student", "die Studentin", "die Studentinnen"], ["der Arzt", "die Ärztin", "die Ärztinnen"], ["der Koch", "die Köchin", "die Köchinnen"], ["der Verkäufer", "die Verkäuferin", "die Verkäuferinnen"]] },
       ],
-      ex: [["Was sind Sie von Beruf? – Ich bin {Maler|Übersetzerin}.", "Ким Ви працюєте? – Я {художник|перекладачка}."], ["Was machst du? – Ich studiere Informatik.", "Чим ти займаєшся? – Я вивчаю інформатику."], ["Mein Bruder ist Koch.", "Мій брат — кухар."], ["Ich arbeite als Verkäuferin.", "Я працюю продавчинею."]],
+      ex: [["Was sind Sie von Beruf? – Ich bin {Maler|Übersetzerin}.", "Ким Ви працюєте? – Я {художник|перекладачка}."], ["Was machst du? – Ich studiere Informatik.", "Чим ти займаєшся? – Я вивчаю інформатику."], ["Mein Bruder ist Koch.", "Мій брат — кухар."], ["Meine Freundin arbeitet als Verkäuferin.", "Моя подруга працює продавчинею."]],
       tips: ["`als` + професія = «як, у ролі»: `Ich arbeite als Fahrer.` — «Я працюю водієм». Теж без артикля."],
       warn: ["`Ich bin ein Lehrer` — так кажуть лише з прикметником: `Ich bin ein guter Lehrer.` Просто про професію — без артикля."],
     },

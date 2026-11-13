@@ -15,7 +15,7 @@ export const hero = (s, g) => String(s).replace(/\{([^{}|]*)\|([^{}|]*)\}/g, (m,
 export const heroAll = (v, g) => (typeof v === 'string' ? hero(v, g) : Array.isArray(v) ? v.map((x) => heroAll(x, g))
   : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, heroAll(x, g)])) : v);
 // the grammar index groups the topics by these kinds
-export const CATS = { laut: 'Вимова й письмо', verb: 'Дієслова й часи', noun: 'Іменник, артикль, відмінки', pron: 'Займенники', prep: 'Прийменники', satz: 'Будова речення', zeit: 'Числа, час, дати', rede: 'Розмовні теми' };
+export const CATS = { laut: 'Вимова й письмо', verb: 'Дієслова й часи', noun: 'Іменник, артикль, відмінки', adj: 'Прикметники й порівняння', pron: 'Займенники', prep: 'Прийменники', satz: 'Будова речення', zeit: 'Числа, час, дати', rede: 'Розмовні теми' };
 // The order the options of a choice exercise are shown in. Written down, the right one is mostly second; shown, it
 // stands first, second or third about equally often, the same way on every visit and phone (the place comes from the
 // chapter and the exercise number). The wrong ones keep their order; articles keep theirs (der, die, das).

@@ -70,6 +70,19 @@ const PEOPLE = {
     collar: '<path d="M16 29.4l4 5 4-5" fill="#F4F4F2"/>' } },
   'Verkäufer': { uk: 'Продавець', de: 'Verkäufer', role: 'магазин одягу', av: { bg: '#F2E2E0', skin: 'deep', hair: '#1A1412', hairTop: H.curly, top: '#C0392B',
     extra: '<rect x="23" y="33" width="5" height="2.6" rx=".6" fill="#F4F4F2"/>' } },
+  // A2
+  Apothekerin: { uk: 'Фармацевтка', de: 'Apothekerin', role: 'аптека', av: { bg: '#E2F2E6', skin: 'warm', hair: '#4A2E1E', hairTop: H.bun, top: '#F7F8F8',
+    collar: '<path d="M16.4 29.4l3.6 4.4 3.6-4.4" fill="none" stroke="#C9D2D6" stroke-width="1"/>',
+    extra: '<path d="M25.4 33.4h1.5v-1.5h1.3v1.5h1.5v1.3h-1.5v1.5h-1.3v-1.5h-1.5z" fill="#2E9A5A"/>' } },   // a green pharmacy cross on the coat
+  Bahnmitarbeiter: { uk: 'Працівник залізниці', de: 'Bahnmitarbeiter', role: 'каса на вокзалі', av: { bg: '#F4E2E2', skin: 'tan', hair: '#2A2420', hairTop: H.short, top: '#C0182A',
+    collar: '<path d="M16.6 29.6l3.4 3 3.4-3v2.2l-3.4 3-3.4-3z" fill="#F4F4F2"/>',
+    hat: '<path d="M12.4 13.2c.5-4.6 3.6-7 7.6-7s7.1 2.4 7.6 7z" fill="#26345A"/><path d="M11.2 12.8h17.6v1.8H11.2z" fill="#1A2440"/><rect x="18.6" y="8.6" width="2.8" height="1.8" rx=".4" fill="#C0182A"/>' } },   // a uniform cap
+  Sachbearbeiter: { uk: 'Працівник бюро', de: 'Bürgerbüro', role: 'бюро громадян', av: { bg: '#E6E9EE', skin: 'light', hair: '#A8A29C', hairTop: H.side, top: '#4A5562', glasses: true,
+    collar: '<path d="M16.2 29.4l3.8 3.8 3.8-3.8" fill="#F4F4F2"/><path d="M19.2 32.6h1.6l.6 6.4-1.4 1-1.4-1z" fill="#8A2E3A"/>' } },   // shirt and tie
+  Nachbarin: { uk: 'Пані Бекер', de: 'Frau Becker', role: 'сусідка', av: { bg: '#F4ECD8', skin: 'light', hair: '#C9C2B8', hairTop: H.curly, top: '#5E8C6A',
+    collar: '<path d="M14.2 30.2c3.6 2.6 8 2.6 11.6 0" fill="none" stroke="#E8DCC4" stroke-width="1.6"/>' } },
+  Prüferin: { uk: 'Екзаменаторка', de: 'Prüferin', role: 'усний іспит A2', av: { bg: '#E4E2F2', skin: 'tan', hair: '#2A1E18', hairTop: H.bob, top: '#3A3F6E', glasses: true,
+    collar: '<path d="M16.4 29.6l3.6 3.4 3.6-3.4" fill="#F4F4F2"/>', extra: '<rect x="24.2" y="32.4" width="4.6" height="3" rx=".5" fill="#F4F4F2"/>' } },   // a name badge
 };
 
 // a person by the key a dialogue line uses ("" is a pause in the story)

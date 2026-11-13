@@ -1,10 +1,11 @@
-// The A1 course's content: 16 chapters in the book's order with goals, grammar topics, phrases, a dialogue and
+// The course's content: A1 (16 chapters in the book's order) and A2, with goals, grammar topics, phrases, a dialogue and
 // exercises that can be solved; tables whose rows fit their heads; marks (**bold**, `German`) that open and close;
 // a dictionary whose nouns have an article and a plural, verbs their forms, and whose words reach the word garden;
 // the answer check and the search folding; the hero who says "I" in both forms (Тарас and Леся, {for him|for her}):
 // every check of the content runs for each (the second run is a child process with HERO=f).
 // Run: node tests/a1.test.mjs
 import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { WORDS, KINDS, sayOf, gardenNouns, byChapter } from '../a1/data/wortschatz.js';
 import { md, norm, fold, order, CATS, hero, heroAll } from '../a1/text.js';
@@ -14,8 +15,7 @@ console.log(`(the course as ${G === 'f' ? 'Леся' : 'Тарас'})`);
 
 let fails = 0;
 const t = (name, ok, info = '') => { if (!ok) fails++; console.log(ok ? 'PASS' : 'FAIL', name, ok ? '' : info); };
-const RAW = [];
-for (let n = 1; n <= 16; n++) RAW.push((await import(`../a1/data/k${String(n).padStart(2, '0')}.js`)).default);
+const { CHAPTERS: RAW } = await import('../a1/data/index.js');
 const CH = RAW.map((c) => heroAll(c, G));
 
 /* ---------- the hero: both forms written, the chosen one shown ---------- */
@@ -37,14 +37,32 @@ t('the dialogues and examples never mix in the other hero\'s forms', !CH.some((c
 t('the form chosen: past tense, address, work and life agree (була в неї / був у неї, Тарасе / Лесю, Dichterin / Dichter, 1871 / 1814)',
   G === 'f' ? heroText.some((x) => x.includes('я була в неї')) && heroText.some((x) => x.includes('Привіт, Лесю!')) && heroText.some((x) => x.includes('Ich bin Dichterin und Übersetzerin.')) && heroText.some((x) => x.includes('Ich bin 1871 in Swjahel geboren.'))
     : heroText.some((x) => x.includes('я був у неї')) && heroText.some((x) => x.includes('Привіт, Тарасе!')) && heroText.some((x) => x.includes('Ich bin Dichter und Maler.')) && heroText.some((x) => x.includes('Ich bin 1814 in Morynzi geboren.')));
+// what the hero says (examples, phrases, the hero's lines) has no "I" marked for the other gender: «я була / я був»,
+// «рада / радий», «працюю перекладачкою», «Ich bin Übersetzerin» (explanations and exercises may use any person)
+const OTHER_I = G === 'f'
+  ? [/(?<!\p{L})[Яя] (?:(?:вже|теж|ще|не|дуже|часто|завжди|весь час|довго|раніше|тоді) )*\p{L}{2,}(?:в|вся)(?!\p{L})/u,
+     /(?<!\p{L})[Яя] (?:(?:вже|теж|ще|не|дуже|так|такий) )*(?:радий|готовий|впевнений|вдячний|зайнятий|втомлений|задоволений|переконаний|сам|хворий|новенький)(?!\p{L})/u,
+     /(?<!\p{L})(?:перекладачем|поетом|художником|вчителем|студентом)(?!\p{L})/u,
+     /(?<!\p{L})[Ii]ch (?:bin|war|arbeite als|werde|wurde)(?: \p{L}+)? (?:Übersetzer|Dichter|Maler|Lehrer|Student|Ukrainer|Pianist|Schriftsteller|Praktikant|Nachbar|Mieter)(?!\p{L})/u]
+  : [/(?<!\p{L})[Яя] (?:\p{L}+ )?\p{L}{2,}ла(?:ся)?(?!\p{L})/u,
+     /(?<!\p{L})[Яя] (?:(?:вже|теж|ще|не|дуже|так|така) )*(?:рада|готова|впевнена|вдячна|зайнята|втомлена|задоволена|переконана|сама|хвора|новенька)(?!\p{L})/u,
+     /(?<!\p{L})(?:перекладачкою|поеткою|художницею|вчителькою|студенткою)(?!\p{L})/u,
+     /(?<!\p{L})[Ii]ch (?:bin|war|arbeite als|werde|wurde)(?: \p{L}+)? \p{L}+in(?!\p{L})/u];
+const saidByHero = CH.flatMap((c) => [...c.grammar.flatMap((g) => g.ex || []), ...c.phrases.flatMap((g) => g.list), ...c.dialog.lines.filter((l) => l[0] === name).map((l) => l.slice(1))].map((p) => [c.n, p.join(' / ')]));
+const otherI = saidByHero.filter(([, x]) => OTHER_I.some((re) => re.test(x)));
+t(`what ${name} says is in ${G === 'f' ? 'her' : 'his'} form (no «я ${G === 'f' ? 'був' : 'була'}», «${G === 'f' ? 'радий' : 'рада'}», «Ich bin ${G === 'f' ? 'Übersetzer' : 'Übersetzerin'}»)`,
+  saidByHero.length > 300 && !otherI.length, otherI.slice(0, 5).map(([n, x]) => `${n}: ${x}`).join(' | '));
 // every speaker of a dialogue has a face and a name in the chat
 const { KEYS } = await import('../a1/people.js');
 const speakers = [...new Set(CH.flatMap((c) => c.dialog.lines.map((l) => l[0]).filter(Boolean)))];
 t('every speaker in the dialogues has an avatar and a name (a1/people.js)', speakers.every((k) => KEYS.includes(k)), speakers.filter((k) => !KEYS.includes(k)).join(', '));
 
 /* ---------- chapters ---------- */
-t('16 chapters numbered 1–16: A1.1 for 1–8 (with the book chapter title), A1.2 for 9–16',
-  CH.every((c, i) => c.n === i + 1 && c.part === (i < 8 ? 'A1.1' : 'A1.2') && (i < 8 ? typeof c.book === 'string' && c.book.length > 3 : c.book === null) && c.title));
+const PART = (i) => (i < 8 ? 'A1.1' : i < 16 ? 'A1.2' : i < 24 ? 'A2.1' : 'A2.2');
+t(`${CH.length} chapters in order: A1.1 1–8 (with the book chapter title), A1.2 9–16, A2.1 17–24, A2.2 25–32`,
+  CH.length >= 16 && CH.length <= 32 && CH.every((c, i) => c.n === i + 1 && c.part === PART(i) && (i < 8 ? typeof c.book === 'string' && c.book.length > 3 : c.book === null) && c.title),
+  CH.map((c) => `${c.n}:${c.part}`).join(' '));
+t('the chapter files hold plain text only (no code left in a string)', RAW.every((c, i) => !/\.replace\(|\.length \?/.test(String(readFileSync(new URL(`../a1/data/k${String(i + 1).padStart(2, '0')}.js`, import.meta.url))))));
 t('every chapter has goals, 4–6 grammar topics, phrases, a dialogue and at least 10 exercises',
   CH.every((c) => c.goals.length >= 3 && c.grammar.length >= 4 && c.grammar.length <= 6 && c.phrases.length >= 2 && c.dialog.lines.length >= 6 && c.tasks.length >= 10),
   CH.map((c) => `${c.n}: ${c.goals.length}/${c.grammar.length}/${c.phrases.length}/${c.dialog.lines.length}/${c.tasks.length}`).join(' '));
@@ -105,7 +123,8 @@ t('about a thousand entries, ids are their places in the list', WORDS.length >= 
 const wbad = [];
 for (const e of WORDS) {
   const w = `${e.ch}:${e.de}`;
-  if (!KINDS[e.kind] || !e.de || !e.uk || !(e.ch >= 1 && e.ch <= 16)) wbad.push(`${w}: kind, text, translation or chapter`);
+  if (!KINDS[e.kind] || !e.de || !e.uk || !(e.ch >= 1 && e.ch <= CH.length)) wbad.push(`${w}: kind, text, translation or chapter`);
+  if (/[{}|]/.test(e.uk)) wbad.push(`${w}: the dictionary is not in the hero's two forms (no {…|…})`);
   if (e.kind === 'n') {
     if (!['der', 'die', 'das'].includes(e.art) || !e.word) wbad.push(`${w}: article and word`);
     if (!e.plOnly && !e.pl) wbad.push(`${w}: plural (or — for none)`);

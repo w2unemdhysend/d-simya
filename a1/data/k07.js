@@ -52,7 +52,7 @@ export default {
     {
       id: "nation", t: "Країна, мова, національність", cat: "rede",
       text: [
-        "Для кожної країни є три слова: країна, людина (чоловік/жінка) і мова. Мова — з великої літери без артикля (`Ich spreche Ukrainisch`), а про себе кажуть без артикля: `Ich bin Ukrainerin.`",
+        "Для кожної країни є три слова: країна, людина (чоловік/жінка) і мова. Мова — з великої літери без артикля (`Ich spreche Ukrainisch`), а про себе кажуть без артикля: `{Ich bin Ukrainer.|Ich bin Ukrainerin.}`",
         "`Deutscher / Deutsche` — особливе слово, змінюється як прикметник: `ein Deutscher`, `eine Deutsche`, `die Deutschen`.",
       ],
       tables: [

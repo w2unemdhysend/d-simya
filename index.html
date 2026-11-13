@@ -173,7 +173,7 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-top:14px}
       <a class="tile quiet" href="rozmovnyk/" style="--i:9"><span class="ic" data-icon="talk"></span><span><b>Розмовник</b><small>Фрази для лікаря й установ</small></span></a>
     </div>
     <div class="group">Навчання</div>
-    <a class="tile quiet" href="a1/" style="--i:10"><span class="ic" data-icon="book"></span><span><b>Німецька A1</b><small id="a1-sub">Граматика, словник з озвученням, вправи</small></span></a>
+    <a class="tile quiet" href="a1/" style="--i:10"><span class="ic" data-icon="book"></span><span><b>Німецька A1–A2</b><small id="a1-sub">Граматика, словник з озвученням, вправи</small></span></a>
     <div class="group">Інструкції</div>
     <div class="grid2">
       <a class="tile quiet" href="pralka/" style="--i:11"><span class="ic" data-icon="wash"></span><span><b>Пралка</b><small>Beko</small></span></a>
@@ -184,7 +184,7 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-top:14px}
   </main>
   <p class="foot">D-SIM’YA — помічник для життя в Німеччині. Свайп від лівого краю відкриває розділи.</p>
 </div>
-<script src="assets/ui.js?v=22"></script>
+<script src="assets/ui.js?v=23"></script>
 <script type="module">
 import { WORKER_URL, PLACES, homePlace, getWeather, getWarnings, warnWhen, wxIcon, wxText, advice, deg } from './pogoda/wx.js';
 import { BINS, binsOn, berlinDay, prefsOf } from './smittia/due.js';
@@ -347,8 +347,8 @@ if (tg && tg.initData) {
   $('#list-body').innerHTML = '<div class="big">Спільний для родини</div><p class="sub">Працює, коли D-SIM’YA відкрито через бота в Telegram.</p>';
 }
 
-/* ---------- German A1: where the course was left off (the course keeps it on the phone) ---------- */
-{ const a1 = load('a1-progress'); if (a1 && a1.last >= 1 && a1.last <= 16) $('#a1-sub').textContent = `Продовжити: розділ ${a1.last} з 16`; }
+/* ---------- German A1–A2: where the course was left off (the course keeps it on the phone) ---------- */
+{ const a1 = load('a1-progress'); if (a1 && a1.last >= 1 && a1.last <= 32) $('#a1-sub').textContent = `Продовжити: розділ ${a1.last} · ${a1.last > 16 ? 'A2' : 'A1'}`; }
 
 /* ---------- D-Ticket: the VRR App through its store page ---------- */
 const PLAY = 'https://play.google.com/store/apps/details?id=mentz.com.vrr_cibo_app', APPLE = 'https://apps.apple.com/de/app/vrr-app-bus-bahn-bike-p-r/id1491339288';

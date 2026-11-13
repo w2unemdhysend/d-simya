@@ -53,6 +53,22 @@ FIX = {
     'Hals': 'hˈals', 'Wartezimmer': 'vˈaɾtətsˌɪmɜ', 'Notfall': 'nˈoːtfal', 'Februar': 'fˈeːbruːˌɑːɾ', 'August': 'aʊɡˈʊst',
     'Jahreszeit': 'jˈɑːrəstsˌaɪt', 'kennenlernen': 'kˈɛnənlˌɛɾnən', 'Weihnachten': 'vˈaɪnaxtən', 'Weihnachtsmarkt': 'vˈaɪnaxtsmˌaɾkt',
     'Silvester': 'zɪlvˈɛstɜ', 'Pullover': 'pʊlˈoːvɜ', 'orange': 'oːrˈɑ̃ːʒə',
+    # A2: letters said one by one (ICE), Ukrainian names (Kyjiw, Pampuschky with the stress of «пампу́шки»), "be-" and
+    # "-e-" as a weak e (Meldebestätigung, Stickerei, Reisezentrum), long vowels (Notdienst, Gutschein, Pfannkuchen),
+    # short ones (dünsten), the stress of Zuzahlung, Zutat, Integrationskurs, Regionalbahn, Lutschtablette
+    'ICE': 'iːtseːˈeː', 'Kyjiw': 'kˈɪjɪf', 'Pampuschky': 'pampˈʊʃkiː',
+    'Stickerei': 'ʃtɪkərˈaɪ', 'Stickereien': 'ʃtɪkərˈaɪən', 'Umkleidekabine': 'ˈʊmklaɪdəkabˌiːnə', 'Umkleidekabinen': 'ˈʊmklaɪdəkabˌiːnən',
+    'Gutschein': 'ɡˈuːtʃaɪn', 'Gutscheine': 'ɡˈuːtʃaɪnə', 'Kassenbons': 'kˈasənbˌɔŋs',
+    'Zuzahlung': 'tsˈuːtsˌɑːlʊŋ', 'Zuzahlungen': 'tsˈuːtsˌɑːlʊŋən', 'Notdienst': 'nˈoːtdiːnst', 'Notdienste': 'nˈoːtdiːnstə',
+    'Reisezentrum': 'rˈaɪzətsˌɛntrʊm', 'Reisezentren': 'rˈaɪzətsˌɛntrən', 'Regionalbahn': 'reːɡjoːnˈɑːlbɑːn',
+    'Regionalbahnen': 'reːɡjoːnˈɑːlbɑːnən', 'Regionalzüge': 'reːɡjoːnˈɑːltsyːɡə', 'Pfannkuchen': 'pfˈankuːxən',
+    'bewusstlos': 'bəvˈʊstloːs', 'Integrationskurs': 'ɪntəɡratsjˈoːnskʊɾs', 'Integrationskurse': 'ɪntəɡratsjˈoːnskʊɾzə',
+    'Einstufungstest': 'ˈaɪnʃtuːfʊŋstˌɛst', 'Einstufungstests': 'ˈaɪnʃtuːfʊŋstˌɛsts',
+    'Meldebestätigung': 'mˈɛldəbəʃtˌɛːtɪɡʊŋ', 'Meldebestätigungen': 'mˈɛldəbəʃtˌɛːtɪɡʊŋən',
+    'Wohnungsgeberbestätigung': 'vˈoːnʊŋsɡeːbɜbəʃtˌɛːtɪɡʊŋ', 'Wohnungsgeberbestätigungen': 'vˈoːnʊŋsɡeːbɜbəʃtˌɛːtɪɡʊŋən',
+    'Anrufbeantworter': 'ˈanruːfbəʔˌantvɔɾtɜ', 'dünsten': 'dˈʏnstən', 'dünstet': 'dˈʏnstət', 'gedünstet': 'ɡədˈʏnstət',
+    'Zutat': 'tsˈuːtɑːt', 'Zutaten': 'tsˈuːtɑːtən', 'Lutschtablette': 'lˈʊtʃtablˌɛtə', 'Lutschtabletten': 'lˈʊtʃtablˌɛtən',
+    'Nasenspray': 'nˈɑːzənʃprˌeː', 'Nasensprays': 'nˈɑːzənʃprˌeːs',
 }
 
 # Words that come out clearer when written another way (checked with Whisper: three takes out of three right).

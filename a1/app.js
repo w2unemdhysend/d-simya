@@ -1,12 +1,10 @@
-// «Німецька A1»: 16 chapters in the order of Die neue Linie 1 (A1.1 and A1.2). Our own explanations in Ukrainian,
+// «Німецька A1–A2»: the A1 chapters in the order of Die neue Linie 1 (A1.1, A1.2), then A2 (A2.1, A2.2) by the A2
+// standard (a1/data/index.js). Our own explanations in Ukrainian,
 // examples, phrases, a dialogue and exercises per chapter; a dictionary of every word with its article, plural or
 // verb forms and a recorded clip; a grammar index. Progress (solved exercises, the last chapter) stays on the phone
 // and in Telegram's cloud. Screens: the course, a chapter (4 tabs), the dictionary, the grammar index.
 import { WORDS, KINDS, sayOf, byChapter } from './data/wortschatz.js';
-import k01 from './data/k01.js'; import k02 from './data/k02.js'; import k03 from './data/k03.js'; import k04 from './data/k04.js';
-import k05 from './data/k05.js'; import k06 from './data/k06.js'; import k07 from './data/k07.js'; import k08 from './data/k08.js';
-import k09 from './data/k09.js'; import k10 from './data/k10.js'; import k11 from './data/k11.js'; import k12 from './data/k12.js';
-import k13 from './data/k13.js'; import k14 from './data/k14.js'; import k15 from './data/k15.js'; import k16 from './data/k16.js';
+import { CHAPTERS as RAW } from './data/index.js';
 import { $, $$, tg, haptic, toast, load, store, cloudGet, cloudSet, plural, SPEAKER } from '../igry/kit.js';
 import { esc, md, norm, fold, order, CATS, heroAll, GENDER_KEY } from './text.js';
 import { person, avatar, isHero } from './people.js';
@@ -14,7 +12,6 @@ import * as sound from '../audio/say.js';
 import * as garden from '../igry/garten.js';
 
 // The chapters as written (both forms, {Тарас|Леся}) and as shown: in the form chosen in the menu's settings
-const RAW = [k01, k02, k03, k04, k05, k06, k07, k08, k09, k10, k11, k12, k13, k14, k15, k16];
 const gender = () => { try { return localStorage.getItem(GENDER_KEY) === 'f' ? 'f' : 'm'; } catch (e) { return 'm'; } };
 export let CHAPTERS = RAW.map((c) => heroAll(c, gender()));
 const TABS = ['gram', 'words', 'phr', 'tasks'];
@@ -22,14 +19,14 @@ const TABS = ['gram', 'words', 'phr', 'tasks'];
 /* ---------------- progress: solved exercises "chapter:index", the last chapter ---------------- */
 const KEY = 'a1-progress';
 const P = { done: {}, last: 0 };
-(function init() { const s = load(KEY); if (s && s.done && typeof s.done === 'object') P.done = s.done; if (s && s.last >= 1 && s.last <= 16) P.last = s.last; })();
+(function init() { const s = load(KEY); if (s && s.done && typeof s.done === 'object') P.done = s.done; if (s && s.last >= 1 && s.last <= RAW.length) P.last = s.last; })();
 let cloudTimer = null;
 function saveP() { store(KEY, P); clearTimeout(cloudTimer); cloudTimer = setTimeout(() => cloudSet('a1', { d: Object.keys(P.done).join(','), l: P.last }), 1500); }
 cloudGet('a1').then((c) => {   // another phone: what was solved there counts here too
   if (!c || typeof c.d !== 'string') return;
   let more = false;
   for (const k of c.d.split(',')) if (/^\d+:\d+$/.test(k) && !P.done[k]) { P.done[k] = 1; more = true; }
-  if (!P.last && c.l >= 1 && c.l <= 16) { P.last = c.l; more = true; }
+  if (!P.last && c.l >= 1 && c.l <= RAW.length) { P.last = c.l; more = true; }
   if (!more) return;
   store(KEY, P);
   if (current === 'hub') renderHub(); else if (current === 'ch') { $$('#p-tasks .task').forEach((card) => { if (P.done[chapter + ':' + card.dataset.task]) markDone(card); }); renderTasksHead(); }
@@ -48,9 +45,9 @@ let current = null, chapter = 0, tab = 'gram';
 function header() {
   const c = CHAPTERS[chapter - 1];
   $('#backbtn').hidden = current === 'hub'; $('#lede').hidden = current !== 'hub';
-  $('#eyebrow').textContent = current === 'hub' ? 'Навчання · Die neue Linie 1' : current === 'ch' ? `Розділ ${c.n} · ${c.part}` : 'Німецька A1';
-  $('#title').textContent = current === 'hub' ? 'Німецька A1' : current === 'ch' ? c.title : current === 'dict' ? 'Словник' : 'Граматика';
-  document.title = current === 'hub' ? 'Німецька A1' : $('#title').textContent + ' · Німецька A1';
+  $('#eyebrow').textContent = current === 'hub' ? 'Навчання · рівні A1 і A2' : current === 'ch' ? `Розділ ${c.n} · ${c.part}` : 'Німецька A1–A2';
+  $('#title').textContent = current === 'hub' ? 'Німецька A1–A2' : current === 'ch' ? c.title : current === 'dict' ? 'Словник' : 'Граматика';
+  document.title = current === 'hub' ? 'Німецька A1–A2' : $('#title').textContent + ' · Німецька A1–A2';
 }
 function show(view, o = {}) {
   const prev = current, prevCh = chapter;
@@ -120,9 +117,9 @@ function renderHub() {
     `<a class="tile" href="?ch=1&amp;t=abc" data-ch="1" data-topic="abc"><span class="ic">${ICON('<path d="M3.5 18l4.5-12 4.5 12M5.2 14h5.6"/><path d="M15 18v-7.5a3 3 0 0 1 6 0V18M15 14h6"/>')}</span><span><b>Вимова</b><small>Абетка й звуки</small></span></a>` +
     `<a class="tile" href="../igry/?tab=garten" id="to-garden"><span class="ic">${ICON('<path d="M12 21v-8"/><path d="M12 13c0-4 3-6.5 7-6.5 0 4-3 6.5-7 6.5z"/><path d="M12 16c0-3-2.4-5-5.5-5 0 3 2.4 5 5.5 5z"/><path d="M7.5 21h9"/>')}</span><span><b>Сад слів</b><small>${g.thirsty ? `💧 ${g.thirsty} ${plural(g.thirsty, 'слово чекає', 'слова чекають', 'слів чекають')} повторення` : g.planted ? `${g.planted} ${plural(g.planted, 'слово росте', 'слова ростуть', 'слів ростуть')}` : 'Повторювати слова щодня'}</small></span></a>` +
     `</div>` +
-    `<h3 class="group">A1.1 · розділи 1–8</h3><div class="card list">${CHAPTERS.slice(0, 8).map(row).join('')}</div>` +
-    `<h3 class="group">A1.2 · розділи 9–16</h3><div class="card list">${CHAPTERS.slice(8).map(row).join('')}</div>` +
-    `<p class="note small">Розділи й граматика йдуть у тому ж порядку, що й у підручнику Die neue Linie 1 (Klett), тож курс можна проходити разом із книжкою. Пояснення, приклади, діалоги й вправи тут власні; назви розділів 9–16 наші.</p>`;
+    [...new Set(CHAPTERS.map((c) => c.part))].map((part) => { const list = CHAPTERS.filter((c) => c.part === part);
+      return `<h3 class="group">${part} · розділи ${list[0].n}–${list[list.length - 1].n}</h3><div class="card list">${list.map(row).join('')}</div>`; }).join('') +
+    `<p class="note small">Розділи A1 і їхня граматика йдуть у тому ж порядку, що й у підручнику Die neue Linie 1 (Klett), тож цю частину можна проходити разом із книжкою; назви розділів 9–16 наші. Розділи A2 охоплюють граматику й теми рівня A2 (як для іспиту Goethe-Zertifikat A2). Пояснення, приклади, діалоги й вправи всюди власні.</p>`;
 }
 $('#view-hub').addEventListener('click', (e) => {
   const a = e.target.closest('[data-ch], [data-view]'); if (!a || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
@@ -171,7 +168,8 @@ function renderChapter() {
     `<div class="view panel" id="p-tasks" role="tabpanel" aria-labelledby="tab-tasks"${tab === 'tasks' ? '' : ' hidden'}>` +
       `<div class="card thead" id="thead"></div>` + c.tasks.map((t, i) => taskHTML(c.n, t, i)).join('') +
       (c.n < CHAPTERS.length ? `<button class="btn primary" type="button" data-next="${c.n + 1}">Розділ ${c.n + 1}: ${esc(CHAPTERS[c.n].title)}</button>`
-        : '<p class="note center">Це останній розділ рівня A1. Далі — A2.</p>') +
+        : CHAPTERS.length < 32 ? `<p class="note center">Розділи ${CHAPTERS.length + 1}–32 рівня A2 з’являться згодом.</p>`
+        : `<p class="note center">Це останній розділ курсу. Далі — рівень B1.</p>`) +
     `</div>`;
   renderTasksHead();
   sound.prefetch(words.slice(0, 6).map(sayOf));

@@ -1,12 +1,12 @@
-"""The German A1 course (a1/) in headless Chrome.
+"""The German course A1–A2 (a1/) in headless Chrome.
 
   python3 tests/a1_e2e.py            (CHROME=/path/to/chrome to use a system browser)
 
-Covers: the course screen (start card, dictionary, grammar, pronunciation and garden tiles, 16 chapters in A1.1 and
-A1.2 with their exercise counts); a chapter as its own screen with four tabs (grammar topics with tables, examples,
+Covers: the course screen (start card, dictionary, grammar, pronunciation and garden tiles, the chapters grouped A1.1,
+A1.2, A2.1, A2.2 with their exercise counts); a chapter as its own screen with four tabs (grammar topics with tables, examples,
 tips and typical mistakes; words with articles, forms and clips, hiding the translation, planting the nouns in the
 word garden; phrases and the dialogue; exercises: a wrong option, a wrong and a right typed answer, progress kept on
-the phone and in Telegram, a reset); every exercise of all 16 chapters solved with its own answer; the next chapter;
+the phone and in Telegram, a reset); every exercise of every chapter solved with its own answer; the next chapter;
 the phone's Back, Telegram's Back and the «Назад» button; links to a chapter and a tab; progress from another phone;
 the dictionary (German and Ukrainian, umlauts typed without dots, an article in front, filters, more rows); the grammar
 index leading to its topic; the home tile; every chapter and tab fits 340 px; the dark theme. Exits 1 if a check fails.
@@ -74,11 +74,13 @@ async def main():
         hub = await pg.evaluate("""() => ({
           card: document.querySelector('.hcard.cont').textContent, tiles: [...document.querySelectorAll('#view-hub .tile b')].map(b => b.textContent),
           groups: [...document.querySelectorAll('#view-hub .group')].map(g => g.textContent), rows: document.querySelectorAll('#view-hub .chrow').length,
-          counts: [...document.querySelectorAll('#view-hub .chrow .pr')].map(x => x.textContent), words: window.__a1.WORDS.length})""")
-        check('course: a start card for chapter 1, four tiles, 16 chapters in A1.1 and A1.2 with 0/N exercises',
+          counts: [...document.querySelectorAll('#view-hub .chrow .pr')].map(x => x.textContent), words: window.__a1.WORDS.length, n: window.__a1.CHAPTERS.length})""")
+        N = hub['n']
+        want = [f'{p} · розділи {a}–{min(b, N)}' for p, a, b in [('A1.1', 1, 8), ('A1.2', 9, 16), ('A2.1', 17, 24), ('A2.2', 25, 32)] if a <= N]
+        check(f'course: a start card for chapter 1, four tiles, {N} chapters grouped A1.1, A1.2, A2.1 … with 0/N exercises',
               'Почати' in hub['card'] and 'Знайомство' in hub['card'] and hub['tiles'] == ['Словник', 'Граматика', 'Вимова', 'Сад слів']
-              and hub['groups'] == ['A1.1 · розділи 1–8', 'A1.2 · розділи 9–16'] and hub['rows'] == 16 and all(c.startswith('0/') for c in hub['counts']), str(hub))
-        check('course: title, no Back, the dictionary tile counts every entry', await text(pg, 'h1') == 'Німецька A1' and await pg.is_hidden('#backbtn')
+              and N >= 17 and hub['groups'] == want and hub['rows'] == N and all(c.startswith('0/') for c in hub['counts']), str(hub))
+        check('course: title, no Back, the dictionary tile counts every entry', await text(pg, 'h1') == 'Німецька A1–A2' and await pg.is_hidden('#backbtn')
               and not await pg.evaluate('Telegram.WebApp.BackButton.shown') and str(hub['words']) in await text(pg, '[data-view="dict"] small'))
         check('course: fits 340 px', await fits(pg))
         await shot(pg, 'a1-course.png')
@@ -181,14 +183,14 @@ async def main():
 
         # ---------------- every exercise of the course ----------------
         unsolved, wide = {}, []
-        for n in range(1, 17):
+        for n in range(1, N + 1):
             await pg.goto(f'{base}a1/?ch={n}&tab=tasks'); await pg.wait_for_timeout(350)
             left = await pg.evaluate(SOLVE)
             if left or not (await text(pg, '#thead b')).startswith('Усі вправи'): unsolved[n] = left
             for tab in ['tasks', 'gram', 'words', 'phr']:
                 if tab != 'tasks': await pg.click(f'#tab-{tab}'); await pg.wait_for_timeout(260)
                 if not await fits(pg): wide.append(f'{n}:{tab}')
-        check('every exercise of all 16 chapters is solved by its own answer', not unsolved, str(unsolved))
+        check(f'every exercise of all {N} chapters is solved by its own answer', not unsolved, str(unsolved))
         check('every chapter and every tab fits 340 px', not wide, ', '.join(wide))
         await pg.goto(base + 'a1/'); await pg.wait_for_timeout(500)
         check('the course marks all chapters as done', await pg.evaluate("[...document.querySelectorAll('#view-hub .chrow')].every(r => r.classList.contains('full'))"))
@@ -207,6 +209,22 @@ async def main():
         check('a link to a chapter and a tab opens them', await text(pg, 'h1') == 'Родина' and await visible(pg, '#p-phr'))
         await pg.click('#backbtn'); await pg.wait_for_timeout(500)
         check('«Назад» on an opened link goes to the course', await visible(pg, '#view-hub') and pg.url.endswith('/a1/'))
+
+        # ---------------- A2: a chapter, its chat and the end of the course so far ----------------
+        await pg.goto(base + 'a1/?ch=17&tab=phr'); await pg.wait_for_timeout(500)
+        a2 = await pg.evaluate("""() => ({eyebrow: document.querySelector('#eyebrow').textContent, h1: document.querySelector('h1').textContent,
+          names: [...new Set([...document.querySelectorAll('#p-phr .chat .nm')].map((x) => x.textContent))],
+          out: document.querySelectorAll('#p-phr .chat .msg.out').length, inn: document.querySelectorAll('#p-phr .chat .msg.in').length,
+          avatars: document.querySelectorAll('#p-phr .chat .msg svg').length, text: document.querySelector('#p-phr .chat').textContent})""")
+        check('A2 chapter 17 «Дитинство і спогади»: eyebrow A2.1, a chat with Anna on the left, the hero on the right, avatars, the imagined story',
+              a2['eyebrow'] == 'Розділ 17 · A2.1' and a2['h1'] == 'Дитинство і спогади' and 'Anna' in a2['names'] and a2['out'] >= 4 and a2['inn'] >= 4
+              and a2['avatars'] >= 2 and 'Maler!' in a2['text'] and 'Damals gab es noch keine Kameras' in a2['text'], str({**a2, 'text': a2['text'][:120]}))
+        check('A2 chapter fits 340 px', await fits(pg))
+        await shot(pg, 'a1-a2-chat.png', False)
+        await pg.goto(f'{base}a1/?ch={N}&tab=tasks'); await pg.wait_for_timeout(400)
+        end = await pg.evaluate("[!!document.querySelector('[data-next]'), (document.querySelector('#p-tasks .note.center') || {}).textContent || '']")
+        check('the last chapter offers no next one and says what comes', not end[0] and (('з’являться згодом' in end[1]) if N < 32 else ('рівень B1' in end[1])), str(end))
+        await pg.goto(base + 'a1/'); await pg.wait_for_timeout(500)
 
         # ---------------- the dictionary ----------------
         await pg.click('[data-view="dict"]'); await pg.wait_for_timeout(500)
@@ -239,8 +257,9 @@ async def main():
 
         # ---------------- the grammar index ----------------
         await pg.click('[data-view="gram"]'); await pg.wait_for_timeout(500)
-        gi = await pg.evaluate("({links: document.querySelectorAll('#view-gram .chrow').length, all: window.__a1.CHAPTERS.reduce((n, c) => n + c.grammar.length, 0), groups: document.querySelectorAll('#view-gram .group').length})")
-        check('grammar index: every topic once, in eight groups', gi['links'] == gi['all'] and gi['groups'] == 8, str(gi))
+        gi = await pg.evaluate("""({links: document.querySelectorAll('#view-gram .chrow').length, all: window.__a1.CHAPTERS.reduce((n, c) => n + c.grammar.length, 0), groups: document.querySelectorAll('#view-gram .group').length,
+          kinds: new Set(window.__a1.CHAPTERS.flatMap((c) => c.grammar.map((g) => g.cat))).size})""")
+        check('grammar index: every topic once, a group for each kind (pronunciation, verbs, nouns, adjectives …)', gi['links'] == gi['all'] and gi['groups'] == gi['kinds'] >= 8, str(gi))
         await pg.click('.chrow[data-topic="seitVor"]'); await pg.wait_for_timeout(700)
         top = await pg.evaluate("(() => { const t = document.getElementById('t-seitVor'); return {top: t.getBoundingClientRect().top, flash: t.classList.contains('flash')}; })()")
         check('a topic opens in its chapter, scrolled to it and marked', await text(pg, 'h1') == 'Погода й час' and -5 < top['top'] < 160 and top['flash'] and 't=seitVor' in pg.url, str(top))
@@ -249,7 +268,7 @@ async def main():
 
         # ---------------- the home tile ----------------
         await pg.goto(base); await pg.wait_for_timeout(500)
-        check('home: the course tile says where to continue', await text(pg, '#a1-sub') == 'Продовжити: розділ 14 з 16', await text(pg, '#a1-sub'))
+        check('home: the course tile says where to continue', await text(pg, '#a1-sub') == 'Продовжити: розділ 14 · A1', await text(pg, '#a1-sub'))
         await ctx.close()
 
         # ---------------- another phone: progress from Telegram ----------------
