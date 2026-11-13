@@ -71,7 +71,7 @@ FIX = {
     'Nasenspray': 'nˈɑːzənʃprˌeː', 'Nasensprays': 'nˈɑːzənʃprˌeːs',
     'Niederrhein': 'nˈiːdɜrˌaɪn', 'Kobsar': 'kɔbzˈɑːɾ', 'Wolhynien': 'vɔlˈyːnɪʲən', 'Berufsschule': 'bərˈuːfsʃuːlə',
     'Sachbearbeiter': 'zˈaxbəʔˌaɾbaɪtɜ', 'Zeichenkurs': 'tsˈaɪçənkʊɾs', 'Geschenkpapier': 'ɡəʃˈɛŋkpapˌiːɾ',
-    'Joghurtbecher': 'jˈoːɡʊɾtbˌɛçɜ', 'Biotonne': 'bˈiːoːtˌɔnə', 'Biotonnen': 'bˈiːoːtˌɔnən',
+    'Joghurtbecher': 'jˈoːɡʊɾtbˌɛçɜ', 'Glatteis': 'ɡlˈatʔaɪs', 'Biotonne': 'bˈiːoːtˌɔnə', 'Biotonnen': 'bˈiːoːtˌɔnən',
 }
 
 # Words that come out clearer when written another way (checked with Whisper: three takes out of three right).
