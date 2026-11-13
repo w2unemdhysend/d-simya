@@ -13,7 +13,7 @@
    Nothing else is kept: not the shopping list, not translations, not searches.
    When the asset version (?v=) changes, update it here too (tests/offline_e2e.py checks that they match). */
 
-const VERSION = '2026-11-13.6';
+const VERSION = '2026-11-13.7';
 const CORE_CACHE = 'dsimya-core-' + VERSION, DATA_CACHE = 'dsimya-data', STATIC_CACHE = 'dsimya-static', AUDIO_CACHE = 'dsimya-audio';
 const CITY_CACHE = 'dsimya-city', TILE_CACHE = 'dsimya-tiles', MAX_TILES = 600;
 const CORE = [
@@ -28,6 +28,7 @@ const CORE = [
   'mapa/mapa.css?v=4', 'mapa/app.js?v=4', 'mapa/style.js?v=3', 'mapa/geo.js?v=3',
   'a1/data/k06.js', 'a1/data/k07.js', 'a1/data/k08.js', 'a1/data/k09.js', 'a1/data/k10.js', 'a1/data/k11.js', 'a1/data/k12.js', 'a1/data/k13.js', 'a1/data/k14.js', 'a1/data/k15.js', 'a1/data/k16.js',
   'a1/data/k17.js', 'a1/data/k18.js', 'a1/data/k19.js', 'a1/data/k20.js', 'a1/data/k21.js', 'a1/data/k22.js', 'a1/data/k23.js', 'a1/data/k24.js',
+  'a1/data/k25.js', 'a1/data/k26.js', 'a1/data/k27.js', 'a1/data/k28.js', 'a1/data/k29.js', 'a1/data/k30.js', 'a1/data/k31.js', 'a1/data/k32.js',
 ];
 const DATA = /^\/(weather|warnings|transit\/departures|transit\/area)$/;
 const MAX_DATA = 40;

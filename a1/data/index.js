@@ -24,5 +24,13 @@ import k21 from './k21.js';
 import k22 from './k22.js';
 import k23 from './k23.js';
 import k24 from './k24.js';
+import k25 from './k25.js';
+import k26 from './k26.js';
+import k27 from './k27.js';
+import k28 from './k28.js';
+import k29 from './k29.js';
+import k30 from './k30.js';
+import k31 from './k31.js';
+import k32 from './k32.js';
 
-export const CHAPTERS = [k01, k02, k03, k04, k05, k06, k07, k08, k09, k10, k11, k12, k13, k14, k15, k16, k17, k18, k19, k20, k21, k22, k23, k24];
+export const CHAPTERS = [k01, k02, k03, k04, k05, k06, k07, k08, k09, k10, k11, k12, k13, k14, k15, k16, k17, k18, k19, k20, k21, k22, k23, k24, k25, k26, k27, k28, k29, k30, k31, k32];

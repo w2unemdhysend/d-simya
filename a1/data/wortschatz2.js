@@ -315,4 +315,297 @@ p Muss ich umsteigen? | | Мені треба пересідати?
 p Ist dieser Platz noch frei? | | Це місце ще вільне?
 p Der Zug hat Verspätung. | | Потяг запізнюється.
 `,
+25: `
+n die Schleife | die Schleifen | бант, стрічка
+n der Luftballon | die Luftballons | повітряна кулька
+n der Sekt | — | ігристе вино
+v anstoßen | er stößt an · hat angestoßen | цокатися
+v sich bedanken | er bedankt sich · hat sich bedankt | дякувати
+v umarmen | er umarmt · hat umarmt | обіймати
+a lieb | | милий, любий
+n die Glückwunschkarte | die Glückwunschkarten | вітальна листівка
+n das Jubiläum | die Jubiläen | ювілей
+n der Rahmen | die Rahmen | рамка
+n das Geschenkpapier | — | пакувальний папір
+n der Strauß | die Sträuße | букет
+n das Unglück | — | нещастя
+n das Glück | — | щастя; удача
+n der Erfolg | die Erfolge | успіх
+n die Hilfe | die Hilfen | допомога
+n die Idee | die Ideen | ідея
+v leihen | er leiht · hat geliehen | позичати
+v auspacken | er packt aus · hat ausgepackt | розпаковувати, розгортати
+v einpacken | er packt ein · hat eingepackt | пакувати
+v wünschen | er wünscht · hat gewünscht | бажати
+v zuhören | er hört zu · hat zugehört | слухати (когось)
+v überraschen | er überrascht · hat überrascht | дивувати, робити сюрприз
+a dankbar | | вдячний
+a überrascht | | здивований
+w vorher | | заздалегідь
+w nachträglich | | із запізненням (про вітання)
+p Viel Glück! | | Щасти!
+p Das ist für dich. | | Це тобі.
+p Gut zu wissen! | | Добре знати!
+p Das freut mich sehr. | | Мені дуже приємно.
+`,
+26: `
+n das Gymnasium | die Gymnasien | гімназія
+n die Realschule | die Realschulen | реальна школа
+n die Gesamtschule | die Gesamtschulen | загальна школа
+n das Abitur | — | атестат зрілості
+n die Berufsschule | die Berufsschulen | професійна школа
+n das Fach | die Fächer | шкільний предмет
+n das Lieblingsfach | die Lieblingsfächer | улюблений предмет
+n die Note | die Noten | оцінка
+n der Integrationskurs | die Integrationskurse | інтеграційний курс
+n der Einstufungstest | die Einstufungstests | тест на рівень
+n die Kursgebühr | die Kursgebühren | плата за курс
+n das Zertifikat | die Zertifikate | сертифікат
+n die Weiterbildung | die Weiterbildungen | підвищення кваліфікації
+n der Schüler | die Schüler | учень
+n die Schülerin | die Schülerinnen | учениця
+n die Regel | die Regeln | правило
+n der Kirchensänger | die Kirchensänger | дяк, церковний співак
+v sich anmelden | er meldet sich an · hat sich angemeldet | записуватися, реєструватися
+v beibringen | er bringt bei · hat beigebracht | навчати (когось чогось)
+v unterrichten | er unterrichtet · hat unterrichtet | викладати
+v durchfallen | er fällt durch · ist durchgefallen | провалити (іспит)
+v stattfinden | er findet statt · hat stattgefunden | відбуватися
+v weiterlernen | er lernt weiter · hat weitergelernt | вчитися далі
+v rennen | er rennt · ist gerannt | бігти
+v klingeln | er klingelt · hat geklingelt | дзвонити (про дзвінок, дзвоник)
+a fleißig | | старанний
+a faul | | лінивий
+a schwierig | | складний
+a nervös | | знервований
+w wenn | | коли (щоразу); якщо
+w zweimal pro Woche | | двічі на тиждень
+w Es war einmal … | | Жили-були …
+p Können Sie das bitte wiederholen? | | Повторіть, будь ласка.
+p Was bedeutet dieses Wort? | | Що означає це слово?
+`,
+27: `
+n der Akku | die Akkus | акумулятор
+n das WLAN | — | вай-фай
+n das Passwort | die Passwörter | пароль
+n die App | die Apps | застосунок
+n der Link | die Links | посилання
+n der Podcast | die Podcasts | подкаст
+n die Zeitschrift | die Zeitschriften | журнал
+n das Netzwerk | die Netzwerke | мережа
+n der Anrufbeantworter | die Anrufbeantworter | автовідповідач
+n der Bildschirm | die Bildschirme | екран
+n der Absender | die Absender | відправник
+n der Empfänger | die Empfänger | одержувач
+n der Gruß | die Grüße | привіт, вітання
+n die Literatur | — | література
+n der Krimi | die Krimis | детектив
+n die Werbung | — | реклама
+w warten auf | | чекати на
+w denken an | | думати про
+w sich interessieren für | | цікавитися (чим)
+w sprechen über | | говорити про
+w sich freuen auf | | чекати з радістю (майбутнього)
+w sich freuen über | | радіти (тому, що є)
+w sich ärgern über | | сердитися через
+w Angst haben vor | | боятися (чого)
+w fragen nach | | питати про
+w worauf | | на що
+w darauf | | на це
+w worüber | | про що
+w darüber | | про це
+w wofür | | для чого; чим (цікавишся)
+v herunterladen | er lädt herunter · hat heruntergeladen | завантажувати
+v hochladen | er lädt hoch · hat hochgeladen | вивантажувати
+v teilen | er teilt · hat geteilt | ділитися; ділити
+v posten | er postet · hat gepostet | публікувати (у соцмережі)
+v chatten | er chattet · hat gechattet | листуватися в чаті
+v zurückrufen | er ruft zurück · hat zurückgerufen | передзвонювати
+v speichern | er speichert · hat gespeichert | зберігати
+v löschen | er löscht · hat gelöscht | видаляти
+a online | | онлайн
+a leer | | порожній; розряджений
+a digital | | цифровий
+p Mein Akku ist leer. | | У мене сів акумулятор.
+p Ich kann dich schlecht verstehen. | | Я тебе погано чую.
+`,
+28: `
+n die Behörde | die Behörden | установа, орган влади
+n der Antrag | die Anträge | заява
+n die Unterlage | die Unterlagen | документ (зазвичай у множині)
+n der Bescheid | die Bescheide | офіційне рішення
+n die Frist | die Fristen | крайній термін
+n die Wartenummer | die Wartenummern | номер черги
+n die Meldebestätigung | die Meldebestätigungen | підтвердження реєстрації
+n die Hauptwohnung | die Hauptwohnungen | основне житло
+n die Nebenwohnung | die Nebenwohnungen | друге житло
+n der Sachbearbeiter | die Sachbearbeiter | працівник установи
+n die Sachbearbeiterin | die Sachbearbeiterinnen | працівниця установи
+n die Gebühr | die Gebühren | збір, плата
+n die Möglichkeit | die Möglichkeiten | можливість
+v beantragen | er beantragt · hat beantragt | подавати заяву (на щось)
+v verlängern | er verlängert · hat verlängert | продовжувати (термін)
+v abgeben | er gibt ab · hat abgegeben | здавати, віддавати
+v ankreuzen | er kreuzt an · hat angekreuzt | позначати хрестиком
+v ausdrucken | er druckt aus · hat ausgedruckt | роздруковувати
+v verschieben | er verschiebt · hat verschoben | переносити (на інший час)
+v lassen | er lässt · hat gelassen | залишати; доручати
+v reichen | er reicht · hat gereicht | вистачати
+a möglich | | можливий
+a zuständig | | відповідальний (за щось)
+a gültig | | дійсний
+a amtlich | | офіційний
+w an deiner Stelle | | на твоєму місці
+w ich hätte gern | | я хотів би / хотіла б (мати)
+w ich würde gern | | я хотів би / хотіла б (зробити)
+w einen Antrag stellen | | подати заяву
+p Könnten Sie mir bitte helfen? | | Чи не могли б Ви мені допомогти?
+p Wäre das möglich? | | Чи це можливо?
+`,
+29: `
+n die Ausstellung | die Ausstellungen | виставка
+n das Gemälde | die Gemälde | картина, полотно
+n die Vorstellung | die Vorstellungen | вистава
+n die Lesung | die Lesungen | літературні читання
+n die Eintrittskarte | die Eintrittskarten | вхідний квиток
+n der Eintritt | — | вхід; плата за вхід
+n die Ermäßigung | die Ermäßigungen | знижка
+n der Roman | die Romane | роман
+n das Drama | die Dramen | драма
+n der Gedichtband | die Gedichtbände | збірка віршів
+n das Werk | die Werke | твір
+n die Vitrine | die Vitrinen | вітрина (у музеї)
+n die Widmung | die Widmungen | присвята, присвятний напис
+n der Künstler | die Künstler | митець
+n die Künstlerin | die Künstlerinnen | мисткиня
+n der Schriftsteller | die Schriftsteller | письменник
+n die Schriftstellerin | die Schriftstellerinnen | письменниця
+n die Komödie | die Komödien | комедія
+n der Geschmack | die Geschmäcker | смак
+n die Bühne | die Bühnen | сцена
+n das Publikum | — | публіка, глядачі
+n der Museumsladen | die Museumsläden | музейна крамниця
+v ausstellen | er stellt aus · hat ausgestellt | виставляти
+v veröffentlichen | er veröffentlicht · hat veröffentlicht | публікувати, видавати
+v übersetzen | er übersetzt · hat übersetzt | перекладати
+v klatschen | er klatscht · hat geklatscht | плескати
+a spannend | | захопливий
+a bekannt | | відомий
+a berühmt | | знаменитий
+a klassisch | | класичний
+w auswendig | | напам’ять
+w was für ein | | що за, який
+w in der ersten Reihe | | у першому ряду
+p Was kostet der Eintritt? | | Скільки коштує вхід?
+p Das ist nicht so mein Geschmack. | | Це не зовсім на мій смак.
+p Was für eine Überraschung! | | Оце так несподіванка!
+`,
+30: `
+n die Tonne | die Tonnen | бак (для сміття)
+n die Biotonne | die Biotonnen | біобак
+n die Papiertonne | die Papiertonnen | бак для паперу
+n die Restmülltonne | die Restmülltonnen | бак для решти сміття
+n der Glascontainer | die Glascontainer | контейнер для скла
+n das Pfand | — | застава (за тару)
+n die Verpackung | die Verpackungen | упаковка
+n das Plastik | — | пластик
+n die Umwelt | — | довкілля
+n die Wiese | die Wiesen | луг
+n das Feld | die Felder | поле
+n die Landschaft | die Landschaften | краєвид
+n die Pflanze | die Pflanzen | рослина
+n der Vogel | die Vögel | птах
+n die Wildgans | die Wildgänse | дика гуска
+n der Sturm | die Stürme | буря
+n das Glatteis | — | ожеледь
+n die Hitze | — | спека
+n der Klimawandel | — | зміна клімату
+n die Energie | die Energien | енергія
+n der Strom | — | електроенергія; течія
+n der Sonnenuntergang | die Sonnenuntergänge | захід сонця
+n die Lust | — | бажання, охота
+v wegwerfen | er wirft weg · hat weggeworfen | викидати
+v sparen | er spart · hat gespart | економити; заощаджувати
+v schützen | er schützt · hat geschützt | захищати
+v lüften | er lüftet · hat gelüftet | провітрювати
+v versuchen | er versucht · hat versucht | намагатися, пробувати
+v vorhaben | er hat vor · hat vorgehabt | планувати, мати намір
+v einwerfen | er wirft ein · hat eingeworfen | вкидати
+a verboten | | заборонений
+a gebraucht | | вживаний
+a umweltfreundlich | | екологічний
+w Lust haben | | мати бажання
+p Wohin kommt das? | | Куди це викидати?
+`,
+31: `
+n die Karriere | die Karrieren | кар’єра
+n das Abenteuer | die Abenteuer | пригода
+n die Weltreise | die Weltreisen | подорож навколо світу
+v sich entscheiden | er entscheidet sich · hat sich entschieden | вирішувати, обирати
+w träumen von | | мріяти про
+a zufrieden | | задоволений
+a ehrlich | | чесний
+n die Zukunft | — | майбутнє
+n der Plan | die Pläne | план
+n das Ziel | die Ziele | мета
+n die Hoffnung | die Hoffnungen | надія
+n der Wunsch | die Wünsche | бажання
+n die Reihe | die Reihen | ряд
+n der Zeichenkurs | die Zeichenkurse | курс малювання
+v eröffnen | er eröffnet · hat eröffnet | відкривати (заклад)
+v ziehen | er zieht · ist gezogen | переїжджати; тягти
+v erreichen | er erreicht · hat erreicht | досягати
+v sich vorstellen | er stellt sich vor · hat sich vorgestellt | уявляти собі; представлятися
+v verändern | er verändert · hat verändert | змінювати
+v aufgeben | er gibt auf · hat aufgegeben | здаватися, кидати
+w trotzdem | | все одно, попри це
+w sondern | | а (після заперечення)
+w nicht nur … sondern auch | | не лише …, а й
+w entweder … oder | | або …, або
+w sowohl … als auch | | як …, так і
+w irgendwann | | колись
+w in zwei Jahren | | через два роки
+w hoffentlich | | сподіваюся, хоч би
+a eigen | | власний
+p Mal sehen! | | Подивимося!
+p Ich werde es versuchen. | | Я спробую.
+p Das wirst du schaffen! | | У тебе вийде!
+p Wir werden sehen. | | Побачимо.
+`,
+32: `
+n der Hörtext | die Hörtexte | текст для слухання
+n die Lösung | die Lösungen | відповідь, розв’язок
+n der Wortschatz | — | словниковий запас
+n die Aussprache | — | вимова
+v ergänzen | er ergänzt · hat ergänzt | доповнювати
+v zuordnen | er ordnet zu · hat zugeordnet | співвідносити
+v beschreiben | er beschreibt · hat beschrieben | описувати
+w mindestens | | щонайменше
+w insgesamt | | загалом
+n die Prüferin | die Prüferinnen | екзаменаторка
+n der Prüfer | die Prüfer | екзаменатор
+n der Teilnehmer | die Teilnehmer | учасник
+n die Teilnehmerin | die Teilnehmerinnen | учасниця
+n das Ergebnis | die Ergebnisse | результат
+n der Punkt | die Punkte | бал; крапка; пункт
+n der Teil | die Teile | частина
+n der Wohnort | die Wohnorte | місце проживання
+n das Niveau | die Niveaus | рівень
+n die Wiederholung | die Wiederholungen | повторення
+n die Übung | die Übungen | вправа
+n der Fortschritt | die Fortschritte | поступ
+v sich vorbereiten | er bereitet sich vor · hat sich vorbereitet | готуватися
+v korrigieren | er korrigiert · hat korrigiert | виправляти
+v nachfragen | er fragt nach · hat nachgefragt | перепитувати
+a schriftlich | | письмовий
+a mündlich | | усний
+a einverstanden | | згодний
+a gegenseitig | | взаємний
+w so oft wie möglich | | якомога частіше
+w in einfacher Sprache | | простою мовою
+p Wie wäre es mit …? | | Як щодо …?
+p Einverstanden! | | Домовилися!
+p Ich habe bestanden! | | Я склав / склала!
+p Viel Erfolg! | | Успіхів!
+`,
 };

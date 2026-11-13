@@ -69,6 +69,9 @@ FIX = {
     'Anrufbeantworter': 'ˈanruːfbəʔˌantvɔɾtɜ', 'dünsten': 'dˈʏnstən', 'dünstet': 'dˈʏnstət', 'gedünstet': 'ɡədˈʏnstət',
     'Zutat': 'tsˈuːtɑːt', 'Zutaten': 'tsˈuːtɑːtən', 'Lutschtablette': 'lˈʊtʃtablˌɛtə', 'Lutschtabletten': 'lˈʊtʃtablˌɛtən',
     'Nasenspray': 'nˈɑːzənʃprˌeː', 'Nasensprays': 'nˈɑːzənʃprˌeːs',
+    'Niederrhein': 'nˈiːdɜrˌaɪn', 'Kobsar': 'kɔbzˈɑːɾ', 'Wolhynien': 'vɔlˈyːnɪʲən', 'Berufsschule': 'bərˈuːfsʃuːlə',
+    'Sachbearbeiter': 'zˈaxbəʔˌaɾbaɪtɜ', 'Zeichenkurs': 'tsˈaɪçənkʊɾs', 'Geschenkpapier': 'ɡəʃˈɛŋkpapˌiːɾ',
+    'Joghurtbecher': 'jˈoːɡʊɾtbˌɛçɜ', 'Biotonne': 'bˈiːoːtˌɔnə', 'Biotonnen': 'bˈiːoːtˌɔnən',
 }
 
 # Words that come out clearer when written another way (checked with Whisper: three takes out of three right).
