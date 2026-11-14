@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>(function(){try{var s=null;try{s=localStorage.getItem('dsimya-theme')}catch(e){}var w=window.Telegram&&Telegram.WebApp;var tg=w&&w.platform&&w.platform!=='unknown';var t=s||(tg?(w.colorScheme==='dark'?'dark':'light'):(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));document.documentElement.setAttribute('data-theme',t);if(s2())document.documentElement.setAttribute('data-big','1')}catch(e){}function s2(){try{return localStorage.getItem('dsimya-big')==='1'}catch(e){return false}}})();addEventListener('unhandledrejection',function(e){var r=e.reason;if(r&&/Transition was (aborted|skipped)/.test(r.message||''))e.preventDefault()});</script>
+<title>Leben in Deutschland</title>
+<link rel="manifest" href="../../manifest.webmanifest">
+<link rel="icon" href="../../assets/icons/favicon-48.png" sizes="48x48">
+<link rel="apple-touch-icon" href="../../assets/icons/apple-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@600;700&display=swap">
+<link rel="stylesheet" href="../../assets/page.css?v=0b90d112">
+<style>
+/* «Leben in Deutschland»: a hub (how much is learned, the ways to practise, the topics), a question (German as on the
+   test, the Ukrainian under it; the choice marked right or wrong at once), the exam (33 questions, 60 minutes, the
+   result at the end with every answer) and the whole catalogue as a list with the answers. */
+.view{display:grid;gap:12px}
+.prog{display:grid;gap:6px}
+.prog .bar{height:8px;border-radius:999px;background:var(--line);overflow:hidden}
+.prog .bar i{display:block;height:100%;background:var(--on)}
+.modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.mode{display:grid;gap:2px;align-content:start;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--surface);text-align:left;font:inherit;color:inherit;cursor:pointer;min-height:92px;position:relative}
+.mode .i{font-size:24px;line-height:1.1}
+.mode b{font-weight:600;font-size:15.5px;line-height:1.25}
+.mode small{color:var(--muted);font-size:13px;line-height:1.3}
+.mode.wide{grid-column:1/-1}
+.mode .due{position:absolute;top:8px;right:8px;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:var(--accent);color:var(--bg);font-size:12.5px;font-weight:700;display:grid;place-items:center}
+.topics{list-style:none;margin:0;padding:0}
+.topics li{border-top:1px solid var(--line)}
+.topics li:first-child{border-top:0}
+.topics button{display:flex;align-items:center;gap:10px;width:100%;min-height:52px;padding:8px 2px;border:0;background:none;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.topics .t{flex:1;min-width:0}
+.topics .t small{display:block;color:var(--muted);font-size:13px}
+.topics .n{font-variant-numeric:tabular-nums;color:var(--muted);font-size:14px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.linkbtn{border:0;background:none;color:var(--ink);text-decoration:underline;font:inherit;cursor:pointer;padding:8px 0;min-height:44px}
+.qcard{display:grid;gap:8px}
+.qcard .num{font-size:13px;color:var(--muted);font-weight:600;letter-spacing:.04em}
+.qcard .de{font-size:19px;font-weight:600;line-height:1.35}
+.qcard .uk{font-size:15.5px;color:var(--muted);line-height:1.4}
+.qcard img{max-width:100%;height:auto;border-radius:10px;background:#fff;padding:6px;margin-top:4px}
+.photo{font-size:13.5px;color:var(--muted);font-style:italic}
+.opts{display:grid;gap:8px}
+.opt{display:grid;gap:2px;text-align:left;min-height:56px;padding:10px 12px;border-radius:14px;border:1px solid var(--line);background:var(--surface);font:inherit;color:var(--ink);cursor:pointer;touch-action:manipulation}
+.opt b{font-weight:600;font-size:16.5px;line-height:1.3}
+.opt small{color:var(--muted);font-size:14px;line-height:1.35}
+.opt.right{background:color-mix(in srgb, var(--on) 22%, var(--surface));border-color:var(--on)}
+.opt.wrong{background:var(--danger-soft);border-color:var(--danger)}
+.opt.picked{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.bigbtn{width:100%;min-height:54px;border-radius:14px;border:0;background:var(--ink);color:var(--bg);font:inherit;font-weight:600;font-size:17px;cursor:pointer}
+.bigbtn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.bigbtn:disabled{opacity:.5}
+.timer{font-variant-numeric:tabular-nums;font-weight:700}
+.timer.low{color:var(--danger)}
+.res{text-align:center;display:grid;gap:8px}
+.res .big{font:700 40px/1.1 var(--f-display)}
+.res.pass .big{color:var(--on)}
+.res.fail .big{color:var(--danger)}
+.dots{display:flex;flex-wrap:wrap;gap:5px;justify-content:center}
+.dots button{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font:inherit;font-size:12px;cursor:pointer;color:var(--ink)}
+.dots .ok{background:color-mix(in srgb, var(--on) 25%, var(--surface));border-color:var(--on)}
+.dots .no{background:var(--danger-soft);border-color:var(--danger)}
+.dots .cur{box-shadow:0 0 0 2px var(--ink)}
+.cat{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.cat li{padding:12px;border-radius:14px;background:var(--surface);border:1px solid var(--line);display:grid;gap:4px}
+.cat .a{color:var(--on);font-weight:600}
+.cat small{color:var(--muted)}
+.search{width:100%;min-height:48px;padding:0 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-size:16px}
+.note{margin:0;color:var(--muted);font-size:14.5px}
+.src{font-size:13px;color:var(--muted)}
+</style>
+<link rel="stylesheet" href="../../assets/ui.css?v=9b6f3eca">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="toprow"><button class="menubtn" id="menubtn" type="button" aria-expanded="false" aria-controls="drawer" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Розділи</span></button><button class="themebtn" id="themebtn" type="button" aria-label="Увімкнути темну тему"><svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M5.3 18.7L7 17M17 7l1.7-1.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.6A8.2 8.2 0 0 1 9.4 4a8.2 8.2 0 1 0 10.6 10.6z" fill="currentColor"/></svg></button></div>
+    <div class="eyebrow">Навчання · тест для громадянства й інтеграційного курсу</div>
+    <h1 lang="de">Leben in Deutschland</h1>
+    <p class="lede">Усі 310 офіційних питань (300 загальних і 10 про Північний Рейн — Вестфалію) з перекладом українською, тренування за темами, повторення помилок і пробний іспит.</p>
+  </header>
+  <main>
+    <section class="view" id="view-hub"></section>
+    <section class="view" id="view-run" hidden></section>
+    <section class="view" id="view-list" hidden></section>
+  </main>
+  <p class="foot src" id="src"></p>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="../../assets/ui.js?v=efc4439b"></script>
+<script type="module" src="app.js?v=259087fe"></script>
+</body>
+</html>

@@ -113,6 +113,7 @@ function renderHub() {
       `<p class="sub">Абетка, вимова, перші фрази: як тебе звати, звідки ти</p></a>`) +
     `<div class="grid2">` +
     `<a class="tile wide" href="trener/" id="to-trener"><span class="ic">${ICON('<path d="M4 12h3l2-6 4 12 2-6h5"/>')}</span><span><b>Тренажери</b><small>Безкінечні вправи: артиклі, дієслова, відмінки… і розмова з ШІ</small></span></a>` +
+    `<a class="tile wide" href="lid/" id="to-lid"><span class="ic">${ICON('<path d="M5 12.5l4.5 4.5L19 7.5"/><rect x="3.5" y="3.5" width="17" height="17" rx="3"/>')}</span><span><b lang="de">Leben in Deutschland</b><small>Тест на громадянство: 310 офіційних питань з перекладом і пробний іспит</small></span></a>` +
     `<a class="tile" href="?view=dict" data-view="dict"><span class="ic">${ICON('<path d="M5 4.5h10.5a3 3 0 0 1 3 3V20H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h10.5M9 8.5h6"/>')}</span><span><b>Словник</b><small>${WORDS.length} слів і фраз з озвученням</small></span></a>` +
     `<a class="tile" href="?view=gram" data-view="gram"><span class="ic">${ICON('<path d="M4 6h16M4 12h10M4 18h7"/><path d="M17 14l3 3-3 3"/>')}</span><span><b>Граматика</b><small>${topics} тем одним списком</small></span></a>` +
     `<a class="tile" href="?ch=1&amp;t=abc" data-ch="1" data-topic="abc"><span class="ic">${ICON('<path d="M3.5 18l4.5-12 4.5 12M5.2 14h5.6"/><path d="M15 18v-7.5a3 3 0 0 1 6 0V18M15 14h6"/>')}</span><span><b>Вимова</b><small>Абетка й звуки</small></span></a>` +
