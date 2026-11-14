@@ -52,6 +52,9 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-top:10px}
 .add input,.joinrow input{flex:1;min-width:0;width:0;min-height:50px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;padding:0 12px}
 .btn{min-height:50px;border-radius:12px;border:1px solid var(--ink);background:var(--ink);color:var(--bg);font-weight:600;font-size:16px;padding:0 16px;cursor:pointer;flex:none}
 .btn:disabled{opacity:.5;cursor:default}
+.btn.mic{width:50px;padding:0;display:grid;place-items:center;background:var(--surface);color:var(--ink);border-color:var(--line)}
+.btn.mic svg{width:22px;height:22px}
+.btn.mic[aria-pressed="true"]{background:var(--danger);border-color:var(--danger);color:#fff;animation:blink 1.2s ease-in-out infinite}
 .ghost{min-height:44px;border-radius:12px;border:1px solid var(--line);background:transparent;font-weight:600;font-size:15px;padding:0 14px;cursor:pointer}
 .shops{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:10px -14px 0;padding:0 14px 2px}
 .shops::-webkit-scrollbar{display:none}
@@ -81,7 +84,10 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-top:10px}
 .check svg{width:15px;height:15px;color:var(--bg);opacity:0;transform:scale(.6);transition:opacity .15s ease, transform .2s var(--ease-out, ease)}
 .item.done .check i{background:var(--on);border-color:var(--on)}
 .item.done .check svg{opacity:1;transform:none}
-.item .txt{flex:1;min-width:0;padding:6px 0}
+.item{flex-wrap:wrap}
+.item .txt{flex:1;min-width:0;padding:6px 0;border:0;background:transparent;text-align:left;font:inherit;color:inherit;cursor:pointer}
+.prices{flex-basis:100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:0 6px 8px 54px;font-size:13.5px;color:var(--muted)}
+.prices a{min-height:36px;display:inline-flex;align-items:center;padding:0 12px;border-radius:999px;border:1px solid var(--line);font-weight:600;color:var(--ink);text-decoration:none}
 .item .txt b{display:block;font-weight:500;font-size:17px;line-height:1.3;overflow-wrap:anywhere}
 .item .txt small{display:block;color:var(--muted);font-size:13.5px;line-height:1.3}
 .item.done .txt b{text-decoration:line-through;color:var(--muted)}
@@ -121,7 +127,9 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-top:10px}
   <main id="app" hidden>
     <section class="card add" aria-label="Додати до списку">
       <form class="srow" id="addform"><input id="t" type="text" autocomplete="off" enterkeyhint="done" maxlength="80" placeholder="Що купити?" aria-label="Що купити">
+        <button class="btn mic" id="mic" type="button" aria-label="Сказати голосом" aria-pressed="false" hidden><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></button>
         <button class="btn" id="addbtn" type="submit">Додати</button></form>
+      <p class="note" id="voice" hidden></p>
       <div class="shops" id="shops" role="radiogroup" aria-label="Де купити"></div>
       <div class="again" id="again" hidden><span id="again-lab">Купити знову</span><div class="shops" id="again-list" role="group" aria-labelledby="again-lab"></div></div>
     </section>
@@ -151,7 +159,7 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-top:10px}
 </div>
 <script src="../assets/ui.js?v=89a0048a"></script>
 <script type="module">
-import { esc, API } from '../assets/site.js';
+import { esc, API, priceLinks } from '../assets/site.js';
 import { berlinDay } from '../smittia/due.js';
 
 const $ = (s, r) => (r || document).querySelector(s);
@@ -204,6 +212,7 @@ function start() {
   }
   const today = berlinDay(new Date());
   const shortDay = (day) => new Date(day + 'T12:00:00Z').toLocaleDateString('uk-UA', { weekday: 'short', day: 'numeric', month: 'numeric', timeZone: 'UTC' });
+  const openPrice = new Set();   // items whose price links are shown (a tap on the name)
   function itemHTML(x, many) {
     const meta = [];
     if (x.u) meta.push(x.u < today ? '<span class="old">акція вже закінчилась</span>' : `акція до ${esc(shortDay(x.u))}`);
@@ -212,8 +221,9 @@ function start() {
     if (x.pending) meta.push('надсилаю…');
     return `<li class="item${x.d ? ' done' : ''}${x.pending ? ' pending' : ''}" data-id="${esc(x.id)}">` +
       `<button class="check" type="button" role="checkbox" aria-checked="${!!x.d}" aria-label="${esc(x.t)}${x.d ? ', куплено' : ''}"${x.pending ? ' disabled' : ''}><i>${CHECK}</i></button>` +
-      `<span class="txt"><b>${esc(x.t)}</b>${meta.length ? `<small>${meta.join(' · ')}</small>` : ''}</span>` +
-      `<button class="del" type="button" aria-label="Прибрати: ${esc(x.t)}"${x.pending ? ' disabled' : ''}>${X}</button></li>`;
+      `<button class="txt" type="button" aria-expanded="${openPrice.has(x.id)}" aria-label="${esc(x.t)}: порівняти ціни"><b>${esc(x.t)}</b>${meta.length ? `<small>${meta.join(' · ')}</small>` : ''}</button>` +
+      `<button class="del" type="button" aria-label="Прибрати: ${esc(x.t)}"${x.pending ? ' disabled' : ''}>${X}</button>` +
+      (openPrice.has(x.id) ? `<div class="prices">Порівняти ціни:${priceLinks(x.t).map(([n, u]) => `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(n)}</a>`).join('')}</div>` : '') + '</li>';
   }
   function render() {
     const items = view(), many = server ? server.members.length > 1 : false;
@@ -296,9 +306,44 @@ function start() {
   $('#list').addEventListener('click', (e) => {
     if (e.target.closest('#clear')) { change('clear', {}); haptic(); return; }
     const li = e.target.closest('.item'); if (!li || li.classList.contains('pending')) return;
+    const pl = e.target.closest('.prices a');
+    if (pl) { e.preventDefault(); try { tg.openLink(pl.href); } catch (er) { window.open(pl.href, '_blank'); } return; }
+    if (e.target.closest('.txt')) { const id = li.dataset.id; if (openPrice.has(id)) openPrice.delete(id); else openPrice.add(id); render(); haptic(); return; }
     if (e.target.closest('.check')) { change('toggle', { id: li.dataset.id }); haptic(li.classList.contains('done') ? null : 'success'); }
     else if (e.target.closest('.del')) { change('remove', { id: li.dataset.id }); haptic(); }
   });
+
+  /* ---------- by voice: «молоко, хліб і яйця» → three things on the list (Whisper on the server, worker/voice.js) ---------- */
+  const canVoice = !!(window.MediaRecorder && navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+  $('#mic').hidden = !canVoice;
+  let rec = null, chunks = [], stopTimer = null;
+  const say = (t, err) => { const p = $('#voice'); p.hidden = !t; p.textContent = t || ''; p.style.color = err ? 'var(--danger)' : ''; };
+  async function sendVoice(blob) {
+    say('Розбираю…');
+    const fd = new FormData(); fd.append('initData', tg.initData); fd.append('audio', blob, 'voice.' + (blob.type.includes('mp4') ? 'm4a' : blob.type.includes('ogg') ? 'ogg' : 'webm'));
+    try {
+      const r = await fetch(API + 'voice', { method: 'POST', body: fd }), d = await r.json().catch(() => ({}));
+      if (r.status === 429) { say('На сьогодні голосових уже багато. Напиши текстом.', true); return; }
+      if (!r.ok || !d.ok) throw new Error(d.error || 'http');
+      if (!d.items || !d.items.length) { say(d.text ? `Почув «${d.text}», але не зрозумів, що додати.` : 'Нічого не почув. Спробуй ще раз.', true); return; }
+      for (const t of d.items) { remember(t, shop); change('add', { t, s: shop }); }
+      say(`Почув: «${d.text}»`); haptic('success');
+    } catch (e) { say('Не вдалося розібрати. Спробуй ще раз або напиши текстом.', true); }
+  }
+  async function toggleMic() {
+    const b = $('#mic');
+    if (rec) { clearTimeout(stopTimer); rec.stop(); return; }
+    let stream;
+    try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch (e) { say('Немає доступу до мікрофона. Дозволь його в налаштуваннях або напиши текстом.', true); return; }
+    const type = ['audio/webm;codecs=opus', 'audio/mp4', 'audio/ogg;codecs=opus', 'audio/webm'].find((t) => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) || '';
+    rec = new MediaRecorder(stream, type ? { mimeType: type } : undefined); chunks = [];
+    rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+    rec.onstop = () => { stream.getTracks().forEach((t) => t.stop()); b.setAttribute('aria-pressed', 'false'); const blob = new Blob(chunks, { type: rec.mimeType || type || 'audio/webm' }); rec = null; if (blob.size > 800) sendVoice(blob); else say(''); };
+    rec.start(); b.setAttribute('aria-pressed', 'true'); haptic();
+    say('Слухаю… скажи, що купити, і натисни мікрофон ще раз.');
+    stopTimer = setTimeout(() => { if (rec) rec.stop(); }, 15000);
+  }
+  $('#mic').addEventListener('click', toggleMic);
 
   /* ---------- family: invite, join, leave ---------- */
   const err = (t) => { $('#ferr').textContent = t; $('#ferr').hidden = !t; if (t) $('#fok').hidden = true; };

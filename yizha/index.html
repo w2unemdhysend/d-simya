@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@600;700&display=swap">
 <link rel="stylesheet" href="../assets/page.css?v=0b90d112">
-<link rel="stylesheet" href="yizha.css?v=a19057ec">
+<link rel="stylesheet" href="yizha.css?v=a8d66a82">
 <link rel="stylesheet" href="../assets/ui.css?v=9b6f3eca">
 </head>
 <body>
@@ -31,10 +31,12 @@
     <div class="tabs" role="tablist" aria-label="Частини розділу" id="tabs" hidden>
       <span class="tthumb" aria-hidden="true"></span>
       <button role="tab" type="button" id="tab-day" data-tab="day" aria-controls="view-day" aria-selected="true">Сьогодні</button>
+      <button role="tab" type="button" id="tab-plan" data-tab="plan" aria-controls="view-plan" aria-selected="false">План</button>
       <button role="tab" type="button" id="tab-progress" data-tab="progress" aria-controls="view-progress" aria-selected="false">Прогрес</button>
       <button role="tab" type="button" id="tab-foods" data-tab="foods" aria-controls="view-foods" aria-selected="false">Продукти</button>
     </div>
     <section class="view" id="view-day" role="tabpanel" aria-labelledby="tab-day" hidden></section>
+    <section class="view" id="view-plan" role="tabpanel" aria-labelledby="tab-plan" hidden></section>
     <section class="view" id="view-progress" role="tabpanel" aria-labelledby="tab-progress" hidden></section>
     <section class="view" id="view-foods" role="tabpanel" aria-labelledby="tab-foods" hidden></section>
   </main>
@@ -55,6 +57,6 @@
 <div class="toast" id="toast" role="status" aria-live="polite" hidden><span id="toast-text"></span><button type="button" id="toast-undo" hidden>Скасувати</button></div>
 
 <script src="../assets/ui.js?v=89a0048a"></script>
-<script type="module" src="app.js?v=178beb3c"></script>
+<script type="module" src="app.js?v=3eb2a9e7"></script>
 </body>
 </html>

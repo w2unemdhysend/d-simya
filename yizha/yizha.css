@@ -8,8 +8,8 @@
 
 main{gap:12px}
 .view{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;align-content:start}
-.tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:4px}
-.tabs button{border:0;background:transparent;border-radius:10px;min-height:44px;padding:6px 4px;font-weight:600;font-size:15px;line-height:1.15;cursor:pointer}
+.tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:4px}
+.tabs button{border:0;background:transparent;border-radius:10px;min-height:44px;padding:6px 2px;font-weight:600;font-size:14.5px;line-height:1.15;cursor:pointer}
 .tabs button[aria-selected="true"]{color:var(--bg)}
 h2 small{font:500 14px/1.3 var(--f-body);color:var(--muted);letter-spacing:0}
 .hrow{display:flex;align-items:center;justify-content:space-between;gap:10px}
@@ -234,3 +234,32 @@ h3.group{margin:6px 2px -4px}
 .ach li small{font-size:12px;color:var(--muted);line-height:1.25}
 .ach li.got{opacity:1;border-style:solid;border-color:var(--ok);background:var(--ok-soft)}
 .ach li.got span{filter:none}
+.prices{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:13.5px;color:var(--muted)}
+.prices a{min-height:36px;display:inline-flex;align-items:center;padding:0 12px;border-radius:999px;border:1px solid var(--line);font-weight:600;color:var(--ink);text-decoration:none;background:var(--surface)}
+
+/* ideas and the plan */
+.ideas{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:10px -14px 0;padding:0 14px 2px}
+.ideas::-webkit-scrollbar{display:none}
+.idea{flex:none;display:flex;align-items:center;gap:8px;max-width:240px;padding:6px 12px 6px 6px;border-radius:14px;border:1px solid var(--line);background:var(--bg);text-align:left;font:inherit;color:inherit;cursor:pointer}
+.idea .fi{width:36px;height:36px;font-size:20px;border-radius:10px}
+.idea b{display:block;font-weight:600;font-size:14px;line-height:1.2}
+.idea small{display:block;font-size:12.5px;color:var(--muted)}
+.planned{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.pchip{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:4px 12px 4px 6px;border-radius:999px;border:1.5px dashed var(--line);background:transparent;font:inherit;font-size:14px;color:inherit;cursor:pointer}
+.pchip .fi{width:28px;height:28px;font-size:16px;border-radius:8px}
+.pchip.done{border-style:solid;opacity:.55;text-decoration:line-through}
+.pday{padding:12px}
+.pday .hrow h2{font-size:16px}
+.pday .hrow h2 span{font:500 14px/1 var(--f-body);color:var(--muted);margin-left:6px}
+.pmeal{display:grid;grid-template-columns:76px minmax(0,1fr) auto;gap:6px;align-items:start;padding:6px 0;border-top:1px solid var(--line)}
+.pmeal:first-of-type{border-top:0}
+.pmeal > span{font-size:13px;font-weight:600;color:var(--muted);padding-top:10px}
+.pmeal .planned{margin-top:0}
+.pmeal .iconbtn{width:40px;height:40px}
+.shop{list-style:none;margin:0;padding:0}
+.shop li label{display:flex;align-items:center;gap:10px;min-height:48px;padding:4px 2px;border-top:1px solid var(--line);cursor:pointer}
+.shop li:first-child label{border-top:0}
+.shop input{width:22px;height:22px;accent-color:var(--ok)}
+.shop b{font-weight:500;flex:1}
+.shop small{color:var(--muted)}
+.pday .hrow h2 span.over{color:var(--over)}

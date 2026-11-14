@@ -93,3 +93,18 @@ export async function listRoute(env, signed, reply) {
   if (r.status !== 200) return reply(r.status, { ok: false, error: r.d.error });
   return reply(200, { ok: true, ...r.d });
 }
+
+// Things to buy from elsewhere than the list page (a voice message to the bot): into the person's list, each one added
+// as the page would add it. Returns the names added.
+export async function addToList(env, tgUser, texts) {
+  if (!env.LISTS || !env.SCANS) return [];
+  const user = { id: tgUser.id, name: tgUser.first_name || '' }, key = 'lm:' + user.id;
+  let listId = await env.SCANS.get(key);
+  if (!listId) { listId = crypto.randomUUID(); await env.SCANS.put(key, listId); }
+  const stub = env.LISTS.get(env.LISTS.idFromName(listId)), added = [];
+  for (const t of texts) {
+    const res = await stub.fetch('https://list/', { method: 'POST', body: JSON.stringify({ op: 'add', user, args: { t: clean(t, 80), s: '', u: '' } }) });
+    if (res.ok) added.push(t);
+  }
+  return added;
+}

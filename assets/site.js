@@ -10,3 +10,10 @@ export const API = WORKER_URL.replace(/\/*$/, '/');
 // Text into HTML, both between tags and inside attributes (either quote)
 const ENTITIES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 export const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ENTITIES[c]);
+
+// Price comparison for something to buy: links that open the search of each site (no prices are fetched here: the
+// sites offer no open interface, so the person compares in their own browser)
+export const priceLinks = (q) => {
+  const e = encodeURIComponent(String(q || '').trim());
+  return [['idealo', `https://www.idealo.de/preisvergleich/MainSearchProductCategory.html?q=${e}`], ['Check24', `https://www.check24.de/suche/?q=${e}`], ['Google Shopping', `https://www.google.com/search?tbm=shop&q=${e}`]];
+};

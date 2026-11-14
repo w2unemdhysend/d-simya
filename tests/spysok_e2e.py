@@ -88,6 +88,8 @@ async def phone(browser, base, server, who, uid=None, name='', path='spysok/', w
     await ctx.route('**/fonts.googleapis.com/**', lambda r: r.fulfill(body='', content_type='text/css'))
     await ctx.route('**/*.workers.dev/list', lambda r: server.route(r, who))
     await ctx.route('**/*.workers.dev/reminders', lambda r: r.fulfill(json={'ok': True, 'on': False}))
+    await ctx.route('**/*.workers.dev/voice', lambda r: r.fulfill(json={'ok': True, 'text': 'Додай сир і помідори', 'items': ['Сир', 'Помідори'], 'diary': None}))
+    await ctx.grant_permissions(['microphone'])
     pg = await ctx.new_page(); pg.on('pageerror', lambda e: fails.append(f'page error ({who}): {e}'))
     await pg.clock.install(time='2026-11-11T14:00:00Z')
     await pg.goto(base + path); await pg.wait_for_timeout(500)
@@ -103,7 +105,7 @@ async def add(pg, text, shop=None):
 async def main():
     base = serve()
     async with async_playwright() as p:
-        browser = await p.chromium.launch(executable_path=os.environ.get('CHROME') or None, args=['--no-sandbox'])
+        browser = await p.chromium.launch(executable_path=os.environ.get('CHROME') or None, args=['--no-sandbox', '--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'])
         server = Server()
 
         ctx, pg = await phone(browser, base, server, 'none')
@@ -171,6 +173,20 @@ async def main():
         check('leaving needs two taps, then an empty list of her own', 'Список порожній' in await b.text_content('#list') and 'лише твій' in await b.text_content('#who'))
         await a.clock.run_for(5200); await a.wait_for_timeout(500)
         check('the one who stays sees only themself', 'Наталія' not in await a.text_content('#who'))
+        # prices: a tap on a name shows where to compare
+        await a.click('.item .txt >> nth=0'); await a.wait_for_timeout(200)
+        links = await a.evaluate("() => [...document.querySelectorAll('.prices a')].map(x => x.textContent + ' ' + x.href)")
+        check('a tap on a name: idealo, Check24 and Google Shopping with the name', len(links) == 3 and 'idealo' in links[0] and 'check24.de/suche/?q=' in links[1], str(links))
+        await a.click('.prices a >> nth=0'); await a.wait_for_timeout(150)
+        check('…opened through Telegram', any('idealo.de' in u for u in await a.evaluate('window.__links')))
+        # by voice
+        check('the microphone is offered', await a.is_visible('#mic'))
+        before = len(await a.evaluate(ITEMS))
+        await a.click('#mic'); await a.wait_for_timeout(1200)
+        check('…recording: it says so', await a.get_attribute('#mic', 'aria-pressed') == 'true' and 'Слухаю' in await a.text_content('#voice'))
+        await a.click('#mic'); await a.wait_for_timeout(1200)
+        items = await a.evaluate(ITEMS)
+        check('…what was said becomes things on the list', any('Сир' in x for x in items) and any('Помідори' in x for x in items) and 'Почув' in await a.text_content('#voice'), str(items))
         await a_ctx.close(); await b_ctx.close()
 
         # «+ До списку» on the flyers page

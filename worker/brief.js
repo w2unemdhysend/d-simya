@@ -20,6 +20,8 @@ import { tgApi } from './telegram.js';
 import { admit, allowedId } from './access.js';
 import { deliver } from './deliver.js';
 import { healthAnswer, HEALTH_HELP } from './chat.js';
+import { transcribe, itemsOf, diaryCommand, voiceAllowed } from './voice.js';
+import { addToList } from './list.js';
 
 export const HOME_BUTTON = button('Відкрити застосунок');
 const BUS_BUTTON = button('Транспорт', 'transport/');
@@ -225,15 +227,43 @@ export async function webhook(request, env, tgSend) {
   let u = null;
   try { u = await request.json(); } catch { return ok; }
   const msg = u && u.message;
-  if (!msg || typeof msg.text !== 'string' || !msg.chat || msg.chat.type !== 'private' || !msg.from || msg.from.is_bot) return ok;
+  if (!msg || (typeof msg.text !== 'string' && !msg.voice) || !msg.chat || msg.chat.type !== 'private' || !msg.from || msg.from.is_bot) return ok;
   if (!(await admit(env, msg.from))) {
     // someone outside the family: one line, and only when they press /start themselves; anything else, silence
     if (/^\/start(?:@\w+)?(?:\s|$)/i.test(msg.text.trim())) await tgSend(env, msg.chat.id, PRIVATE, HOME_BUTTON);
     return ok;
   }
+  if (msg.voice) { await voiceMessage(env, msg, tgSend); return ok; }
   const a = await answer(env, msg.text.slice(0, 200), msg.from.id, new Date());
   if (a) await tgSend(env, msg.chat.id, a.text, a.button);
   return ok;
+}
+
+// A voice message: «додай молоко й хліб» goes into the shopping list, «з’їла гречку 200 грам» or «вага 111» into the diary
+const LIST_BUTTON = button('Список покупок', 'spysok/');
+async function voiceMessage(env, msg, tgSend) {
+  const v = msg.voice, id = msg.from.id;
+  if (!(v.duration <= 60) || (v.file_size && v.file_size > 2 * 1024 * 1024)) { await tgSend(env, msg.chat.id, 'Надто довге повідомлення: до хвилини, будь ласка.', LIST_BUTTON); return; }
+  if (!(await voiceAllowed(env, id))) { await tgSend(env, msg.chat.id, 'На сьогодні голосових уже багато. Напиши текстом або спробуй завтра.', LIST_BUTTON); return; }
+  let text = '';
+  try {
+    const f = await api(env, 'getFile', { file_id: v.file_id });
+    if (!f.ok) throw new Error('getFile');
+    const r = await fetch(`https://api.telegram.org/file/bot${env.BOT_TOKEN}/${f.result.file_path}`);
+    if (!r.ok) throw new Error('download ' + r.status);
+    text = await transcribe(env, await r.arrayBuffer());
+  } catch (e) {
+    console.log('voice message failed', String(e && e.message || e));
+    await tgSend(env, msg.chat.id, 'Не вдалося розібрати голосове. Спробуй ще раз або напиши текстом.', LIST_BUTTON); return;
+  }
+  if (!text) { await tgSend(env, msg.chat.id, 'Нічого не почув. Спробуй ближче до мікрофона.', LIST_BUTTON); return; }
+  const cmd = diaryCommand(text);
+  if (cmd) {
+    const a = await healthAnswer(env, cmd, id, new Date());
+    if (a) { await tgSend(env, msg.chat.id, `🎙 «${text}»\n\n${a.text}`, a.button); return; }
+  }
+  const items = itemsOf(text), added = items.length ? await addToList(env, msg.from, items) : [];
+  await tgSend(env, msg.chat.id, added.length ? `🎙 «${text}»\n\n🛒 Додав у список: ${added.join(', ')}.` : `🎙 «${text}»\n\nНе зрозумів, що додати. Скажи, наприклад: «додай молоко, хліб і яйця».`, LIST_BUTTON);
 }
 
 // POST /commands (signed in): action=on|off|status. Switching on points the bot's webhook at this Worker and gives

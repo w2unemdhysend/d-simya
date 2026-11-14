@@ -208,8 +208,12 @@ async def main():
         check('sleep: the first tap starts at 7 hours, then half hours', await pg.input_value('#sleep') == '7,5', await pg.input_value('#sleep'))
         await pg.fill('#steps', '6400'); await pg.press('#steps', 'Tab'); await pg.wait_for_timeout(150)
         check('steps kept for the day', (await pg.evaluate("() => window.__yizha.db.get('d', '2026-11-14')"))['steps'] == 6400)
+        # ideas for what is left today
+        check('ideas within what is left: filling foods first, each within the rest', await pg.locator('[data-idea]').count() >= 3, str(await pg.locator('[data-idea]').count()))
+        await pg.click('[data-idea="0"]'); await pg.wait_for_timeout(200)
+        check('…a tap opens the portion to add', await pg.is_visible('#psave'))
+        await pg.click('[data-close] >> nth=1'); await pg.wait_for_timeout(200)
         if OUT: await pg.screenshot(path=os.path.join(OUT, 'yizha-day.png'), full_page=True)
-
         # ---------- packaged food ----------
         await pg.click('[data-add="s"]'); await pg.fill('#q', 'skyr'); await pg.wait_for_timeout(1200)
         rows = await pg.evaluate("() => [...document.querySelectorAll('#offres .row')].map(r => ({n: r.querySelector('.t b').textContent, img: !!r.querySelector('.fi img'), unk: r.querySelector('.fi').classList.contains('unknown'), k: r.querySelector('.k b').textContent}))")
@@ -265,6 +269,28 @@ async def main():
         first = await pg.text_content('#res .row .t b')
         check('own dishes come first in the search', first == 'Сирники домашні', first)
         await pg.click('[data-close] >> nth=1'); await pg.wait_for_timeout(200)
+        # the plan
+        await pg.click('#tab-plan'); await pg.wait_for_timeout(300)
+        check('the plan: seven days of this week, nothing planned yet', await pg.locator('.pday').count() == 7 and await pg.is_disabled('#toshop'))
+        await pg.click('[data-addplan="l"][data-pday="2026-11-15"]'); await pg.fill('#q', 'борщ'); await pg.wait_for_timeout(200)
+        check('…adding to the plan names the day and the meal', 'план: обід' in (await pg.text_content('#sheet-title')).lower(), await pg.text_content('#sheet-title'))
+        await pg.click('#res [data-food="X469033"]'); await pg.click('#psave'); await pg.wait_for_timeout(250)
+        await pg.click('[data-addplan="d"][data-pday="2026-11-15"]'); await pg.fill('#q', 'домашні'); await pg.wait_for_timeout(200)
+        await pg.click('#res .row >> nth=0'); await pg.click('#psave'); await pg.wait_for_timeout(250)
+        await pg.click('[data-addplan="b"][data-pday="2026-11-14"]'); await pg.fill('#q', 'скір'); await pg.wait_for_timeout(200)
+        await pg.click('#res [data-food="M710100"]'); await pg.click('#psave'); await pg.wait_for_timeout(250)
+        check('…planned items show with their calories', await pg.locator('#view-plan .pchip').count() == 3)
+        await pg.click('#toshop'); await pg.wait_for_timeout(300)
+        shop = await pg.evaluate("() => [...document.querySelectorAll('.shop li')].map(l => l.textContent.trim())")
+        check('shopping for the week: the dish is split into its ingredients', any('Сир кисломолочний 20' in x for x in shop) and any('Яйце' in x for x in shop) and any('Борщ' in x for x in shop) and any('Скір' in x for x in shop), str(shop))
+        await pg.click('[data-close] >> nth=1'); await pg.wait_for_timeout(200)
+        await pg.click('#copyweek'); await pg.wait_for_timeout(300)
+        check('repeat on the next week: the plan moves on with it', 'Наступний тиждень' in await pg.text_content('#view-plan .daynav') and await pg.locator('#view-plan .pchip').count() == 3)
+        await pg.click('#tab-day'); await pg.wait_for_timeout(300)
+        check('today: the planned breakfast to log with one tap', await pg.locator('[data-fromplan]').count() == 1)
+        await pg.click('[data-fromplan]'); await pg.wait_for_timeout(300)
+        check('…logged and marked as done', any(e.startswith('Скір') for e in await pg.evaluate(ENTRIES)) and await pg.locator('.pchip.done').count() == 1)
+
 
         # ---------- progress ----------
         await pg.click('#tab-progress'); await pg.wait_for_timeout(400)

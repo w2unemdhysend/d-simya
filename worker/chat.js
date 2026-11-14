@@ -24,7 +24,7 @@ const MEAL = { b: 'сніданок', l: 'обід', d: 'вечеря', s: 'пе
 const fmt = (n, d = 0) => Number(n || 0).toLocaleString('uk-UA', { maximumFractionDigits: d });
 const rid = () => Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-3);
 
-export const HEALTH_HELP = '\n\nЩоденник харчування:\n/їжа гречка 200 — записати (або /kcal)\n/вага 111,4 — вага на сьогодні\n/вода — склянка води (/вода 500 — скільки випито)\n/день — підсумок дня\n/скасувати — прибрати останній запис з чату';
+export const HEALTH_HELP = '\n\nЩоденник харчування:\n/їжа гречка 200 — записати (або /kcal)\n/вага 111,4 — вага на сьогодні\n/вода — склянка води (/вода 500 — скільки випито)\n/день — підсумок дня\n/скасувати — прибрати останній запис з чату\n\n🎙 Голосове повідомлення: «додай молоко й хліб» — у список покупок, «з’їла гречку 200 грам» — у щоденник.';
 
 const put = (env, id, changes) => askForma(env, id, { op: 'sync', since: Number.MAX_SAFE_INTEGER, changes });
 const mealNow = (now) => { const h = berlinClock(now).hour; return h < 11 ? 'b' : h < 16 ? 'l' : h < 21 ? 'd' : 's'; };

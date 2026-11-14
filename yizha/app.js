@@ -1,7 +1,7 @@
 // «Харчування»: the diary of what was eaten, the day's calories against the target, weight and its trend, partners,
 // own foods and dishes, barcodes. Records: yizha/store.js; numbers: yizha/calc.js; foods: yizha/foods.js (BLS 4.0) and
 // Open Food Facts (yizha/off.js); barcodes: yizha/scan.js.
-import { esc, API } from '../assets/site.js';
+import { esc, API, priceLinks } from '../assets/site.js';
 import { berlinDay } from '../smittia/due.js';
 import { FOODS, CATS } from './foods.js';
 import * as db from './store.js';
@@ -92,13 +92,16 @@ const entriesOf = (day) => db.all('e', day + '~').sort((a, b) => (a.at || 0) - (
 // the day's own record: water (ml), sleep (h), steps, waist and hips (cm), blood pressure and sugar readings
 const dayRec = (day) => db.get('d', day) || {};
 const putDay = (day, patch) => db.put('d', day, { ...dayRec(day), ...patch });
+const plannedOf = (day) => db.all('n', day + '~').sort((a, b) => (a.at || 0) - (b.at || 0));
+const mondayOf = (day) => dayOf(dayNum(day) - ((new Date(day + 'T12:00:00Z').getUTCDay() + 6) % 7));
 const movesOf = (day) => db.all('x', day + '~');
 function targetNow(p) { return target(p, currentKg(p), year()); }
 const amountText = (e) => (e.pq && e.pn ? `${fmt1(e.pq)} × ${e.pn} · ` : '') + `${fmt(e.g)} ${e.l ? 'мл' : 'г'}`;
 
 /* ---------- state ---------- */
 const st = { tab: 'day', day: today(), setup: false };
-{ const t = new URLSearchParams(location.search).get('tab'); if (['day', 'progress', 'foods'].includes(t)) st.tab = t; }
+{ const t = new URLSearchParams(location.search).get('tab'); if (['day', 'plan', 'progress', 'foods'].includes(t)) st.tab = t; }
+st.week = 0;   // the plan: 0 this week, 1 the next
 
 /* ---------- setup: who, the goal, how fast ---------- */
 let draft = null;
@@ -205,13 +208,15 @@ function renderDay() {
       <div class="macros">${bar('Білки', tot.p, m.p, '--prot')}${bar('Жири', tot.f, m.f, '--fat')}${bar('Вуглеводи', tot.c, m.c, '--carb')}</div>
     </section>
     <p class="sync" id="sync"></p>
+    ${day === today() && left >= 120 ? ideasCard(left) : ''}
     ${MEALS.map((meal) => {
-      const es = list.filter((e) => e.meal === meal.id), k = sum(es).kcal, pe = prev.filter((e) => e.meal === meal.id);
+      const es = list.filter((e) => e.meal === meal.id), k = sum(es).kcal, pe = prev.filter((e) => e.meal === meal.id), pl = plannedOf(day).filter((x) => x.meal === meal.id);
       return `<section class="card meal" aria-labelledby="h-${meal.id}">
         <div class="hrow"><h2 id="h-${meal.id}"><span aria-hidden="true">${meal.icon}</span>${meal.uk}${es.length ? `<span class="num">${fmt(k)} ккал</span>` : ''}</h2>
         <button class="plus" type="button" data-add="${meal.id}" aria-label="Додати: ${meal.uk}">${I.plus}</button></div>
         ${es.length ? `<ul class="entries">${es.map((e) => `<li><button class="entry" type="button" data-entry="${esc(e.id)}">${iconHTML(e.ic)}<span class="t"><b>${esc(e.n)}</b><small>${esc(amountText(e))}</small></span><span class="k num">${fmt(portion(e, e.g).kcal)}</span></button></li>`).join('')}</ul>`
-          : pe.length ? `<button class="again" type="button" data-again="${meal.id}">${I.again}<span>Як учора: ${esc(pe.slice(0, 3).map((e) => e.n).join(', '))}${pe.length > 3 ? '…' : ''} · ${fmt(sum(pe).kcal)} ккал</span></button>` : '<p class="empty">Ще нічого. Натисни +, щоб додати.</p>'}
+          : pe.length && !pl.length ? `<button class="again" type="button" data-again="${meal.id}">${I.again}<span>Як учора: ${esc(pe.slice(0, 3).map((e) => e.n).join(', '))}${pe.length > 3 ? '…' : ''} · ${fmt(sum(pe).kcal)} ккал</span></button>` : pl.length ? '' : '<p class="empty">Ще нічого. Натисни +, щоб додати.</p>'}
+        ${pl.length ? `<div class="planned" aria-label="За планом">${pl.map((x) => `<button class="pchip${x.done ? ' done' : ''}" type="button" data-fromplan="${esc(x.id)}"${x.done ? ' disabled' : ''} aria-label="${x.done ? 'Вже записано' : 'Записати з плану'}: ${esc(x.n)}">${iconHTML(x.ic)}${esc(x.n)} · ${fmt(portion(x, x.g).kcal)}</button>`).join('')}</div>` : ''}
       </section>`;
     }).join('')}
     ${(() => {
@@ -231,6 +236,31 @@ function renderDay() {
     })()}`;
   paintSync();
 }
+/* ideas for what is left of today: what is eaten often, own dishes, filling foods that fit */
+const LIGHT = ['M710100', 'M713100', 'M711100', 'V416172', 'E111132', 'F110100', 'F301100', 'G520100', 'M141100', 'M130200', 'T121902', 'X4A7010',
+  'X469033', 'C327032', 'B101000', 'X422253', 'H730132', 'V416132', 'G561100', 'F503100', 'X203850', 'M711300'];
+function ideas(left) {
+  const u = usage(), seen = new Set(), out = [];
+  const add = (food, g, label, often) => {
+    if (!food || seen.has(food.id) || !(g > 0)) return;
+    const k = portion(food, g).kcal; if (k < 30 || k > left) return;
+    seen.add(food.id);
+    out.push({ food, g, label, k, score: ((food.p * 4) / Math.max(1, food.kcal)) * 60 + Math.min(30, often * 4) + (k / left) * 12 });
+  };
+  for (const [id, x] of [...u.entries()].sort((a, b) => b[1].n - a[1].n).slice(0, 40)) {
+    const f = foodById(id) || fromEntry(x.e); if (!f) continue;
+    add(f, x.g, x.e && x.e.pn ? `${fmt1(x.e.pq)} × ${x.e.pn}` : `${fmt(x.g)} ${unitOf(f)}`, x.n);
+  }
+  for (const f of dishes()) if (f.por[0]) add(f, f.por[0][1], f.por[0][0], 0);
+  for (const id of LIGHT) { const f = BYID.get(id); if (f && f.por[0]) add(f, f.por[0][1], f.por[0][0], 0); }
+  return out.sort((a, b) => b.score - a.score).slice(0, 6);
+}
+function ideasCard(left) {
+  const list = ideas(left); if (!list.length) return '';
+  sheet.ideas = list;
+  return `<section class="card" aria-labelledby="h-ideas"><h2 id="h-ideas">Ідеї: ще ${fmt(left)} ккал <small>ситне й легке</small></h2>
+    <div class="ideas">${list.map((x, i) => `<button class="idea" type="button" data-idea="${i}">${iconHTML(x.food.thumb || x.food.ic)}<span><b>${esc(x.food.n)}</b><small>${esc(x.label)} · ${fmt(x.k)} ккал</small></span></button>`).join('')}</div></section>`;
+}
 function paintSync() {
   const el = $('#sync'); if (!el) return;
   const m = db.status.mode, n = db.pending();
@@ -242,6 +272,37 @@ function paintSync() {
     : m === 'err' ? 'Сервер не відповідає: збережено на телефоні, спробую ще'
     : 'Синхронізую…';
 }
+
+/* ---------- the plan for a week, and the shopping it needs ---------- */
+function renderPlan() {
+  const p = profile(); if (!p) return;
+  const v = $('#view-plan'), mon = dayOf(dayNum(mondayOf(today())) + st.week * 7), t = targetNow(p).kcal;
+  const days = Array.from({ length: 7 }, (_, i) => dayOf(dayNum(mon) + i)), all = days.flatMap(plannedOf);
+  const range = `${shortDate(days[0])} – ${shortDate(days[6])}`;
+  v.innerHTML = `<div class="daynav"><button class="iconbtn" type="button" data-week="-1" aria-label="Цей тиждень"${st.week <= 0 ? ' disabled' : ''}>${I.prev}</button><b>${st.week ? 'Наступний тиждень' : 'Цей тиждень'} · ${esc(range)}</b><button class="iconbtn" type="button" data-week="1" aria-label="Наступний тиждень"${st.week >= 1 ? ' disabled' : ''}>${I.next}</button></div>
+    <p class="note small">Сплануй страви наперед: у день плану вони з’являться в «Сьогодні», і записати їх можна одним дотиком. Зі всього плану складається список покупок.</p>
+    <div class="btns"><button class="btn primary" type="button" id="toshop"${all.length ? '' : ' disabled'}>🛒 До списку покупок</button><button class="btn soft" type="button" id="copyweek"${all.length && !st.week ? '' : ' disabled'}>Повторити на наступний тиждень</button></div>
+    ${days.map((d) => {
+      const items = plannedOf(d), k = sum(items).kcal, past = d < today();
+      return `<section class="card pday" aria-label="${esc(dayLabel(d))}"><div class="hrow"><h2>${esc(new Date(d + 'T12:00:00Z').toLocaleDateString('uk-UA', { weekday: 'long', day: 'numeric', month: 'short', timeZone: 'UTC' }))}<span class="num${k > t * 1.05 ? ' over' : ''}">${k ? `${fmt(k)} / ${fmt(t)} ккал` : ''}</span></h2></div>
+        ${MEALS.map((m) => { const its = items.filter((x) => x.meal === m.id);
+          return `<div class="pmeal"><span>${m.uk}</span><div class="planned">${its.map((x) => `<button class="pchip${x.done ? ' done' : ''}" type="button" data-plan="${esc(x.id)}" aria-label="Змінити: ${esc(x.n)}">${iconHTML(x.ic)}${esc(x.n)} · ${fmt(portion(x, x.g).kcal)}</button>`).join('')}</div>${past ? '<i></i>' : `<button class="iconbtn" type="button" data-addplan="${m.id}" data-pday="${d}" aria-label="Додати в план: ${m.uk}, ${esc(dayLabel(d))}">${I.plus}</button>`}</div>`;
+        }).join('')}</section>`;
+    }).join('')}
+    ${all.length ? '<button class="linkbtn" type="button" id="clearweek">Очистити тиждень</button>' : ''}`;
+}
+// what a week's plan needs from the shop: dishes as their ingredients, everything summed by name
+function shopping(days) {
+  const need = new Map();
+  const put = (name, g, l) => { const k = name.toLowerCase(), x = need.get(k) || { n: name, g: 0, l }; x.g += g; need.set(k, x); };
+  for (const x of days.flatMap(plannedOf)) {
+    const dish = db.get('r', x.fid);
+    if (dish && dish.items && dish.total > 0) for (const it of dish.items) put(it.n, (it.g * x.g) / dish.total, it.l);
+    else put(x.n, x.g, x.l);
+  }
+  return [...need.values()].map((x) => ({ ...x, g: x.g >= 1000 ? Math.round(x.g / 100) * 100 : Math.ceil(x.g / 50) * 50 })).sort((a, b) => a.n.localeCompare(b.n, 'uk'));
+}
+const amountShort = (x) => (x.g >= 1000 ? `${fmt1(x.g / 1000)} ${x.l ? 'л' : 'кг'}` : `${fmt(x.g)} ${x.l ? 'мл' : 'г'}`);
 
 /* ---------- progress ---------- */
 let range = 30;
@@ -511,10 +572,11 @@ function renderSheet() {
   const { view, data } = top(), body = $('#sheet-body');
   $('#sheet-back').hidden = sheet.stack.length < 2;
   const T = { add: data.pick ? 'Додати інгредієнт' : `Додати: ${(MEALS.find((m) => m.id === data.meal) || MEALS[0]).uk.toLowerCase()}`, portion: data.entry ? 'Змінити' : data.pick ? 'Скільки в страві' : 'Скільки',
-    scan: 'Штрихкод', custom: data.food ? 'Свій продукт' : 'Новий продукт', dish: data.draft && data.draft.id ? 'Своя страва' : 'Нова страва' };
+    scan: 'Штрихкод', custom: data.food ? 'Свій продукт' : 'Новий продукт', dish: data.draft && data.draft.id ? 'Своя страва' : 'Нова страва', shop: 'Список покупок з плану' };
+  if (data.plan && view === 'add') T.add = `План: ${(MEALS.find((m) => m.id === data.meal) || MEALS[0]).uk.toLowerCase()}, ${dayLabel(data.day).toLowerCase()}`;
   $('#sheet-title').textContent = T[view];
   body.scrollTop = 0;
-  ({ add: viewAdd, portion: viewPortion, scan: viewScan, custom: viewCustom, dish: viewDish })[view](body, data);
+  ({ add: viewAdd, portion: viewPortion, scan: viewScan, custom: viewCustom, dish: viewDish, shop: viewShop })[view](body, data);
 }
 const defaultMeal = () => { const h = new Date().getHours(); return h < 11 ? 'b' : h < 16 ? 'l' : h < 21 ? 'd' : 's'; };
 
@@ -594,8 +656,9 @@ function viewPortion(body, d) {
     <div class="stepper"><button type="button" data-q="-1" aria-label="Менше">−</button><input id="pq" inputmode="decimal" aria-label="Кількість" value="${fmt1(a.q)}"><span class="unit">${a.unit === 'g' ? u : esc(food.por[a.unit][0].split(' (')[0])}</span><button type="button" data-q="1" aria-label="Більше">+</button></div>
     <div class="total" id="ptotal"></div>
     ${d.pick ? '' : `<div class="seg four" role="radiogroup" aria-label="Прийом їжі">${MEALS.map((m) => `<button type="button" role="radio" data-meal="${m.id}" aria-checked="${d.meal === m.id}"><b style="font-size:14px">${m.uk}</b></button>`).join('')}</div>`}
-    <button class="btn primary" type="button" id="psave">${d.entry ? 'Зберегти' : d.pick ? 'Додати в страву' : 'Додати'}</button>
-    ${d.entry ? '<button class="btn danger" type="button" id="pdel">Видалити з дня</button>' : ''}
+    <button class="btn primary" type="button" id="psave">${d.entry ? 'Зберегти' : d.pick ? 'Додати в страву' : d.plan ? 'Додати в план' : 'Додати'}</button>
+    ${d.entry ? `<button class="btn danger" type="button" id="pdel">${d.plan ? 'Прибрати з плану' : 'Видалити з дня'}</button>` : ''}
+    ${food.src === 'off' || food.code || food.brand ? `<div class="prices"><span>Знайти дешевше:</span>${priceLinks([food.brand, food.n].filter(Boolean).join(' ')).map(([n, u]) => `<a href="${esc(u)}" target="_blank" rel="noopener" data-ext>${esc(n)}</a>`).join('')}</div>` : ''}
     ${food.fixed ? '<p class="note warn small">У базі для цього продукту калорії не сходилися з білками, жирами й вуглеводами, тож їх пораховано з них. Звір з упаковкою.</p>' : ''}
     ${food.src === 'off' ? `<p class="offnote">Дані: Open Food Facts${food.code ? `, штрихкод ${esc(food.code)}` : ''}. Якщо на упаковці інакше, збережи як свій продукт.</p>` : food.src === 'bls' ? '<p class="offnote">Дані: BLS 4.0, Max Rubner-Institut (CC BY 4.0).</p>' : ''}`;
   paintTotal(d);
@@ -618,11 +681,38 @@ function savePortion(d) {
   }
   const v = { day: d.entry ? d.entry.day : d.day, meal: d.meal, fid: food.id, n: food.n, b: food.brand || '', ic: food.thumb || food.ic || '', g, pn, pq,
     kcal: food.kcal, p: food.p, f: food.f, c: food.c, l: food.l ? 1 : 0, at: d.entry ? d.entry.at : Date.now() };
-  const id = d.entry ? d.entry.id : `${v.day}~${db.rid()}`;
-  const before = d.entry ? db.get('e', id) : null;
-  db.put('e', id, v);
+  const id = d.entry ? d.entry.id : `${v.day}~${db.rid()}`, kind = d.plan ? 'n' : 'e';
+  const before = d.entry ? db.get(kind, id) : null;
+  db.put(kind, id, v);
   closeSheet(); haptic('success');
-  toast(`${d.entry ? 'Змінено' : 'Додано'}: ${food.n} · ${fmt(portion(v, g).kcal)} ккал`, () => { if (before) db.put('e', id, before); else db.del('e', id); });
+  toast(`${d.entry ? 'Змінено' : d.plan ? 'У плані' : 'Додано'}: ${food.n} · ${fmt(portion(v, g).kcal)} ккал`, () => { if (before) db.put(kind, id, before); else db.del(kind, id); });
+}
+
+function viewShop(body, d) {
+  d.list = d.list || shopping(d.days);
+  body.innerHTML = `<p class="note">Усе, що потрібно на тиждень за планом: страви розкладено на продукти. Зніми позначку з того, що вже є вдома.</p>
+    <ul class="shop">${d.list.map((x, i) => `<li><label><input type="checkbox" data-shopi="${i}"${x.skip ? '' : ' checked'}><b>${esc(x.n)}</b><small class="num">${amountShort(x)}</small></label></li>`).join('')}</ul>
+    <p class="state" id="shop-state"></p>
+    <button class="btn primary" type="button" id="shop-add">${tg && tg.initData ? 'Додати у спільний список' : 'Скопіювати список'}</button>`;
+}
+async function shopAdd(d) {
+  const list = d.list.filter((x) => !x.skip), st2 = $('#shop-state'), btn = $('#shop-add');
+  if (!list.length) return;
+  const text = list.map((x) => `${x.n} — ${amountShort(x)}`);
+  if (!(tg && tg.initData)) {
+    try { await navigator.clipboard.writeText(text.join('\n')); st2.className = 'state on'; st2.textContent = 'Скопійовано: вставляй куди треба.'; } catch (e) { st2.className = 'state err'; st2.textContent = 'Не вдалося скопіювати.'; }
+    return;
+  }
+  btn.disabled = true; let n = 0;
+  for (const t of text) {
+    const fd = new FormData(); fd.append('initData', tg.initData); fd.append('action', 'add'); fd.append('t', t.slice(0, 80)); fd.append('s', '');
+    try { const r = await fetch(API + 'list', { method: 'POST', body: fd }); if (r.ok) n++; } catch (e) { break; }
+    st2.className = 'state'; st2.textContent = `Додаю… ${n} з ${text.length}`;
+  }
+  btn.disabled = false;
+  st2.className = n === text.length ? 'state on' : 'state err';
+  st2.textContent = n === text.length ? `Готово: ${n} ${plural(n, 'продукт', 'продукти', 'продуктів')} у списку покупок.` : n ? `Додано ${n} з ${text.length}. Решту спробуй ще раз.` : 'Немає зв’язку. Спробуй, коли буде інтернет.';
+  if (n) haptic('success');
 }
 
 function viewScan(body, d) {
@@ -646,15 +736,15 @@ async function lookup(code, d) {
   err('');
   if (!validCode(code)) { err('Це не схоже на штрихкод продукту: 8 або 13 цифр.'); return; }
   const own = mine().find((f) => f.code === code);
-  if (own) { sheetGo('portion', { food: own, meal: d.meal, day: d.day, pick: d.pick }); return; }
+  if (own) { sheetGo('portion', { food: own, meal: d.meal, day: d.day, pick: d.pick, plan: d.plan }); return; }
   const msg = $('#scanmsg'); if (msg) msg.textContent = `Шукаю ${code}…`;
   try {
     const r = await byBarcode(code);
     if (!top() || top().view !== 'scan') return;
-    if (r.food) { sheetGo('portion', { food: r.food, meal: d.meal, day: d.day, pick: d.pick }); return; }
+    if (r.food) { sheetGo('portion', { food: r.food, meal: d.meal, day: d.day, pick: d.pick, plan: d.plan }); return; }
     err(`Продукту ${code} немає в Open Food Facts${r.name ? ` (або в нього не вказано калорій: «${r.name}»)` : ''}. Додай його сам(а) з етикетки — наступного разу він знайдеться за штрихкодом.`);
     const b = document.createElement('button'); b.className = 'btn primary'; b.type = 'button'; b.textContent = 'Додати з етикетки';
-    b.addEventListener('click', () => sheetGo('custom', { code, then: d.pick ? 'pick' : 'add', meal: d.meal, day: d.day, pick: d.pick }));
+    b.addEventListener('click', () => sheetGo('custom', { code, then: d.pick ? 'pick' : 'add', meal: d.meal, day: d.day, pick: d.pick, plan: d.plan }));
     $('#scanerr').after(b);
   } catch (e) { err(navigator.onLine === false ? 'Немає інтернету. Відскануй, коли з’явиться зв’язок, або додай продукт з етикетки.' : 'Open Food Facts не відповідає. Спробуй ще раз.'); }
 }
@@ -694,7 +784,7 @@ function saveCustom(d) {
   if (d.food) { sheetBack(); toast('Збережено: ' + n); return; }
   if (d.then === 'save') { closeSheet(); toast('Збережено в «Мої продукти»: ' + n); return; }
   sheet.stack.pop();
-  sheetGo('portion', { food: { id, ...v }, meal: d.meal, day: d.day, pick: d.pick });
+  sheetGo('portion', { food: { id, ...v }, meal: d.meal, day: d.day, pick: d.pick, plan: d.plan });
 }
 
 function viewDish(body, d) {
@@ -735,7 +825,7 @@ function toast(text, undo) {
 $('#toast-undo').addEventListener('click', () => { if (undoFn) undoFn(); undoFn = null; $('#toast').hidden = true; haptic(); });
 
 /* ---------- tabs and showing ---------- */
-const VIEWS = { day: '#view-day', progress: '#view-progress', foods: '#view-foods' };
+const VIEWS = { day: '#view-day', plan: '#view-plan', progress: '#view-progress', foods: '#view-foods' };
 function showTab(t, instant) {
   st.tab = t;
   $$('#tabs [role="tab"]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === t)));
@@ -747,7 +837,7 @@ function showTab(t, instant) {
 function showMain(instant) {
   $('#view-setup').hidden = true; $('#tabs').hidden = false;
   $('#lede').textContent = 'Що з’їдено за день, скільки ще можна, і як змінюється вага.';
-  renderDay(); renderProgress(); renderFoods();
+  renderDay(); renderPlan(); renderProgress(); renderFoods();
   showTab(st.tab, instant);
 }
 function showSetup(edit) {
@@ -760,7 +850,7 @@ function renderAll() {
   if (st.setup) return;
   if (!profile()) { showSetup(false); return; }
   const active = document.activeElement, keep = active && active.matches && active.matches('input, select, textarea') && active.closest('.view');
-  for (const [k, fn] of [['day', renderDay], ['progress', renderProgress], ['foods', renderFoods]]) if (!keep || keep !== $(VIEWS[k])) fn();
+  for (const [k, fn] of [['day', renderDay], ['plan', renderPlan], ['progress', renderProgress], ['foods', renderFoods]]) if (!keep || keep !== $(VIEWS[k])) fn();
 }
 
 /* ---------- events ---------- */
@@ -778,6 +868,31 @@ document.addEventListener('click', (e) => {
   // the day
   const nav = t.closest('[data-day]'); if (nav && !nav.disabled) { st.day = dayOf(dayNum(st.day) + Number(nav.dataset.day)); if (st.day > today()) st.day = today(); renderDay(); haptic(); return; }
   const add = t.closest('[data-add]'); if (add) { openSheet('add', { meal: add.dataset.add, day: st.day, q: '' }); return; }
+  const idea = t.closest('[data-idea]');
+  if (idea && sheet.ideas) { const x = sheet.ideas[Number(idea.dataset.idea)], i = (x.food.por || []).findIndex((q) => x.label.includes(q[0])); openSheet('portion', { food: x.food, a: i >= 0 ? { unit: i, q: Math.max(0.5, Math.round((x.g / x.food.por[i][1]) * 2) / 2) } : { unit: 'g', q: x.g }, day: today() }); return; }
+  const fp = t.closest('[data-fromplan]');
+  if (fp && !fp.disabled) {
+    const x = plannedOf(st.day).find((y) => y.id === fp.dataset.fromplan); if (!x) return;
+    const { id, done, ...v } = x, eid = `${st.day}~${db.rid()}`;
+    db.put('e', eid, { ...v, day: st.day, at: Date.now() }); db.put('n', id, { ...v, done: eid });
+    haptic('success'); toast(`Записано з плану: ${x.n}`, () => { db.del('e', eid); db.put('n', id, v); }); return;
+  }
+  // the plan
+  const wk = t.closest('[data-week]'); if (wk && !wk.disabled) { st.week = Math.max(0, Math.min(1, st.week + Number(wk.dataset.week))); renderPlan(); haptic(); return; }
+  const ap = t.closest('[data-addplan]'); if (ap) { openSheet('add', { meal: ap.dataset.addplan, day: ap.dataset.pday, q: '', plan: true }); return; }
+  const pi = t.closest('[data-plan]');
+  if (pi) { const day = pi.dataset.plan.slice(0, 10), x = plannedOf(day).find((y) => y.id === pi.dataset.plan); if (x) { const base = foodById(x.fid) || fromEntry(x); openSheet('portion', { food: { ...base, n: x.n, kcal: x.kcal, p: x.p, f: x.f, c: x.c, l: !!x.l, ic: x.ic || base.ic, por: base.por || [] }, entry: x, day, plan: true, meal: x.meal }); } return; }
+  const weekDays = () => { const mon = dayOf(dayNum(mondayOf(today())) + st.week * 7); return Array.from({ length: 7 }, (_, i) => dayOf(dayNum(mon) + i)); };
+  if (t.closest('#toshop')) { openSheet('shop', { days: weekDays() }); return; }
+  if (t.closest('#copyweek')) {
+    const ids = [];
+    for (const d of weekDays()) for (const x of plannedOf(d)) { const { id, done, ...v } = x, nd = dayOf(dayNum(d) + 7), nid = `${nd}~${db.rid()}`; db.put('n', nid, { ...v, day: nd, at: Date.now() }); ids.push(nid); }
+    st.week = 1; renderPlan(); haptic('success'); toast(`Наступний тиждень заплановано: ${ids.length} ${plural(ids.length, 'страва', 'страви', 'страв')}`, () => ids.forEach((i) => db.del('n', i))); return;
+  }
+  if (t.closest('#clearweek')) {
+    const was = weekDays().flatMap(plannedOf);
+    was.forEach((x) => db.del('n', x.id)); haptic(); toast('План тижня очищено', () => was.forEach(({ id, ...v }) => db.put('n', id, v))); return;
+  }
   const en = t.closest('[data-entry]');
   if (en) {
     const e2 = db.all('e', en.dataset.entry.split('~')[0] + '~').find((x) => x.id === en.dataset.entry); if (!e2) return;
@@ -840,6 +955,8 @@ document.addEventListener('click', (e) => {
   const ub = t.closest('[data-unbuddy]');
   if (ub) { if (ub.dataset.armed) { db.call('leave', { id: ub.dataset.unbuddy }).then(() => { buddyCode = ''; loadBuddies(true); }).catch(() => buddyErr('Не вдалося. Спробуй ще раз.')); } else { ub.dataset.armed = '1'; ub.style.color = 'var(--danger)'; ub.setAttribute('aria-label', 'Натисни ще раз, щоб більше не ділитися'); setTimeout(() => { delete ub.dataset.armed; ub.style.color = ''; }, 3500); haptic(); } return; }
   const sw = t.closest('#r-yizha, #r-vaga, #r-zvit'); if (sw && !sw.disabled) { toggleRemind(sw.id.slice(2), sw.getAttribute('aria-checked') !== 'true'); return; }
+  const ext = t.closest('a[data-ext]');
+  if (ext) { e.preventDefault(); try { if (tg && tg.openLink) tg.openLink(ext.href); else window.open(ext.href, '_blank'); } catch (er) { window.open(ext.href, '_blank'); } return; }
   // a copy of one's data
   const dd = t.closest('[data-data]');
   if (dd) {
@@ -872,16 +989,18 @@ document.addEventListener('click', (e) => {
   const cur = top(); if (!cur) return;
   const d = cur.data;
   const cat = t.closest('[data-cat]'); if (cat) { d.cat = d.cat === cat.dataset.cat ? '' : cat.dataset.cat; results(d); haptic(); return; }
-  const fd = t.closest('[data-food]'); if (fd) { const f = (sheet.lastFoods && sheet.lastFoods.get(fd.dataset.food)) || foodById(fd.dataset.food); if (f) sheetGo('portion', { food: f, meal: d.meal, day: d.day, pick: d.pick }); return; }
-  if (t.closest('#toscan')) { sheetGo('scan', { meal: d.meal, day: d.day, pick: d.pick }); return; }
-  if (t.closest('#tocustom')) { sheetGo('custom', { then: d.pick ? 'pick' : 'add', meal: d.meal, day: d.day, pick: d.pick }); return; }
+  const fd = t.closest('[data-food]'); if (fd) { const f = (sheet.lastFoods && sheet.lastFoods.get(fd.dataset.food)) || foodById(fd.dataset.food); if (f) sheetGo('portion', { food: f, meal: d.meal, day: d.day, pick: d.pick, plan: d.plan }); return; }
+  if (t.closest('#toscan')) { sheetGo('scan', { meal: d.meal, day: d.day, pick: d.pick, plan: d.plan }); return; }
+  if (t.closest('#tocustom')) { sheetGo('custom', { then: d.pick ? 'pick' : 'add', meal: d.meal, day: d.day, pick: d.pick, plan: d.plan }); return; }
   const un = t.closest('[data-unit]');
   if (un) { const food = d.food, g = gramsOf(food, d.a), k = un.dataset.unit; d.a = k === 'g' ? { unit: 'g', q: g } : { unit: Number(k), q: Math.max(0.5, Math.round((g / food.por[Number(k)][1]) * 2) / 2) }; viewPortion($('#sheet-body'), d); haptic(); return; }
   const qb = t.closest('[data-q]');
   if (qb) { const dir = Number(qb.dataset.q), a = d.a, step = a.unit === 'g' ? (a.q < 50 || (a.q <= 50 && dir < 0) ? 5 : 10) : 0.5; a.q = Math.max(a.unit === 'g' ? 5 : 0.5, Math.round((a.q + dir * step) * 10) / 10); $('#pq').value = fmt1(a.q); paintTotal(d); haptic(); return; }
   const ml = t.closest('[data-meal]'); if (ml) { d.meal = ml.dataset.meal; $$('[data-meal]').forEach((b) => b.setAttribute('aria-checked', String(b === ml))); haptic(); return; }
   if (t.closest('#psave')) { savePortion(d); return; }
-  if (t.closest('#pdel')) { const before = d.entry; db.del('e', before.id); closeSheet(); toast('Видалено: ' + before.n, () => { const { id, ...v } = before; db.put('e', id, v); }); haptic(); return; }
+  const si = t.closest('[data-shopi]'); if (si) { d.list[Number(si.dataset.shopi)].skip = !si.checked; return; }
+  if (t.closest('#shop-add')) { shopAdd(d); return; }
+  if (t.closest('#pdel')) { const before = d.entry, kind = d.plan ? 'n' : 'e'; db.del(kind, before.id); closeSheet(); toast('Видалено: ' + before.n, () => { const { id, ...v } = before; db.put(kind, id, v); }); haptic(); return; }
   const icn = t.closest('[data-icon]'); if (icn) { d.icon = icn.dataset.icon; $$('[data-icon]').forEach((b) => b.setAttribute('aria-checked', String(b === icn))); haptic(); return; }
   const lq = t.closest('#c-l'); if (lq) { lq.setAttribute('aria-checked', String(lq.getAttribute('aria-checked') !== 'true')); haptic(); return; }
   if (t.closest('#c-save')) { saveCustom(d); return; }

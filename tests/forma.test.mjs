@@ -4,7 +4,7 @@
 // four, they see progress and never food or weight), and the reminders (switching on, each person's half hour, quiet
 // when the day is already done). Run: node tests/forma.test.mjs   (Node 22+, no packages needed)
 import { createHmac } from 'node:crypto';
-import worker, { Forma } from '../worker/send-scan.js';
+import worker, { Forma, ShoppingList } from '../worker/send-scan.js';
 import { partnerView, mealText, sportText, weighText, okChange } from '../worker/forma.js';
 import { target, macros, trend, rate, eta, bmr, valid, portion, sum, burnt, floorOf, dayNum, dayOf } from '../yizha/calc.js';
 import { FOODS, CATS } from '../yizha/foods.js';
@@ -91,12 +91,18 @@ const FORMA = {
   idFromName: (n) => n,
   get(id) { if (!objects.has(id)) objects.set(id, new Forma({ storage: memStorage() })); const o = objects.get(id); return { fetch: (url, init) => o.fetch(new Request(url, init)) }; },
 };
-const env = { BOT_TOKEN: TOKEN, SCANS, FORMA, ALLOWED_USERS: '4242,5151,555,777,7777,8888,999,31337' };
+const lists = new Map();
+const LISTS = { idFromName: (n) => n, get(id) { if (!lists.has(id)) { const m = new Map(); lists.set(id, new ShoppingList({ storage: { get: async (k) => structuredClone(m.get(k)), put: async (k, v) => { m.set(k, structuredClone(v)); } } })); } const o = lists.get(id); return { fetch: (url, init) => o.fetch(new Request(url, init)) }; } };
+let heard = '';   // what the fake Whisper hears
+const AI = { async run(model, input) { if (!/whisper/.test(model) || typeof input.audio !== 'string' || input.language !== 'uk') throw new Error('bad call'); return { text: heard }; } };
+const env = { BOT_TOKEN: TOKEN, SCANS, FORMA, LISTS, AI, ALLOWED_USERS: '4242,5151,555,777,7777,8888,999,31337' };
 const messages = [], docs = [];
 let graph = null;   // what Cloudflare's analytics answers
 globalThis.fetch = async (url, init) => {
   const u = new URL(String(url));
   if (u.hostname === 'api.telegram.org' && u.pathname.endsWith('/sendDocument')) { const f = init.body; const file = f.get('document'), head = new Uint8Array(await file.slice(0, 3).arrayBuffer()); docs.push({ chat: f.get('chat_id'), name: file.name, bom: head[0] === 0xEF && head[1] === 0xBB && head[2] === 0xBF, text: await file.text() }); return Response.json({ ok: true }); }
+  if (u.hostname === 'api.telegram.org' && u.pathname.endsWith('/getFile')) return Response.json({ ok: true, result: { file_path: 'voice/file_1.oga' } });
+  if (u.hostname === 'api.telegram.org' && u.pathname.includes('/file/bot')) return new Response(new Uint8Array(4000));
   if (u.hostname === 'api.telegram.org') { const m = JSON.parse(init.body); messages.push(m); return Response.json({ ok: true }); }
   if (u.hostname === 'api.cloudflare.com') { graph.calls++; return Response.json(graph.answer); }
   return new Response('unexpected', { status: 599 });
@@ -280,6 +286,40 @@ const wk = got.find((m) => m.text.startsWith('📊'));
 t('Sunday: the week — weight change, days, workouts, water, partners', wk && wk.text.includes('Вага: 82,1 кг') && wk.text.includes('Тренувань') && wk.text.includes('Вода') && wk.text.includes('Разом') && wk.text.includes('Іван'), wk && wk.text);
 t('…once', !(await cron('2026-11-15T18:30:00Z')).some((m) => m.text.startsWith('📊')));
 t('…not on other days', !(await cron('2026-11-14T18:00:00Z')).some((m) => m.text.startsWith('📊')));
+
+/* ---------- by voice ---------- */
+const { itemsOf, diaryCommand } = await import('../worker/voice.js');
+t('voice: things to buy out of a sentence', JSON.stringify(itemsOf('Додай, будь ласка, молоко, хліб і десяток яєць.')) === '["Молоко","Хліб","Десяток яєць"]' && JSON.stringify(itemsOf('купити картоплю та цибулю')) === '["Картоплю","Цибулю"]');
+t('voice: the diary from a sentence', diaryCommand('З’їла гречку 200 грам') === '/їжа гречку 200 г' && diaryCommand('вага 111,4') === '/вага 111,4' && diaryCommand('випив 500 мілілітрів води') === '/вода 500 мл' && diaryCommand('молоко й хліб') === null);
+async function voicePost(user, bytes = 4000) {
+  const fd = new FormData(); fd.append('initData', sign(user)); fd.append('audio', new File([new Uint8Array(bytes)], 'v.webm', { type: 'audio/webm' }));
+  const res = await worker.fetch(new Request('https://w.example/voice', { method: 'POST', body: fd }), env, {});
+  return { status: res.status, body: await res.json() };
+}
+heard = 'Додай молоко, хліб і яйця.';
+let vr = await voicePost(USER_A);
+t('POST /voice: the text and the items', vr.status === 200 && vr.body.items.join() === 'Молоко,Хліб,Яйця' && vr.body.text === heard, JSON.stringify(vr.body));
+t('POST /voice: no sign-in → 401', (await worker.fetch(new Request('https://w.example/voice', { method: 'POST', body: new FormData() }), env, {})).status === 401);
+{ const fd = new FormData(); fd.append('initData', sign(USER_A)); t('POST /voice: no recording → 400', (await worker.fetch(new Request('https://w.example/voice', { method: 'POST', body: fd }), env, {})).status === 400); }
+t('POST /voice: too big → 413', (await voicePost(USER_A, 3 * 1024 * 1024)).status === 413);
+// a voice message to the bot
+const hook = async (from, voice) => {
+  const { hookSecret } = await import('../worker/brief.js');
+  const res = await worker.fetch(new Request('https://w.example/tg', { method: 'POST', headers: { 'X-Telegram-Bot-Api-Secret-Token': await hookSecret(TOKEN), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: { chat: { id: from.id, type: 'private' }, from: { ...from, is_bot: false }, voice } }) }), env, { waitUntil() {} });
+  return res.status;
+};
+messages.length = 0; heard = 'Додай сир, ковбасу й помідори';
+await hook(USER_A, { file_id: 'f1', duration: 4 });
+const listMsg = messages.find((m) => m.text.includes('Додав у список'));
+const listId = kv.get('lm:4242'), listGet = await LISTS.get(listId).fetch('https://list/', { method: 'POST', body: JSON.stringify({ op: 'get', user: { id: 4242, name: 'Іван' } }) }).then((r) => r.json());
+t('a voice message: things go into the person\'s shopping list', listMsg && listMsg.text.includes('Сир, Ковбасу, Помідори') && listGet.items.map((x) => x.t).join() === 'Сир,Ковбасу,Помідори', JSON.stringify(listGet.items));
+messages.length = 0; heard = 'З’їв гречку варену 150 грам';
+await hook(USER_A, { file_id: 'f2', duration: 3 });
+t('a voice message about food goes into the diary', messages.some((m) => m.text.includes('🎙') && m.text.includes('Гречка варена, 150 г')), JSON.stringify(messages.map((m) => m.text.slice(0, 80))));
+messages.length = 0;
+await hook(USER_A, { file_id: 'f3', duration: 200 });
+t('a voice message over a minute: asked to keep it short', messages.some((m) => m.text.includes('до хвилини')));
 
 console.log(fails ? `${fails} FAILED` : 'all passed');
 process.exit(fails ? 1 : 0);

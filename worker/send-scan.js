@@ -18,6 +18,7 @@
  *   POST /tg               Telegram's webhook: /bus /wetter /muell /wort /help in a private chat
  *   POST /list             the family shopping list (Durable Object), see list.js
  *   POST /forma            «Харчування» and «Тренування»: the person's records, partners and their progress (forma.js)
+ *   POST /voice            a recording → the text and the things to buy in it (Whisper on Workers AI, voice.js)
  *   POST /report           an error on someone's phone (no personal data), told to whoever wants failures (report.js)
  *   POST /translate        text of one scanned page (recognised on the phone) → its translation,
  *                          by Gemma 4 on Workers AI (free daily allowance)
@@ -69,6 +70,7 @@ import { ALERTS, runJobs, watch } from './health.js';
 import { formaRoute, HEALTH, healthPrefs, healthConfirm, sendHealth } from './forma.js';
 import { report } from './report.js';
 import { sendWeekly } from './chat.js';
+import { transcribe, itemsOf, diaryCommand, voiceAllowed } from './voice.js';
 import { partnersOf } from './forma.js';
 import { noteNeurons } from './usage.js';
 export { ShoppingList } from './list.js';   // the Durable Object classes must be exported by the main module
@@ -121,6 +123,19 @@ export default {
       const signed = await readSigned(request, env, reply);
       if (signed instanceof Response) return signed;
       return listRoute(env, signed, reply);
+    }
+    if (path === '/voice') {
+      if (request.method !== 'POST') return reply(405, { ok: false, error: 'POST only' });
+      const signed = await readSigned(request, env, reply);
+      if (signed instanceof Response) return signed;
+      const audio = signed.form.get('audio');
+      if (!audio || typeof audio === 'string') return reply(400, { ok: false, error: 'no audio' });
+      if (audio.size > 2 * 1024 * 1024) return reply(413, { ok: false, error: 'too long' });
+      if (!(await voiceAllowed(env, signed.user.id))) return reply(429, { ok: false, error: 'daily_limit' });
+      try {
+        const text = await transcribe(env, await audio.arrayBuffer());
+        return reply(200, { ok: true, text, items: itemsOf(text), diary: diaryCommand(text) });
+      } catch (e) { console.log('voice failed', String(e && e.message || e)); return reply(502, { ok: false, error: 'stt_failed' }); }
     }
     if (path === '/forma') {
       if (request.method !== 'POST') return reply(405, { ok: false, error: 'POST only' });
