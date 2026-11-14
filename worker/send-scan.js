@@ -68,6 +68,8 @@ import { HOME_BUTTON, profileOf, stopsOf, briefConfirmText, sendBriefs, webhook,
 import { ALERTS, runJobs, watch } from './health.js';
 import { formaRoute, HEALTH, healthPrefs, healthConfirm, sendHealth } from './forma.js';
 import { report } from './report.js';
+import { sendWeekly } from './chat.js';
+import { partnersOf } from './forma.js';
 import { noteNeurons } from './usage.js';
 export { ShoppingList } from './list.js';   // the Durable Object classes must be exported by the main module
 export { Forma } from './forma.js';
@@ -166,6 +168,7 @@ export default {
         ['нагадування про сміття', () => sendReminders(env, now, out)], ['проспекти', () => sendFlyerReminders(env, now, out)],
         ['попередження DWD', () => sendWarnings(env, now, out, WEATHER_BUTTON)], ['слово дня', () => sendWordOfDay(env, now, out)],
         ['ранкове зведення', () => sendBriefs(env, now, out)], ['здоров’я', () => sendHealth(env, now, out)],
+        ['звіт тижня', () => sendWeekly(env, now, out, deliver, partnersOf)],
       ]);
       try { await watch(env, now, failed, (text) => broadcast(env, out, ALERTS, text, HOME_BUTTON)); } catch (e) { console.log('watch failed', String(e && e.stack || e)); }
     })());
@@ -180,7 +183,7 @@ const WEATHER_BUTTON = button('Погода', 'pogoda/');
 // how long after its hour a job may still send to whoever was missed (Telegram busy, the run's budget used up)
 const WINDOW_HOURS = 3;
 const KINDS = { smittia: 'sub:', prospekty: FLYERS.prefix, wetter: 'wsub:', wort: 'dsub:', ranok: 'bsub:', zboi: ALERTS,
-  sport: HEALTH.sport.prefix, yizha: HEALTH.yizha.prefix, vaga: HEALTH.vaga.prefix };
+  sport: HEALTH.sport.prefix, yizha: HEALTH.yizha.prefix, vaga: HEALTH.vaga.prefix, zvit: HEALTH.zvit.prefix };
 
 // The stops pinned in «Транспорт»: kept in the person's profile (for /bus) and in a running digest. Only the stops
 // change; the place and waste choices stay as the «Бот» page sent them.

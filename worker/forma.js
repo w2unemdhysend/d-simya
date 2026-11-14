@@ -50,6 +50,9 @@ export class Forma {
     if (a.op === 'sync') return Response.json(await this.sync(a));
     if (a.op === 'summary') return Response.json(await this.summary(a.today));
     if (a.op === 'dump') return Response.json(await this.dump());
+    if (a.op === 'get') { const r = await this.s.get(`r:${a.k}|${a.id}`); return Response.json(r && !r.d ? { v: r.v, u: r.u } : {}); }
+    if (a.op === 'mine') return Response.json(await this.mine());
+    if (a.op === 'week') return Response.json(await this.week(a.today));
     return Response.json({ error: 'op' }, { status: 400 });
   }
 
@@ -91,6 +94,26 @@ export class Forma {
       rows.push({ k: k.slice(2, i), id: k.slice(i + 1), u: r.u, v: r.v });
     }
     return { rows };
+  }
+
+  // Own foods and dishes, for the chat (/їжа finds them too)
+  async mine() {
+    const rows = [];
+    for (const prefix of ['r:f|', 'r:r|']) for (const [k, r] of await this.s.list({ prefix })) if (r && !r.d) rows.push({ id: k.slice(4), ...r.v, src: prefix === 'r:r|' ? 'recipe' : r.v.src || 'my' });
+    return { foods: rows };
+  }
+
+  // Everything the Sunday report and the streaks need: two months of food, all weights and workouts, a week of the day
+  // records, the profile and the workout days
+  async week(today) {
+    const s = this.s, day = /^\d{4}-\d{2}-\d{2}$/.test(today || '') ? today : berlinDay(new Date()), n = dayNum(day), next = dayOf(n + 1);
+    const live = (m) => [...m.entries()].filter(([, r]) => r && !r.d);
+    const entries = live(await s.list({ start: 'r:e|' + dayOf(n - 62), end: 'r:e|' + next })).map(([k, r]) => ({ id: k.slice(4), ...r.v }));
+    const weights = live(await s.list({ prefix: 'r:w|' })).map(([k, r]) => ({ day: k.slice(4), kg: Number(r.v.kg) })).filter((w) => w.kg > 0);
+    const moves = live(await s.list({ prefix: 'r:x|' })).map(([k, r]) => ({ id: k.slice(4), ...r.v }));
+    const days = Object.fromEntries(live(await s.list({ start: 'r:d|' + dayOf(n - 6), end: 'r:d|' + next })).map(([k, r]) => [k.slice(4), r.v]));
+    const prof = ((await s.get('r:p|me')) || {}).v || null, sport = ((await s.get('r:s|sport')) || {}).v || null;
+    return { today: day, name: (await s.get('name')) || '', profile: prof, entries, weights, moves, days, planDays: sport && Array.isArray(sport.days) ? sport.days.length : 3 };
   }
 
   // What partners and the bot need to know about the week up to `today`
@@ -135,8 +158,18 @@ async function ask(env, id, body) {
   return r.json();
 }
 export const summaryOf = (env, id, today) => ask(env, id, { op: 'summary', today });
+export { ask as askForma };
 
 const readJson = async (env, k) => { try { return JSON.parse(await env.SCANS.get(k)) || null; } catch { return null; } };
+// The partners of a person with what they may see of each other
+export async function partnersOf(env, me, today) {
+  const out = [];
+  for (const id of (await readJson(env, 'fb:' + me)) || []) {
+    if ((await allowedId(env, id)) === false) continue;
+    try { out.push(partnerView(id, await summaryOf(env, id, today))); } catch (e) { console.log('partner summary failed', String(e && e.message || e)); }
+  }
+  return out;
+}
 const CODE_ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const code6 = () => [...crypto.getRandomValues(new Uint8Array(6))].map((b) => CODE_ABC[b % CODE_ABC.length]).join('');
 
@@ -174,14 +207,7 @@ export async function formaRoute(env, signed, reply) {
     if (theirs.includes(me)) await env.SCANS.put('fb:' + other, JSON.stringify(theirs.filter((x) => x !== me)));
     return reply(200, { ok: true });
   }
-  if (action === 'buddies') {
-    const today = berlinDay(new Date()), out = [];
-    for (const id of mine) {
-      if ((await allowedId(env, id)) === false) continue;
-      try { out.push(partnerView(id, await summaryOf(env, id, today))); } catch (e) { console.log('partner summary failed', String(e && e.message || e)); }
-    }
-    return reply(200, { ok: true, buddies: out });
-  }
+  if (action === 'buddies') return reply(200, { ok: true, buddies: await partnersOf(env, me, berlinDay(new Date())) });
   if (action === 'export') {
     const { rows } = await ask(env, me, { op: 'dump' }), day = berlinDay(new Date());
     const files = [[`d-simya-kopiia-${day}.json`, 'application/json', JSON.stringify({ app: 'D-SIM’YA', kind: 'forma', made: new Date().toISOString(), rows })],
@@ -225,6 +251,7 @@ export const HEALTH = {
   sport: { prefix: 'tsub:', button: button('Тренування', 'sport/'), time: '18:00' },
   yizha: { prefix: 'msub:', button: button('Харчування', 'yizha/'), time: '20:00' },
   vaga: { prefix: 'vsub:', button: button('Записати вагу', 'yizha/?tab=progress'), time: '07:30' },
+  zvit: { prefix: 'zsub:', button: button('Прогрес', 'yizha/?tab=progress'), time: '19:00' },
 };
 
 // The choices a page sends, cleaned up
@@ -242,6 +269,7 @@ export function healthPrefs(kind, f) {
 export function healthConfirm(kind, p) {
   if (kind === 'sport') return `Нагадування про тренування увімкнено: ${p.days.map((d) => SHORT[d]).join(', ')} о ${p.time}. Я напишу, яке тренування на черзі.`;
   if (kind === 'vaga') return `Нагадування про зважування увімкнено: щотижня в ${WEEKDAYS[p.wd]} о ${p.time}. Зважуйся зранку, до сніданку, в той самий час: так цифри можна порівнювати.`;
+  if (kind === 'zvit') return `Звіт тижня увімкнено: щонеділі о ${p.time} я надішлю підсумок — вага, дні в нормі, тренування, вода, сон і як справи в партнерів.`;
   return `Нагадування про харчування увімкнено: щодня о ${p.time} я скажу, скільки записано за день. Якщо все вже записано і в нормі, не турбуватиму.`;
 }
 

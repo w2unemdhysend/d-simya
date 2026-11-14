@@ -112,3 +112,33 @@ export function eta(kgNow, goal, perWeek, today) {
 /* ---------- exercise ---------- */
 // kcal burnt: MET × kg × hours. MET of the moves: 2.5 stretching, 3.5 light, 5 moderate, 8 vigorous; walking 3.5 (brisk 4.3)
 export const burnt = (met, kg, minutes) => Math.round((met * kg * minutes) / 60);
+
+/* ---------- water, pressure, sugar ---------- */
+// about 30 ml per kg of body weight, in glasses of 250 ml, between 1.5 and 3 litres
+export const waterGoal = (kg) => Math.min(3000, Math.max(1500, Math.round((kg * 30) / 250) * 250));
+export const GLASS = 250;
+
+// Blood pressure by the European guidelines (ESH 2023): a guide, not a diagnosis
+export function bpClass(sys, dia) {
+  if (sys >= 180 || dia >= 110) return { level: 3, uk: 'дуже високий: якщо так кілька разів поспіль, звернися до лікаря сьогодні' };
+  if (sys >= 140 || dia >= 90) return { level: 2, uk: 'підвищений' };
+  if (sys >= 130 || dia >= 85) return { level: 1, uk: 'високий нормальний' };
+  if (sys < 90 || dia < 60) return { level: 1, uk: 'низький' };
+  return { level: 0, uk: sys < 120 && dia < 80 ? 'оптимальний' : 'нормальний' };
+}
+// Blood sugar in mmol/l, fasting or about two hours after a meal (WHO, Deutsche Diabetes Gesellschaft): a guide only
+export const MGDL = 18.016;
+export function sugarClass(mmol, after) {
+  if (mmol < 3.9) return { level: 2, uk: 'низький: з’їж щось солодке й переміряй' };
+  if (!after) return mmol < 5.6 ? { level: 0, uk: 'норма натще' } : mmol < 7 ? { level: 1, uk: 'підвищений натще' } : { level: 2, uk: 'високий натще' };
+  return mmol < 7.8 ? { level: 0, uk: 'норма після їжі' } : mmol < 11.1 ? { level: 1, uk: 'підвищений після їжі' } : { level: 2, uk: 'високий після їжі' };
+}
+
+/* ---------- streaks ---------- */
+// Days in a row up to today (or up to yesterday, when today is not written yet) that pass `ok(day)`
+export function streak(today, ok, max = 400) {
+  let n = 0, d = dayNum(today);
+  if (!ok(dayOf(d))) d--;
+  while (n < max && ok(dayOf(d))) { n++; d--; }
+  return n;
+}

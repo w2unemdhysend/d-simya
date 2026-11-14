@@ -241,5 +241,45 @@ t('…only once an hour (at :00–:29)', (await usageNotes(env2, new Date(today 
 graph.answer = { errors: [{ message: 'not authorized' }] };
 t('a bad token: no crash, nothing said', (await usageNotes(env2, new Date(today + 'T11:10:00Z'))).length === 0);
 
+/* ---------- the diary from the chat ---------- */
+const { answer } = await import('../worker/brief.js');
+const at = new Date('2026-11-14T12:30:00Z');   // 13:30 in Xanten: lunch
+const say = async (text, who = 5151) => (await answer(env, text, who, at)).text;
+const entriesOf = async (who) => (await FORMA.get('u:' + who).fetch('https://forma/', { method: 'POST', body: JSON.stringify({ op: 'week', today: '2026-11-14' }) }).then((r) => r.json())).entries.filter((e) => e.id.startsWith('2026-11-14'));
+let r1 = await say('/їжа гречка варена 200');
+let es = await entriesOf(5151);
+t('/їжа гречка 200: into the diary as lunch, with the day so far', r1.includes('Гречка варена, 200 г — 178 ккал (обід)') && r1.includes('Сьогодні: ') && es.some((e) => e.n === 'Гречка варена' && e.g === 200 && e.meal === 'l'), r1);
+r1 = await say('/їжа 2 яйця');
+t('/їжа 2 яйця: two portions of an egg', r1.includes('Яйце') && r1.includes('110 г'), r1);
+r1 = await say('/їжа борщ тарілка');
+t('/їжа борщ тарілка: the portion named', r1.includes('Борщ, 350 г'), r1);
+r1 = await say('/kcal скір 150 г');
+t('/kcal works the same, units after the number', r1.includes('Скір, 150 г'), r1);
+r1 = await say('/їжа щось незрозуміле');
+t('nothing found: says so and offers the app', r1.includes('Не знайшов'), r1);
+r1 = await say('/скасувати');
+es = await entriesOf(5151);
+t('/скасувати takes back the last one (the skyr)', r1.includes('Прибрано') && !es.some((e) => e.n === 'Скір'), r1);
+r1 = await say('/вага 82,1');
+t('/вага: today\'s weight with the change from the start', r1.includes('82,1 кг') && r1.includes('Від старту: −1,9 кг'), r1);
+r1 = await say('/вода'); r1 = await say('/вода 500'); r1 = await say('/вода 1,5 л');
+const dd = await FORMA.get('u:5151').fetch('https://forma/', { method: 'POST', body: JSON.stringify({ op: 'get', k: 'd', id: '2026-11-14' }) }).then((r) => r.json());
+t('/вода: a glass, 500 ml, 1.5 l add up', dd.v && dd.v.water === 2250 && r1.includes('вода 2,25'), r1 + JSON.stringify(dd));
+r1 = await say('/день');
+t('/день: calories, water', r1.startsWith('Сьогодні: ') && r1.includes('ккал') && r1.includes('вода'), r1);
+t('/help names the diary commands', (await say('/help')).includes('/їжа гречка 200'));
+t('other commands still work', (await answer(env, '/wort', 5151, at)).text.length > 10);
+
+/* ---------- the Sunday report ---------- */
+messages.length = 0;
+await post('/reminders', USER_B, { kind: 'zvit', action: 'on', time: '19:00' });
+t('weekly report on: confirmed', messages.some((m) => m.text.startsWith('Звіт тижня увімкнено')));
+kv.set('fb:5151', JSON.stringify([4242])); kv.set('fb:4242', JSON.stringify([5151]));
+got = await cron('2026-11-15T18:00:00Z');   // Sunday 19:00 in Xanten
+const wk = got.find((m) => m.text.startsWith('📊'));
+t('Sunday: the week — weight change, days, workouts, water, partners', wk && wk.text.includes('Вага: 82,1 кг') && wk.text.includes('Тренувань') && wk.text.includes('Вода') && wk.text.includes('Разом') && wk.text.includes('Іван'), wk && wk.text);
+t('…once', !(await cron('2026-11-15T18:30:00Z')).some((m) => m.text.startsWith('📊')));
+t('…not on other days', !(await cron('2026-11-14T18:00:00Z')).some((m) => m.text.startsWith('📊')));
+
 console.log(fails ? `${fails} FAILED` : 'all passed');
 process.exit(fails ? 1 : 0);

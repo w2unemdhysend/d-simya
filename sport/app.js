@@ -6,6 +6,7 @@ import { esc, API } from '../assets/site.js';
 import { berlinDay } from '../smittia/due.js';
 import * as db from '../yizha/store.js';
 import { valid, burnt, dayNum, dayOf } from '../yizha/calc.js';
+import { facts } from '../yizha/goals.js';
 import { MOVES, MOVE, GROUPS } from './moves.js';
 import { PLANS, PLAN, weekOf, stepOf, steps as stepsOf, seconds, kcalOf, nextWorkout } from './plans.js';
 import { play, still, VIEWBOX } from './figure.js';
@@ -82,6 +83,8 @@ function renderToday() {
     </section>
     <section class="card" aria-labelledby="h-week">
       <div class="hrow"><h2 id="h-week">Цей тиждень</h2><span class="badge${weekDone >= s.days.length ? ' ok' : ''}">${weekDone} з ${s.days.length}</span></div>
+      ${(() => { const f = facts({ today: t, profile: db.get('p', 'me'), entries: [], weights: [], moves: recs, days: {}, planDays: s.days.length });
+        return f.workoutWeeks ? `<p class="note ok">🔥 ${f.workoutWeeks} ${plural(f.workoutWeeks, 'тиждень', 'тижні', 'тижнів')} поспіль усі тренування за планом</p>` : f.workouts ? `<p class="note">Виконано тренувань: ${f.workouts}. Зроби всі ${s.days.length} цього тижня, і почнеться серія 🔥</p>` : ''; })()}
       <div class="week">${weekDays.map((d) => {
         const r = recs.filter((x) => x.id.startsWith(d)), w = r.some((x) => x.kind === 'w'), walk = r.some((x) => x.kind === 'walk');
         return `<div class="wd${s.days.includes(wdOf(d)) ? ' plan' : ''}${w ? ' done' : walk ? ' walk' : ''}${d === t ? ' today' : ''}"><i>${w ? '✓' : walk ? '•' : ''}</i><b>${WD[wdOf(d)]}</b></div>`;

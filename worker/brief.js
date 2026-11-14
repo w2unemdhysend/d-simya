@@ -19,6 +19,7 @@ import { button } from './config.js';
 import { tgApi } from './telegram.js';
 import { admit, allowedId } from './access.js';
 import { deliver } from './deliver.js';
+import { healthAnswer, HEALTH_HELP } from './chat.js';
 
 export const HOME_BUTTON = button('Відкрити застосунок');
 const BUS_BUTTON = button('Транспорт', 'transport/');
@@ -154,6 +155,10 @@ export const COMMANDS = [
   { command: 'wetter', description: 'Погода зараз і попередження DWD' },
   { command: 'muell', description: 'Коли вивозять сміття' },
   { command: 'wort', description: 'Німецьке слово дня' },
+  { command: 'kcal', description: 'Записати їжу: /kcal гречка 200 (або /їжа)' },
+  { command: 'vaga', description: 'Записати вагу: /vaga 111,4 (або /вага)' },
+  { command: 'voda', description: 'Склянка води (або /вода 500)' },
+  { command: 'den', description: 'Підсумок дня: калорії, вода, тренування' },
   { command: 'help', description: 'Що вміє бот' },
 ];
 const HELP = 'Я бот D-SIM’YA: помічник для життя в Німеччині.\n\n' +
@@ -171,10 +176,12 @@ async function profile(env, id) {
 
 // {text, button} for a command, or null for anything that is not one
 export async function answer(env, text, userId, now) {
+  const health = await healthAnswer(env, text, userId, now);
+  if (health) return health;
   const cmd = (String(text).trim().match(/^\/([a-z]+)(?:@\w+)?(?:\s|$)/i) || [])[1];
   if (!cmd) return null;
   const c = cmd.toLowerCase();
-  if (c === 'start' || c === 'help' || c === 'hilfe') return { text: HELP, button: HOME_BUTTON };
+  if (c === 'start' || c === 'help' || c === 'hilfe') return { text: HELP + HEALTH_HELP, button: HOME_BUTTON };
   if (c === 'wort') return { text: wordText(berlinDay(now)), button: WORD_BUTTON };
   const p = env.SCANS ? await profile(env, userId) : { place: 'Xanten' };
   try {

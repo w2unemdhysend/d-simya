@@ -1,10 +1,10 @@
 /* «Харчування» (and the shared pieces «Тренування» uses: buttons, fields, the sheet, food and exercise icons, the toast).
    Base colours, cards, chips and switches come from assets/page.css. */
-:root{--ok:#2A7530;--ok-soft:#DDEFDC;--warn:#9A5800;--warn-soft:#F7E3BF;--prot:#1F5FAF;--fat:#B8860B;--carb:#2E7D32;--ring-bg:#DCE3E7;--over:#B3261E}
+:root{--water:#2F7FC1;--ok:#2A7530;--ok-soft:#DDEFDC;--warn:#9A5800;--warn-soft:#F7E3BF;--prot:#1F5FAF;--fat:#B8860B;--carb:#2E7D32;--ring-bg:#DCE3E7;--over:#B3261E}
 @media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){--ok:#66BB6A;--ok-soft:#173220;--warn:#FFB424;--warn-soft:#3A2909;--prot:#8AB4F8;--fat:#F2C14E;--carb:#81C995;--ring-bg:#26313A;--over:#FF8A80}
+  :root:not([data-theme="light"]){--water:#5AB0F0;--ok:#66BB6A;--ok-soft:#173220;--warn:#FFB424;--warn-soft:#3A2909;--prot:#8AB4F8;--fat:#F2C14E;--carb:#81C995;--ring-bg:#26313A;--over:#FF8A80}
 }
-:root[data-theme="dark"]{--ok:#66BB6A;--ok-soft:#173220;--warn:#FFB424;--warn-soft:#3A2909;--prot:#8AB4F8;--fat:#F2C14E;--carb:#81C995;--ring-bg:#26313A;--over:#FF8A80}
+:root[data-theme="dark"]{--water:#5AB0F0;--ok:#66BB6A;--ok-soft:#173220;--warn:#FFB424;--warn-soft:#3A2909;--prot:#8AB4F8;--fat:#F2C14E;--carb:#81C995;--ring-bg:#26313A;--over:#FF8A80}
 
 main{gap:12px}
 .view{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;align-content:start}
@@ -211,3 +211,26 @@ h3.group{margin:6px 2px -4px}
   padding:10px 10px 10px 16px;border-radius:14px;background:var(--ink);color:var(--bg);box-shadow:0 6px 24px rgba(0,0,0,.25);font-size:15px;animation:sh-up .25s ease}
 .toast button{flex:none;border:0;background:transparent;color:var(--accent-soft);font:inherit;font-weight:700;min-height:40px;padding:0 8px;cursor:pointer}
 @media (prefers-reduced-motion: reduce){.ring .fg,.bar i{transition:none}}
+
+/* water, sleep, measures, health log, achievements */
+.wbtns{display:flex;align-items:center;gap:4px}
+.wbtns .iconbtn{font-size:24px;font-weight:600}
+.wbtns .iconbtn:disabled{opacity:.35}
+.glasses{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.glasses i{width:20px;height:28px;border:2px solid var(--line);border-radius:3px 3px 7px 7px;transition:background-color .2s ease,border-color .2s ease}
+.glasses i.full{background:var(--water);border-color:var(--water)}
+.stepper.sm button{width:44px;height:50px;font-size:20px}
+.stepper.sm input{min-height:50px;font-size:20px}
+.hl{list-style:none;margin:12px 0 0;padding:0}
+.hl li{padding:8px 0;border-top:1px solid var(--line)}
+.hl li:first-child{border-top:0}
+.hl b{font-weight:600;margin-right:6px}
+.hl small{display:block;color:var(--muted);font-size:13.5px}
+.hl small.warn{color:var(--danger);font-weight:600}
+.ach{list-style:none;margin:12px 0 0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.ach li{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:8px;align-items:center;padding:8px 10px;border-radius:12px;border:1px dashed var(--line);opacity:.62}
+.ach li span{grid-row:span 2;font-size:24px;filter:grayscale(1)}
+.ach li b{font-size:13.5px;font-weight:600;line-height:1.2}
+.ach li small{font-size:12px;color:var(--muted);line-height:1.25}
+.ach li.got{opacity:1;border-style:solid;border-color:var(--ok);background:var(--ok-soft)}
+.ach li.got span{filter:none}

@@ -5,9 +5,11 @@ import { esc, API } from '../assets/site.js';
 import { berlinDay } from '../smittia/due.js';
 import { FOODS, CATS } from './foods.js';
 import * as db from './store.js';
-import { ACT, PACES, MEALS, valid, target, macros, portion, sum, trend, rate, eta, bmi, bmiText, dayNum, dayOf } from './calc.js';
+import { ACT, PACES, MEALS, valid, target, macros, portion, sum, trend, rate, eta, bmi, bmiText, dayNum, dayOf, waterGoal, GLASS, bpClass, sugarClass, MGDL } from './calc.js';
+import { facts, achievements } from './goals.js';
 import { byBarcode, search as offSearch } from './off.js';
 import { validCode } from './scan.js';
+import { score } from './find.js';
 
 const $ = (s, r) => (r || document).querySelector(s);
 const $$ = (s, r) => [...(r || document).querySelectorAll(s)];
@@ -49,8 +51,6 @@ const unitOf = (food) => (food.l ? 'мл' : 'г');
 const BUILT = FOODS.map(([id, n, de, ic, cat, kcal, p, f, c, por, al, fl]) => ({ id, n, de, ic, cat, kcal, p, f, c, por, al, l: fl === 'l', src: id.startsWith('ua-') ? 'dish' : 'bls' }));
 const BYID = new Map(BUILT.map((x) => [x.id, x]));
 const CAT = new Map(CATS.map((c) => [c.id, c]));
-const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[’'ʼ`]/g, '').replace(/ß/g, 'ss');
-const words = (s) => norm(s).split(/[^\p{L}\p{N}]+/u).filter(Boolean);
 const mine = () => db.all('f').map((v) => ({ ...v, src: v.src || 'my', por: v.por || [] }));
 const dishes = () => db.all('r').map((v) => ({ ...v, src: 'recipe', ic: v.ic || '🍲', por: v.por || [] }));
 function foodById(id) {
@@ -74,16 +74,12 @@ function usage() {
 }
 const fromEntry = (e) => ({ id: e.fid, n: e.n, brand: e.b || '', ic: e.ic || '', kcal: e.kcal, p: e.p, f: e.f, c: e.c, l: !!e.l, por: [], src: 'past' });
 function findLocal(q, limit = 40) {
-  const qw = words(q); if (!qw.length) return [];
-  const qn = norm(q).trim(), u = usage(), out = [];
+  const u = usage(), out = [];
   for (const food of [...dishes(), ...mine(), ...BUILT]) {
-    const name = norm(food.n), ws = words([food.n, food.de, food.al, food.brand].join(' '));
-    if (!qw.every((t) => ws.some((w) => w.startsWith(t)) || (t.length >= 4 && name.includes(t)))) continue;
-    let score = name.startsWith(qn) ? 60 : words(food.n)[0] && words(food.n)[0].startsWith(qw[0]) ? 30 : words(food.n).some((w) => w.startsWith(qw[0])) ? 15 : 0;
-    const x = u.get(food.id); if (x) score += Math.min(40, x.n * 5);
-    if (food.src !== 'bls' && food.src !== 'dish') score += 5;
-    score -= name.length / 40;
-    out.push([score, food]);
+    let s = score(food, q); if (s == null) continue;
+    const x = u.get(food.id); if (x) s += Math.min(40, x.n * 5);   // what is eaten often comes first
+    if (food.src !== 'bls' && food.src !== 'dish') s += 5;
+    out.push([s, food]);
   }
   return out.sort((a, b) => b[0] - a[0]).slice(0, limit).map((x) => x[1]);
 }
@@ -93,6 +89,9 @@ const profile = () => { const p = db.get('p', 'me'); return valid(p) ? p : null;
 const weights = () => db.all('w').map((w) => ({ day: w.id, kg: Number(w.kg) })).filter((w) => w.kg > 0).sort((a, b) => (a.day < b.day ? -1 : 1));
 function currentKg(p) { const w = weights(); return w.length ? w[w.length - 1].kg : p.start.kg; }
 const entriesOf = (day) => db.all('e', day + '~').sort((a, b) => (a.at || 0) - (b.at || 0));
+// the day's own record: water (ml), sleep (h), steps, waist and hips (cm), blood pressure and sugar readings
+const dayRec = (day) => db.get('d', day) || {};
+const putDay = (day, patch) => db.put('d', day, { ...dayRec(day), ...patch });
 const movesOf = (day) => db.all('x', day + '~');
 function targetNow(p) { return target(p, currentKg(p), year()); }
 const amountText = (e) => (e.pq && e.pn ? `${fmt1(e.pq)} × ${e.pn} · ` : '') + `${fmt(e.g)} ${e.l ? 'мл' : 'г'}`;
@@ -214,7 +213,22 @@ function renderDay() {
         ${es.length ? `<ul class="entries">${es.map((e) => `<li><button class="entry" type="button" data-entry="${esc(e.id)}">${iconHTML(e.ic)}<span class="t"><b>${esc(e.n)}</b><small>${esc(amountText(e))}</small></span><span class="k num">${fmt(portion(e, e.g).kcal)}</span></button></li>`).join('')}</ul>`
           : pe.length ? `<button class="again" type="button" data-again="${meal.id}">${I.again}<span>Як учора: ${esc(pe.slice(0, 3).map((e) => e.n).join(', '))}${pe.length > 3 ? '…' : ''} · ${fmt(sum(pe).kcal)} ккал</span></button>` : '<p class="empty">Ще нічого. Натисни +, щоб додати.</p>'}
       </section>`;
-    }).join('')}`;
+    }).join('')}
+    ${(() => {
+      const dv = dayRec(day), goal = waterGoal(currentKg(p)), n = Math.round(goal / GLASS), had = Math.round((dv.water || 0) / GLASS);
+      return `<section class="card" aria-labelledby="h-water">
+        <div class="hrow"><h2 id="h-water"><span aria-hidden="true">💧</span>Вода<span class="num">${fmt1((dv.water || 0) / 1000)} з ${fmt1(goal / 1000)} л</span></h2>
+          <span class="wbtns"><button class="iconbtn" type="button" data-water="-1" aria-label="Мінус склянка"${dv.water ? '' : ' disabled'}>−</button><button class="plus" type="button" data-water="1" aria-label="Плюс склянка, 250 мл">${I.plus}</button></span></div>
+        <div class="glasses" role="img" aria-label="Випито ${had} з ${n} склянок">${Array.from({ length: Math.max(n, had) }, (_, i) => `<i class="${i < had ? 'full' : ''}"></i>`).join('')}</div>
+      </section>
+      <section class="card" aria-labelledby="h-rest">
+        <h2 id="h-rest"><span aria-hidden="true">😴</span> Сон і кроки</h2>
+        <div class="grid2" style="margin-top:10px">
+          <div class="field"><span>Сон, годин</span><div class="stepper sm"><button type="button" data-sleep="-1" aria-label="Менше на пів години">−</button><input id="sleep" inputmode="decimal" aria-label="Сон, годин" value="${dv.sleep ? fmt1(dv.sleep) : ''}" placeholder="—"><button type="button" data-sleep="1" aria-label="Більше на пів години">+</button></div></div>
+          <label class="field"><span>Кроки</span><input id="steps" inputmode="numeric" maxlength="6" value="${dv.steps || ''}" placeholder="з телефона"></label>
+        </div>
+      </section>`;
+    })()}`;
   paintSync();
 }
 function paintSync() {
@@ -273,8 +287,63 @@ function renderProgress() {
       </div>
       ${t.floored ? `<p class="note small">Норма не опускається нижче ${p.sex === 'm' ? '1500' : '1200'} ккал: менше варто їсти лише під наглядом лікаря.</p>` : ''}
     </section>
+    ${measuresCard(p)}
+    ${healthCard(p)}
+    ${achievementsCard(p)}
     <section class="card" aria-labelledby="h-r" id="reminders"></section>`;
   renderBuddies(); renderReminders();
+}
+/* waist and hips: they keep going down when the scales stand still */
+function measuresCard() {
+  const rows = db.all('d').filter((d) => d.waist || d.hips).sort((a, b) => (a.id < b.id ? -1 : 1));
+  const first = (k) => rows.find((r) => r[k]), last = (k) => [...rows].reverse().find((r) => r[k]);
+  const line = (k, name) => { const a = first(k), b = last(k); if (!b) return ''; const d = Math.round((b[k] - a[k]) * 10) / 10;
+    return `<div><span>${name}</span><b class="num">${fmt1(b[k])} см${a !== b ? ` (${d <= 0 ? '−' : '+'}${fmt1(Math.abs(d))} від ${esc(shortDate(a.id))})` : ''}</b></div>`; };
+  const t = dayRec(today());
+  return `<section class="card" aria-labelledby="h-m"><h2 id="h-m">Обміри</h2>
+    <p class="note small">Талію міряй на рівні пупка, стегна — у найширшому місці. Раз на тиждень вистачить.</p>
+    <div class="grid2" style="margin-top:10px"><label class="field"><span>Талія, см</span><input id="waist" inputmode="decimal" value="${t.waist ? fmt1(t.waist) : ''}"></label>
+    <label class="field"><span>Стегна, см</span><input id="hips" inputmode="decimal" value="${t.hips ? fmt1(t.hips) : ''}"></label></div>
+    <button class="btn soft" type="button" id="msave" style="margin-top:10px">Записати на сьогодні</button>
+    ${rows.length ? `<div class="facts" style="margin-top:10px">${line('waist', 'Талія')}${line('hips', 'Стегна')}</div>` : ''}
+  </section>`;
+}
+/* blood pressure and sugar: only for who switches it on */
+function healthCard(p) {
+  const tr = p.track || {};
+  if (!tr.on) return `<section class="card" aria-labelledby="h-hl"><h2 id="h-hl">Тиск і цукор</h2><p class="note">Журнал для тих, кому лікар радить стежити за тиском чи цукром. Показуватиму, чи значення в нормі.</p><button class="btn soft" type="button" id="hl-on" style="margin-top:10px">Увімкнути журнал</button></section>`;
+  const unit = tr.unit === 'mgdl' ? 'мг/дл' : 'ммоль/л', show = (mmol) => (tr.unit === 'mgdl' ? fmt(mmol * MGDL) : fmt1(mmol));
+  const all = db.all('d').filter((d) => (d.bp && d.bp.length) || (d.sugar && d.sugar.length)).sort((a, b) => (a.id < b.id ? 1 : -1));
+  const list = [];
+  for (const d of all) {
+    for (const [sys, dia, pulse, time] of (d.bp || []).slice().reverse()) { const c = bpClass(sys, dia); list.push(`<li><b class="num">${sys}/${dia}</b>${pulse ? ` · пульс ${pulse}` : ''}<small class="${c.level >= 2 ? 'warn' : ''}">${esc(shortDate(d.id))} ${esc(time || '')} · тиск ${esc(c.uk)}</small></li>`); }
+    for (const [mmol, time, after] of (d.sugar || []).slice().reverse()) { const c = sugarClass(mmol, after); list.push(`<li><b class="num">${show(mmol)} ${unit}</b><small class="${c.level >= 2 ? 'warn' : ''}">${esc(shortDate(d.id))} ${esc(time || '')} · цукор ${esc(c.uk)}</small></li>`); }
+    if (list.length >= 8) break;
+  }
+  return `<section class="card" aria-labelledby="h-hl"><h2 id="h-hl">Тиск і цукор</h2>
+    <div class="field" style="margin-top:10px"><span>Тиск: верхній / нижній, пульс</span><div class="grid3"><input id="bp-s" inputmode="numeric" maxlength="3" placeholder="120" aria-label="Верхній тиск"><input id="bp-d" inputmode="numeric" maxlength="3" placeholder="80" aria-label="Нижній тиск"><input id="bp-p" inputmode="numeric" maxlength="3" placeholder="70" aria-label="Пульс"></div></div>
+    <button class="btn soft" type="button" id="bp-save" style="margin-top:8px">Записати тиск</button>
+    <div class="field" style="margin-top:12px"><span>Цукор, ${unit}</span><div class="grid2"><input id="su-v" inputmode="decimal" placeholder="${tr.unit === 'mgdl' ? '95' : '5,3'}" aria-label="Цукор"><div class="seg" role="radiogroup" aria-label="Коли" style="margin:0"><button type="button" role="radio" data-su="0" aria-checked="${!tr.after}"><b>натще</b></button><button type="button" role="radio" data-su="1" aria-checked="${!!tr.after}"><b>після їжі</b></button></div></div></div>
+    <button class="btn soft" type="button" id="su-save" style="margin-top:8px">Записати цукор</button>
+    <p class="err" id="hl-err" hidden></p>
+    ${list.length ? `<ul class="hl">${list.slice(0, 8).join('')}</ul>` : ''}
+    <p class="note small">Орієнтир за європейськими рекомендаціями, не діагноз. Міряй у спокої, сидячи. <button class="linkbtn" type="button" id="hl-unit">${tr.unit === 'mgdl' ? 'Цукор у ммоль/л' : 'Цукор у мг/дл'}</button> · <button class="linkbtn" type="button" id="hl-off">Сховати журнал</button></p>
+  </section>`;
+}
+/* streaks and achievements */
+function achievementsCard(p) {
+  const sp = db.get('s', 'sport');
+  const f = facts({ today: today(), profile: p, entries: db.all('e'), weights: weights(), moves: db.all('x'), days: Object.fromEntries(db.all('d').map((d) => [d.id, d])), planDays: sp && sp.days ? sp.days.length : 3 });
+  const list = achievements(f), got = list.filter((a) => a.got).length;
+  const days = (n) => `${n} ${plural(n, 'день', 'дні', 'днів')}`;
+  return `<section class="card" aria-labelledby="h-a"><div class="hrow"><h2 id="h-a">Досягнення</h2><span class="badge${got ? ' ok' : ''}">${got} з ${list.length}</span></div>
+    <div class="facts" style="margin-top:8px">
+      <div><span>🔥 Записи поспіль</span><b class="num">${days(f.logStreak)}</b></div>
+      <div><span>🎯 У нормі поспіль</span><b class="num">${days(f.normStreak)}</b></div>
+      <div><span>💪 Тижні тренувань за планом</span><b class="num">${f.workoutWeeks}</b></div>
+    </div>
+    <ul class="ach">${list.map((a) => `<li class="${a.got ? 'got' : ''}"><span aria-hidden="true">${a.icon}</span><b>${esc(a.uk)}</b><small>${a.got ? 'Є!' : esc(a.note)}</small></li>`).join('')}</ul>
+  </section>`;
 }
 function weightChart(tr, p) {
   if (tr.length < 2) return '<p class="note">Графік з’явиться після другого зважування.</p>';
@@ -343,7 +412,8 @@ const buddyErr = (t) => { const e = $('#b-err'); if (e) { e.textContent = t; e.h
 const RKEY = 'yizha-remind';
 const HALF = Array.from({ length: 34 }, (_, i) => `${String(6 + Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'}`);
 const WD = ['понеділок', 'вівторок', 'середа', 'четвер', 'п’ятниця', 'субота', 'неділя'];
-let rem = (() => { try { return JSON.parse(localStorage.getItem(RKEY)) || null; } catch (e) { return null; } })() || { yizha: { on: false, time: '20:00' }, vaga: { on: false, time: '07:30', wd: 0 } };
+let rem = { yizha: { on: false, time: '20:00' }, vaga: { on: false, time: '07:30', wd: 0 }, zvit: { on: false, time: '19:00' }, ...((() => { try { return JSON.parse(localStorage.getItem(RKEY)) || {}; } catch (e) { return {}; } })()) };
+const remPrefs = (kind) => (kind === 'vaga' ? { time: $('#r-vaga-time').value, wd: $('#r-vaga-wd').value } : { time: $('#r-' + kind + '-time').value });
 let remLoaded = false;
 async function remindCall(kind, action, extra = {}) {
   const fd = new FormData(); fd.append('initData', tg.initData); fd.append('kind', kind); fd.append('action', action);
@@ -364,16 +434,19 @@ function renderReminders() {
     <div class="remind"><div class="row"><span class="t"><b id="l-weigh">Зважитися</b><small>Раз на тиждень, зранку.</small></span>
       <button class="switch" type="button" role="switch" id="r-vaga" aria-labelledby="l-weigh" aria-checked="${rem.vaga.on}"${can ? '' : ' disabled'}></button></div>
       <div class="grid2"><label class="field"><span>День</span>${sel('r-vaga-wd', rem.vaga.wd, WD.map((w, i) => [i, w]))}</label><label class="field"><span>Час</span>${sel('r-vaga-time', rem.vaga.time, HALF.filter((h) => h <= '11:00').map((h) => [h, h]))}</label></div></div>
+    <div class="remind"><div class="row"><span class="t"><b id="l-zvit">Звіт тижня</b><small>Щонеділі: вага, дні в нормі, тренування, вода, сон і як справи в партнерів.</small></span>
+      <button class="switch" type="button" role="switch" id="r-zvit" aria-labelledby="l-zvit" aria-checked="${rem.zvit.on}"${can ? '' : ' disabled'}></button></div>
+      <label class="field"><span>У неділю о</span>${sel('r-zvit-time', rem.zvit.time, HALF.filter((h) => h >= '09:00').map((h) => [h, h]))}</label></div>
     ${can ? '<p class="state" id="r-state"></p>' : '<p class="note">Нагадування надсилає бот: відкрий «Харчування» через бота в Telegram.</p>'}`;
   if (can && !remLoaded) {
     remLoaded = true;
-    Promise.all(['yizha', 'vaga'].map((k) => remindCall(k, 'status').then((d) => { rem[k] = { ...rem[k], on: !!d.on, ...(d.on && d.time ? { time: d.time } : {}), ...(d.on && d.wd != null ? { wd: d.wd } : {}) }; }).catch(() => {})))
+    Promise.all(['yizha', 'vaga', 'zvit'].map((k) => remindCall(k, 'status').then((d) => { rem[k] = { ...rem[k], on: !!d.on, ...(d.on && d.time ? { time: d.time } : {}), ...(d.on && d.wd != null ? { wd: d.wd } : {}) }; }).catch(() => {})))
       .then(() => { localStorage.setItem(RKEY, JSON.stringify(rem)); if (!box.contains(document.activeElement)) renderReminders(); });
   }
 }
 async function toggleRemind(kind, on) {
   const s = $('#r-state'), sw = $('#r-' + kind);
-  const prefs = kind === 'vaga' ? { time: $('#r-vaga-time').value, wd: $('#r-vaga-wd').value } : { time: $('#r-yizha-time').value };
+  const prefs = remPrefs(kind);
   sw.classList.add('busy'); sw.disabled = true;
   try {
     const d = await remindCall(kind, on ? 'on' : 'off', prefs);
@@ -389,7 +462,7 @@ async function toggleRemind(kind, on) {
   sw.classList.remove('busy'); sw.disabled = false; sw.setAttribute('aria-checked', String(rem[kind].on));
 }
 async function remindPrefs(kind) {
-  const prefs = kind === 'vaga' ? { time: $('#r-vaga-time').value, wd: $('#r-vaga-wd').value } : { time: $('#r-yizha-time').value };
+  const prefs = remPrefs(kind);
   rem[kind] = { ...rem[kind], time: prefs.time, ...(prefs.wd != null ? { wd: Number(prefs.wd) } : {}) };
   localStorage.setItem(RKEY, JSON.stringify(rem));
   if (rem[kind].on) { try { await remindCall(kind, 'prefs', prefs); const s = $('#r-state'); if (s) { s.className = 'state on'; s.textContent = 'Час нагадування змінено.'; } } catch (e) { /* the next change sends it again */ } }
@@ -717,6 +790,40 @@ document.addEventListener('click', (e) => {
     list.forEach((x, i) => { const { id, ...v } = x; const nid = `${st.day}~${db.rid()}${i}`; ids.push(nid); db.put('e', nid, { ...v, day: st.day, at: Date.now() + i }); });
     haptic('success'); toast(`Додано як учора: ${fmt(sum(list).kcal)} ккал`, () => ids.forEach((id) => db.del('e', id))); return;
   }
+  // water, sleep
+  const wa = t.closest('[data-water]');
+  if (wa && !wa.disabled) { const v = dayRec(st.day).water || 0; putDay(st.day, { water: Math.max(0, v + Number(wa.dataset.water) * GLASS) }); haptic(Number(wa.dataset.water) > 0 ? 'light' : null); return; }
+  const sl = t.closest('[data-sleep]');
+  if (sl) { const v = dayRec(st.day).sleep || 7; putDay(st.day, { sleep: Math.max(0, Math.min(16, v + (dayRec(st.day).sleep ? Number(sl.dataset.sleep) * 0.5 : 0))) }); haptic(); return; }
+  // measures, blood pressure and sugar
+  if (t.closest('#msave')) {
+    const w = parseNum($('#waist').value), h = parseNum($('#hips').value), patch = {};
+    if (w >= 40 && w <= 250) patch.waist = Math.round(w * 10) / 10;
+    if (h >= 40 && h <= 250) patch.hips = Math.round(h * 10) / 10;
+    if (!Object.keys(patch).length) { haptic('error'); $('#waist').focus(); return; }
+    putDay(today(), patch); haptic('success'); toast('Обміри записано'); return;
+  }
+  const prof = profile();
+  if (t.closest('#hl-on') || t.closest('#hl-off') || t.closest('#hl-unit')) {
+    const tr = { ...(prof.track || {}) };
+    if (t.closest('#hl-on')) tr.on = true; else if (t.closest('#hl-off')) tr.on = false; else tr.unit = tr.unit === 'mgdl' ? 'mmol' : 'mgdl';
+    db.put('p', 'me', { ...prof, track: tr }); haptic(); return;
+  }
+  const su = t.closest('[data-su]'); if (su) { db.put('p', 'me', { ...prof, track: { ...(prof.track || {}), after: su.dataset.su === '1' } }); haptic(); return; }
+  const hlErr = (m) => { const e = $('#hl-err'); e.textContent = m; e.hidden = !m; if (m) haptic('error'); };
+  const hm = () => new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin' });
+  if (t.closest('#bp-save')) {
+    const sy = Math.round(parseNum($('#bp-s').value)), di = Math.round(parseNum($('#bp-d').value)), pu = Math.round(parseNum($('#bp-p').value)) || 0;
+    if (!(sy >= 60 && sy <= 260 && di >= 30 && di <= 160 && sy > di)) { hlErr('Тиск: верхній 60–260, нижній 30–160, наприклад 128 і 82.'); return; }
+    const d = dayRec(today()); putDay(today(), { bp: [...(d.bp || []), [sy, di, pu >= 30 && pu <= 220 ? pu : 0, hm()]] });
+    haptic('success'); toast(`Тиск ${sy}/${di}: ${bpClass(sy, di).uk}`); return;
+  }
+  if (t.closest('#su-save')) {
+    const tr = prof.track || {}, raw = parseNum($('#su-v').value), mmol = tr.unit === 'mgdl' ? raw / MGDL : raw;
+    if (!(mmol >= 1 && mmol <= 35)) { hlErr(tr.unit === 'mgdl' ? 'Цукор у мг/дл, наприклад 95.' : 'Цукор у ммоль/л, наприклад 5,3.'); return; }
+    const d = dayRec(today()), m = Math.round(mmol * 10) / 10; putDay(today(), { sugar: [...(d.sugar || []), [m, hm(), tr.after ? 1 : 0]] });
+    haptic('success'); toast(`Цукор: ${sugarClass(m, tr.after).uk}`); return;
+  }
   // progress
   const ws = t.closest('[data-wstep]'); if (ws) { const inp = $('#wkg'), v = parseNum(inp.value); inp.value = fmt1(Math.max(30, Math.round(((Number.isFinite(v) ? v : 70) + Number(ws.dataset.wstep) * 0.1) * 10) / 10)); haptic(); return; }
   if (t.closest('#wsave')) { const kg = parseNum($('#wkg').value); if (!(kg >= 30 && kg <= 300)) { haptic('error'); $('#wkg').focus(); return; } db.put('w', today(), { kg: Math.round(kg * 10) / 10 }); haptic('success'); toast(`Вагу записано: ${fmt1(kg)} кг`); return; }
@@ -732,7 +839,7 @@ document.addEventListener('click', (e) => {
   }
   const ub = t.closest('[data-unbuddy]');
   if (ub) { if (ub.dataset.armed) { db.call('leave', { id: ub.dataset.unbuddy }).then(() => { buddyCode = ''; loadBuddies(true); }).catch(() => buddyErr('Не вдалося. Спробуй ще раз.')); } else { ub.dataset.armed = '1'; ub.style.color = 'var(--danger)'; ub.setAttribute('aria-label', 'Натисни ще раз, щоб більше не ділитися'); setTimeout(() => { delete ub.dataset.armed; ub.style.color = ''; }, 3500); haptic(); } return; }
-  const sw = t.closest('#r-yizha, #r-vaga'); if (sw && !sw.disabled) { toggleRemind(sw.id.slice(2), sw.getAttribute('aria-checked') !== 'true'); return; }
+  const sw = t.closest('#r-yizha, #r-vaga, #r-zvit'); if (sw && !sw.disabled) { toggleRemind(sw.id.slice(2), sw.getAttribute('aria-checked') !== 'true'); return; }
   // a copy of one's data
   const dd = t.closest('[data-data]');
   if (dd) {
@@ -804,6 +911,9 @@ document.addEventListener('change', (e) => {
     return;
   }
   if (t.id === 'r-yizha-time') remindPrefs('yizha');
+  else if (t.id === 'r-zvit-time') remindPrefs('zvit');
+  else if (t.id === 'steps') { const n = Math.round(parseNum(t.value)); putDay(st.day, { steps: n >= 0 && n <= 200000 ? n : 0 }); }
+  else if (t.id === 'sleep') { const h = parseNum(t.value); putDay(st.day, { sleep: h >= 0 && h <= 24 ? Math.round(h * 2) / 2 : 0 }); }
   else if (t.id === 'r-vaga-time' || t.id === 'r-vaga-wd') remindPrefs('vaga');
   else if (t.id === 'scanfile' && t.files && t.files[0]) {
     const d = top() && top().data, msg = $('#scanmsg');

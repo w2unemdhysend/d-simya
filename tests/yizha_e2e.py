@@ -201,6 +201,13 @@ async def main():
         check('today: «як учора» for dinner', await pg.is_visible('[data-again="d"]') and 'Сирники' in await pg.text_content('[data-again="d"]'))
         await pg.click('[data-again="d"]'); await pg.wait_for_timeout(300)
         check('…one tap copies it', any(e.startswith('Сирники') for e in await pg.evaluate(ENTRIES)))
+        # water, sleep, steps
+        await pg.click('[data-water="1"]'); await pg.click('[data-water="1"]'); await pg.click('[data-water="1"]'); await pg.click('[data-water="-1"]'); await pg.wait_for_timeout(200)
+        check('water: glasses add up (2 × 250 ml), the goal from the weight (2,5 л for 84 kg)', '0,5 з 2,5 л' in await pg.text_content('#h-water') and await pg.locator('.glasses i.full').count() == 2, await pg.text_content('#h-water'))
+        await pg.click('[data-sleep="1"]'); await pg.click('[data-sleep="1"]'); await pg.wait_for_timeout(150)
+        check('sleep: the first tap starts at 7 hours, then half hours', await pg.input_value('#sleep') == '7,5', await pg.input_value('#sleep'))
+        await pg.fill('#steps', '6400'); await pg.press('#steps', 'Tab'); await pg.wait_for_timeout(150)
+        check('steps kept for the day', (await pg.evaluate("() => window.__yizha.db.get('d', '2026-11-14')"))['steps'] == 6400)
         if OUT: await pg.screenshot(path=os.path.join(OUT, 'yizha-day.png'), full_page=True)
 
         # ---------- packaged food ----------
@@ -268,6 +275,24 @@ async def main():
         text = await pg.text_content('#view-progress')
         check('weight: the chart, the rate a week, the goal month', await pg.is_visible('svg.chart .tr') and 'кг/тижд.' in text and 'Пройдено' in text, text[:300])
         check('the week: days written down and the average', 'Записано 2 дні з 7' in text, text)
+        # measures
+        await pg.fill('#waist', '104'); await pg.fill('#hips', '118'); await pg.click('#msave'); await pg.wait_for_timeout(200)
+        await pg.evaluate("() => window.__yizha.db.put('d', '2026-11-01', {waist: 107.5, hips: 120})"); await pg.wait_for_timeout(200)
+        m = await pg.text_content('#view-progress')
+        check('measures: waist and hips with the change since the first', 'Талія104 см (−3,5 від 1 лист.)' in m.replace('\u00a0', ' ') or '−3,5' in m, m[m.find('Обміри'):m.find('Обміри') + 300])
+        # blood pressure and sugar, off by default
+        check('the pressure and sugar log is off until switched on', await pg.is_visible('#hl-on'))
+        await pg.click('#hl-on'); await pg.wait_for_timeout(200)
+        await pg.fill('#bp-s', '150'); await pg.fill('#bp-d', '95'); await pg.fill('#bp-p', '72'); await pg.click('#bp-save'); await pg.wait_for_timeout(200)
+        check('pressure 150/95: «підвищений», marked', 'підвищений' in await pg.text_content('.hl') and await pg.locator('.hl small.warn').count() == 1)
+        await pg.fill('#bp-s', '60'); await pg.fill('#bp-d', '90'); await pg.click('#bp-save'); await pg.wait_for_timeout(150)
+        check('an impossible pressure is explained', not await pg.is_hidden('#hl-err'))
+        await pg.click('#hl-unit'); await pg.wait_for_timeout(150); await pg.click('[data-su="1"]'); await pg.wait_for_timeout(150)
+        await pg.fill('#su-v', '130'); await pg.click('#su-save'); await pg.wait_for_timeout(200)
+        check('sugar in mg/dl after a meal: 130 = 7,2 mmol/l, normal after food', 'норма після їжі' in await pg.text_content('.hl') and '130 мг/дл' in await pg.text_content('.hl'), await pg.text_content('.hl'))
+        # achievements
+        ach = await pg.text_content('#view-progress')
+        check('achievements: the first record is there, the rest say what to do', await pg.locator('.ach li.got').count() == 1 and 'Перший запис' in await pg.text_content('.ach li.got') and 'Скинути перший кілограм' in ach)
         if OUT: await pg.screenshot(path=os.path.join(OUT, 'yizha-progress.png'), full_page=True)
         check('390 px: nothing scrolls sideways', await pg.evaluate(OVERFLOW) <= 0)
         # a copy of the data, and putting it back on another device
@@ -331,6 +356,9 @@ async def main():
         await a.click('#r-yizha'); await a.wait_for_timeout(300)
         r = server.reminders[-1] if server.reminders else {}
         check('meal reminder on: kind, time', r.get('kind') == 'yizha' and r.get('action') == 'on' and r.get('time') == '20:00', str(r))
+        await a.select_option('#r-zvit-time', '18:30'); await a.click('#r-zvit'); await a.wait_for_timeout(300)
+        r = server.reminders[-1]
+        check('weekly report on: Sunday at the chosen time', r.get('kind') == 'zvit' and r.get('action') == 'on' and r.get('time') == '18:30', str(r))
         await a.select_option('#r-vaga-wd', '6'); await a.click('#r-vaga'); await a.wait_for_timeout(300)
         r = server.reminders[-1]
         check('weighing reminder on: Sunday at 07:30', r.get('kind') == 'vaga' and r.get('wd') == '6' and r.get('time') == '07:30', str(r))

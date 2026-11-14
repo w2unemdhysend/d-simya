@@ -190,7 +190,7 @@ t('commands: off at first', r.body.ok && r.body.on === false);
 r = await post('/commands', STAS, { action: 'on' });
 const set = apiCalls.find(([m]) => m === 'setWebhook'), cmds = apiCalls.find(([m]) => m === 'setMyCommands');
 t('commands on: the webhook points at this Worker with the secret, messages only', r.body.on && set && set[1].url === 'https://w.example/tg' && set[1].secret_token === SECRET && set[1].allowed_updates.join() === 'message', JSON.stringify(set));
-t('commands on: Telegram gets the command list, the person a message with them', cmds && cmds[1].commands.map((c) => c.command).join() === 'bus,wetter,muell,wort,help' && last().text.includes('Команди в чаті увімкнено'));
+t('commands on: Telegram gets the command list, the person a message with them', cmds && cmds[1].commands.map((c) => c.command).join() === 'bus,wetter,muell,wort,kcal,vaga,voda,den,help' && last().text.includes('Команди в чаті увімкнено'));
 r = await post('/commands', MAMA, { action: 'off' });
 t('commands off: only by who switched them on', r.body.error === 'not_yours' && hook === 'https://w.example/tg');
 r = await post('/commands', STAS, { action: 'off' });
