@@ -4,14 +4,14 @@
 // Its own modules carry the version (?v=) like the page's links do: a phone with the last version kept offline must
 // never mix a new page with an old helper.
 import { $, tg, haptic, toast, load, store, cloudSet, cloudGet, esc, plural } from '../igry/kit.js';
-import { WORKER_URL } from '../pogoda/wx.js';
-import { mapStyle, OVERLAY_SOURCES, TILES, GLYPHS } from './style.js?v=3';
-import { XANTEN, metres, walkMin, fmtDist, cellsFor, whereNow, measure, slice, berlinStamp, ring, reach, leave, stopPositions, headingAt, shareNear, catchPlan, cityTiles, tileKey, locate as along } from './geo.js?v=3';
+import { API } from '../assets/site.js';
+import { mapStyle, OVERLAY_SOURCES, TILES, GLYPHS } from './style.js?v=58c25b0c';
+import { XANTEN, metres, walkMin, fmtDist, cellsFor, whereNow, measure, slice, berlinStamp, ring, reach, leave, stopPositions, headingAt, shareNear, catchPlan, cityTiles, tileKey, locate as along } from './geo.js?v=cd9607b8';
 
 const reduce = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
 const wide = () => !!(window.matchMedia && matchMedia('(min-width:700px)').matches);
 const api = async (path) => {
-  const r = await fetch(WORKER_URL.replace(/\/*$/, '/') + path);
+  const r = await fetch(API + path);
   const d = await r.json().catch(() => ({}));
   if (!r.ok || !d.ok) throw new Error(d.error || 'http ' + r.status);
   return d;

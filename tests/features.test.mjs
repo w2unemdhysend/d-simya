@@ -34,7 +34,7 @@ const LISTS = {
     return { fetch: (url, init) => o.fetch(new Request(url, init)) };
   },
 };
-const env = { BOT_TOKEN: TOKEN, SCANS, LISTS };
+const env = { BOT_TOKEN: TOKEN, SCANS, LISTS, ALLOWED_USERS: '4242,5151,555,777,7777,8888,999,31337' };
 const messages = [];
 let alerts = [];
 globalThis.fetch = async (url, init) => {

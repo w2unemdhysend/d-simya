@@ -1,10 +1,12 @@
-// The bot's word of the day: at 09:00 Xanten time, one everyday German noun with its article, translation, an example
+// The bot's word of the day: from 09:00 Xanten time, one everyday German noun with its article, translation, an example
 // and the rule, plus a button into the der/die/das game. Everyone gets the same word; all words come before repeats.
 
 import { WORDS, ruleOf, wordOfDay } from '../igry/words.js';
 import { berlinDay } from '../smittia/due.js';
+import { button } from './config.js';
+import { deliver, inWindow } from './deliver.js';
 
-export const WORD_BUTTON = { text: 'Грати в артиклі', url: 'https://w2unemdhysend.github.io/d-simya/igry/?tab=art' };
+export const WORD_BUTTON = button('Грати в артиклі', 'igry/?tab=art');
 const DOT = { der: '🔵', die: '🔴', das: '🟢' };
 
 export function wordText(day, intro = 'Слово дня') {
@@ -16,15 +18,11 @@ export function wordConfirmText(now) {
     wordText(berlinDay(now), 'Сьогоднішнє слово');
 }
 
-// Runs every 30 minutes; sends once, in the half hour from 09:00 in Xanten
-export async function sendWordOfDay(env, now, broadcast) {
-  const t = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Berlin', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(now);
-  const [h, m] = t.split(':').map(Number);
-  if (h !== 9 || m >= 30 || !env.SCANS || !env.BOT_TOKEN) return { sent: 0, why: 'not 09:00 in Xanten' };
+// Runs every 30 minutes: from 09:00 in Xanten, each subscriber once a day (missed ones until 11:59)
+export async function sendWordOfDay(env, now, out) {
+  if (!inWindow(now, '09:00', 180) || !env.SCANS || !env.BOT_TOKEN) return { sent: 0, why: 'not the morning in Xanten' };
   const day = berlinDay(now);
-  if (await env.SCANS.get('dsent:' + day)) return { sent: 0, why: 'already sent' };
-  await env.SCANS.put('dsent:' + day, '1', { expirationTtl: 3 * 86400 });
-  return broadcast(env, 'dsub:', wordText(day), WORD_BUTTON);
+  return deliver(env, out, { job: 'word', day, prefix: 'dsub:', text: wordText(day), button: WORD_BUTTON, legacy: 'dsent:' + day });
 }
 
 export { WORDS };

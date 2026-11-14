@@ -1,6 +1,7 @@
 // Text helpers of the A1 course, without the page (tests/a1.test.mjs uses them too): the marks in the chapters
 // (**bold**, `German`), how a typed answer is compared, how the dictionary search folds letters.
-export const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+import { esc } from '../assets/site.js';
+export { esc };
 export const md = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/`(.+?)`/g, '<i lang="de">$1</i>');
 // a typed answer: case, ß/ss, curly apostrophes, a full stop at the end and extra spaces do not matter
 export const norm = (s) => String(s).normalize('NFC').trim().toLowerCase().replace(/ß/g, 'ss').replace(/[’‘`´]/g, "'").replace(/[.!?,;]+$/, '').replace(/\s+/g, ' ');

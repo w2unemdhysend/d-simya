@@ -1,7 +1,8 @@
 // Weather for the Погода page and the short line on the Транспорт page. Data: Open-Meteo through our Worker
 // (it rounds the spot to about a kilometre and keeps answers 10 minutes).
 
-export const WORKER_URL = 'https://d-simya.whysends.workers.dev';
+import { WORKER_URL, API } from '../assets/site.js';
+export { WORKER_URL };   // the pages used to take it from here
 
 // Places near home: the village centres from the waste calendar (smittia/kalender.json) plus Wesel
 export const PLACES = {
@@ -17,7 +18,7 @@ export function homePlace() {
 }
 
 export async function getWeather(lat, lon) {
-  const u = new URL(WORKER_URL.replace(/\/*$/, '/') + 'weather');
+  const u = new URL(API + 'weather');
   u.searchParams.set('lat', lat.toFixed(2)); u.searchParams.set('lon', lon.toFixed(2));
   const r = await fetch(u);
   const d = await r.json().catch(() => ({}));
@@ -92,7 +93,7 @@ export function advice(d, hours = 12) {
 
 // Official DWD warnings for a spot (through our Worker; it keeps answers 5 minutes)
 export async function getWarnings(lat, lon) {
-  const u = new URL(WORKER_URL.replace(/\/*$/, '/') + 'warnings');
+  const u = new URL(API + 'warnings');
   u.searchParams.set('lat', lat.toFixed(2)); u.searchParams.set('lon', lon.toFixed(2));
   const r = await fetch(u);
   const d = await r.json().catch(() => ({}));

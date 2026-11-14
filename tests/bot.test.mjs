@@ -26,7 +26,7 @@ const SCANS = {
   async put(k, v) { kv.set(k, v); }, async get(k) { return kv.has(k) ? kv.get(k) : null; }, async delete(k) { kv.delete(k); },
   async list({ prefix }) { return { keys: [...kv.keys()].filter((k) => k.startsWith(prefix)).map((name) => ({ name })), list_complete: true }; },
 };
-const env = { BOT_TOKEN: TOKEN, SCANS };
+const env = { BOT_TOKEN: TOKEN, SCANS, ALLOWED_USERS: '4242,5151,555,777,7777,8888,999,31337' };
 const messages = [], apiCalls = [];
 let hook = '', down = new Set(), alerts = [];
 globalThis.fetch = async (url, init) => {

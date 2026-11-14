@@ -14,14 +14,16 @@ import { BINS, binsOn, berlinDay, prefsOf } from '../smittia/due.js';
 import { wxText, deg, advice } from '../pogoda/wx.js';
 import { PLACES, fetchWarnings } from './warn.js';
 import { weather, departures, STOP_ID } from './transit.js';
-import { wordText } from './word.js';
+import { wordText, WORD_BUTTON } from './word.js';
+import { button } from './config.js';
+import { tgApi } from './telegram.js';
+import { admit, allowedId } from './access.js';
+import { deliver } from './deliver.js';
 
-const SITE = 'https://w2unemdhysend.github.io/d-simya/';
-export const HOME_BUTTON = { text: 'Відкрити застосунок', url: SITE };
-const BUS_BUTTON = { text: 'Транспорт', url: SITE + 'transport/' };
-const WX_BUTTON = { text: 'Погода', url: SITE + 'pogoda/' };
-const WASTE_BUTTON = { text: 'Розклад', url: SITE + 'smittia/' };
-const WORD_BUTTON = { text: 'Грати в артиклі', url: SITE + 'igry/?tab=art' };
+export const HOME_BUTTON = button('Відкрити застосунок');
+const BUS_BUTTON = button('Транспорт', 'transport/');
+const WX_BUTTON = button('Погода', 'pogoda/');
+const WASTE_BUTTON = button('Розклад', 'smittia/');
 export const TIMES = ['06:00', '06:30', '07:00', '07:30', '08:00', '08:30', '09:00'];
 const DEFAULT_STOP = { stop: 'de:05170:37032', stopName: 'Xanten Bahnhof' };
 export const MAX_PINS = 4;
@@ -133,29 +135,17 @@ export function briefConfirmText(rec) {
     (rec.waste ? ', чи вивозять сміття' : '') + (stops.length ? `, найближчі відправлення ${stops.length > 1 ? 'із зупинок' : 'із зупинки'} ${stops.join(', ')}` : '') + ', слово дня.';
 }
 
-// Every 30 minutes: the digest for everyone whose half hour it is, once a day each
-export async function sendBriefs(env, now, tgSend) {
+// Every 30 minutes: the digest for everyone whose half hour it is, once a day each. Someone the run could not reach
+// (Telegram busy, the run's budget used up) gets it in the next half hour; later than that it would not be a morning one.
+export async function sendBriefs(env, now, out) {
   if (!env.SCANS || !env.BOT_TOKEN) return { sent: 0 };
   const [h, m] = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Berlin', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(now).split(':');
-  const slot = `${h}:${Number(m) < 30 ? '00' : '30'}`, day = berlinDay(now);
-  if (!TIMES.includes(slot)) return { sent: 0, why: 'no digest at ' + slot };
-  let sent = 0, cursor;
-  do {
-    const page = await env.SCANS.list({ prefix: 'bsub:', cursor });
-    for (const { name } of page.keys) {
-      let rec = null;
-      try { rec = JSON.parse(await env.SCANS.get(name)); } catch { /* broken record */ }
-      if (!rec || (rec.time || '07:00') !== slot) continue;
-      const mark = `bsent:${rec.id}:${day}`;
-      if (await env.SCANS.get(mark)) continue;
-      await env.SCANS.put(mark, '1', { expirationTtl: 2 * 86400 });
-      const res = await tgSend(env, rec.id, await briefText(rec, now), HOME_BUTTON);
-      if (res.ok) sent++;
-      else if (res.status === 403) await env.SCANS.delete(name);
-    }
-    cursor = page.list_complete ? undefined : page.cursor;
-  } while (cursor);
-  return { sent, slot };
+  const slot = `${h}:${Number(m) < 30 ? '00' : '30'}`, day = berlinDay(now), i = TIMES.indexOf(slot);
+  const prev = TIMES[i - 1] || (slot === '09:30' ? '09:00' : null);
+  if (i < 0 && !prev) return { sent: 0, why: 'no digest at ' + slot };
+  const due = (rec) => !!rec && [slot, prev].includes(rec.time || '07:00');
+  return { ...(await deliver(env, out, { job: 'brief', day, prefix: 'bsub:', due, text: (rec) => briefText(rec, now), button: HOME_BUTTON, finish: false,
+    legacyFor: (id) => `bsent:${id}:${day}` })), slot };
 }
 
 /* ---------------- chat commands ---------------- */
@@ -218,8 +208,8 @@ export async function hookSecret(token) {
   const sig = new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode('d-simya webhook')));
   return [...sig].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
-const api = (env, method, body) => fetch(`https://api.telegram.org/bot${env.BOT_TOKEN}/${method}`, {
-  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) }).then((r) => r.json()).catch(() => ({ ok: false }));
+const api = tgApi;
+const PRIVATE = 'Це приватний бот однієї родини, тож відповідати тут я не можу.';
 
 // POST /tg from Telegram. Always answers 200 (otherwise Telegram sends the same update again and again).
 export async function webhook(request, env, tgSend) {
@@ -229,6 +219,11 @@ export async function webhook(request, env, tgSend) {
   try { u = await request.json(); } catch { return ok; }
   const msg = u && u.message;
   if (!msg || typeof msg.text !== 'string' || !msg.chat || msg.chat.type !== 'private' || !msg.from || msg.from.is_bot) return ok;
+  if (!(await admit(env, msg.from))) {
+    // someone outside the family: one line, and only when they press /start themselves; anything else, silence
+    if (/^\/start(?:@\w+)?(?:\s|$)/i.test(msg.text.trim())) await tgSend(env, msg.chat.id, PRIVATE, HOME_BUTTON);
+    return ok;
+  }
   const a = await answer(env, msg.text.slice(0, 200), msg.from.id, new Date());
   if (a) await tgSend(env, msg.chat.id, a.text, a.button);
   return ok;
@@ -254,7 +249,8 @@ export async function commands(request, env, signed, reply, tgSend) {
     if (url !== mine) return reply(200, { ok: true, on: false });
     let by = null;
     try { by = JSON.parse(await env.SCANS.get('hook')).by; } catch { /* not recorded */ }
-    if (by && by !== signed.user.id) return reply(200, { ok: false, on: true, error: 'not_yours' });   // only who switched it on
+    // only who switched them on, as long as that person may still use the bot (else anyone in the family)
+    if (by && by !== signed.user.id && (await allowedId(env, by)) !== false) return reply(200, { ok: false, on: true, error: 'not_yours' });
     await api(env, 'deleteWebhook');
     await api(env, 'deleteMyCommands');
     if (env.SCANS) await env.SCANS.delete('hook');

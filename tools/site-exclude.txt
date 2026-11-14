@@ -1,0 +1,15 @@
+.git
+.github
+.gitignore
+.wrangler
+node_modules
+_site
+docs
+tests
+tools
+worker
+wrangler.jsonc
+package.json
+package-lock.json
+README.md
+CONTRIBUTING.md

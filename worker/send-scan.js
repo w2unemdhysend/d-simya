@@ -34,11 +34,14 @@
  *   SCANS           KV namespace binding                          (required for /handoff and reminders)
  *   AI              Workers AI binding                            (required for /translate)
  *   LISTS           Durable Object binding (class ShoppingList)   (required for /list)
- *   ALLOWED_ORIGIN  text, defaults to https://w2unemdhysend.github.io
+ *   ALLOWED_ORIGIN  text, defaults to the origin of SITE in config.js
+ *   ALLOWED_USERS   text, optional: more Telegram usernames or ids, comma separated (the family is in config.js)
+ *   LIMITER         rate limiting binding, optional (wrangler.jsonc): caps the public endpoints per address
  *
  * Safety:
  *   - All POSTs must carry Telegram's signed initData; it is checked with HMAC-SHA256
- *     against BOT_TOKEN, so only people who opened the Mini App inside Telegram can use them.
+ *     against BOT_TOKEN, so only people who opened the Mini App inside Telegram can use them,
+ *     and only the people in the allowlist (access.js): everyone else gets 403.
  *   - A PDF always goes to the user who sent it (user.id from the signed data), never elsewhere.
  *   - Handed-off pages are only JPEGs, live at most 10 minutes, and their id is a random UUID.
  *   - The bot token never leaves the Worker.
@@ -47,6 +50,10 @@
 import cal from '../smittia/kalender.json' with { type: 'json' };
 import { BINS, binsOn, berlinDay, prefsOf } from '../smittia/due.js';
 import { flyerWeek, closures, rangeText, dayText, weekdayOf } from '../prospekty/week.js';
+import { ORIGIN, SENDS_PER_RUN, button } from './config.js';
+import { tgSend, outbox } from './telegram.js';
+import { admit } from './access.js';
+import { deliver, broadcast, berlinClock } from './deliver.js';
 import { isTransit, transit } from './transit.js';
 import { PLACES, fetchWarnings, warnConfirmText, sendWarnings } from './warn.js';
 import { listRoute } from './list.js';
@@ -63,7 +70,7 @@ const MAX_META = 2 * 1024 * 1024;          // texts and translations sent along 
 
 export default {
   async fetch(request, env, ctx) {
-    const origin = env.ALLOWED_ORIGIN || 'https://w2unemdhysend.github.io';
+    const origin = env.ALLOWED_ORIGIN || ORIGIN;
     const cors = {
       'Access-Control-Allow-Origin': origin,
       'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
@@ -130,28 +137,31 @@ export default {
     return reply(200, { ok: true });
   },
 
-  // One cron, every 30 minutes. Each job checks the Xanten time itself (18:00 waste, Monday 08:00 flyers, 09:00 word
-  // of the day) and keeps a mark in KV for the day, so it sends once, winter or summer time; warnings go out as they come.
+  // One cron, every 30 minutes. Each job checks the Xanten time itself (from 18:00 waste, Mondays from 08:00 flyers,
+  // from 09:00 the word of the day), winter or summer time, and marks each person who got the message, so it is sent
+  // once and whoever was missed (Telegram busy, the run's budget used up) gets it on the next run; warnings go out as
+  // they come. All jobs of a run share one outbox of SENDS_PER_RUN messages (the free plan's limit on outside requests).
   // A job that throws does not stop the others; failures go to the people who asked to hear about them.
   async scheduled(controller, env, ctx) {
-    const now = new Date(controller.scheduledTime);
+    const now = new Date(controller.scheduledTime), out = outbox(env, SENDS_PER_RUN);
     ctx.waitUntil((async () => {
       const failed = await runJobs([
-        ['нагадування про сміття', () => sendReminders(env, now)], ['проспекти', () => sendFlyerReminders(env, now)],
-        ['попередження DWD', () => sendWarnings(env, now, tgSend, WEATHER_BUTTON)], ['слово дня', () => sendWordOfDay(env, now, broadcast)],
-        ['ранкове зведення', () => sendBriefs(env, now, tgSend)],
+        ['нагадування про сміття', () => sendReminders(env, now, out)], ['проспекти', () => sendFlyerReminders(env, now, out)],
+        ['попередження DWD', () => sendWarnings(env, now, out, WEATHER_BUTTON)], ['слово дня', () => sendWordOfDay(env, now, out)],
+        ['ранкове зведення', () => sendBriefs(env, now, out)],
       ]);
-      try { await watch(env, now, failed, (text) => broadcast(env, ALERTS, text, HOME_BUTTON)); } catch (e) { console.log('watch failed', String(e && e.stack || e)); }
+      try { await watch(env, now, failed, (text) => broadcast(env, out, ALERTS, text, HOME_BUTTON)); } catch (e) { console.log('watch failed', String(e && e.stack || e)); }
     })());
   },
 };
 
 /* ---------------- reminders: waste pickups and Monday flyers ---------------- */
 const SUB = 'sub:';
-const PAGE_URL = 'https://w2unemdhysend.github.io/d-simya/smittia/';
-const WASTE_BUTTON = { text: 'Розклад', url: PAGE_URL };
-const FLYERS = { prefix: 'fsub:', sent: 'fsent:', button: { text: 'Проспекти', url: 'https://w2unemdhysend.github.io/d-simya/prospekty/' } };
-const WEATHER_BUTTON = { text: 'Погода', url: 'https://w2unemdhysend.github.io/d-simya/pogoda/' };
+const WASTE_BUTTON = button('Розклад', 'smittia/');
+const FLYERS = { prefix: 'fsub:', button: button('Проспекти', 'prospekty/') };
+const WEATHER_BUTTON = button('Погода', 'pogoda/');
+// how long after its hour a job may still send to whoever was missed (Telegram busy, the run's budget used up)
+const WINDOW_HOURS = 3;
 const KINDS = { smittia: 'sub:', prospekty: FLYERS.prefix, wetter: 'wsub:', wort: 'dsub:', ranok: 'bsub:', zboi: ALERTS };
 
 // The stops pinned in «Транспорт»: kept in the person's profile (for /bus) and in a running digest. Only the stops
@@ -238,13 +248,6 @@ async function reminders(request, env, reply) {
   return reply(200, { ok: true, on: rec !== null, ...(saved || {}) });
 }
 
-function tgSend(env, chatId, text, button = WASTE_BUTTON) {
-  return fetch(`https://api.telegram.org/bot${env.BOT_TOKEN}/sendMessage`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, text, reply_markup: { inline_keyboard: [[{ text: button.text, web_app: { url: button.url } }]] } }),
-  });
-}
-
 function confirmText(now, prefs) {
   for (let i = 1; i <= 60; i++) {
     const day = berlinDay(now, i), bins = binsOn(cal, day, prefs);
@@ -275,46 +278,24 @@ function flyerText(monday) {
   return `Нові проспекти на тиждень ${rangeText(w.monday, w.saturday)} уже на сайтах магазинів.` +
     (lines.length ? `\n\nЦього тижня:\n${lines.join('\n')}` : '');
 }
-async function sendFlyerReminders(env, now) {
-  const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Berlin', hour: '2-digit', hourCycle: 'h23' }).format(now));
-  const day = berlinDay(now);
-  if (hour !== 8 || weekdayOf(day) !== 0 || !env.SCANS || !env.BOT_TOKEN) return { sent: 0, why: 'not Monday 08:00 in Xanten' };
-  if (await env.SCANS.get(FLYERS.sent + day)) return { sent: 0, why: 'already sent' };
-  await env.SCANS.put(FLYERS.sent + day, '1', { expirationTtl: 3 * 86400 });
-  return broadcast(env, FLYERS.prefix, flyerText(day), FLYERS.button);
-}
-// One message to everyone under a KV prefix; people who blocked the bot are removed.
-// text: the same text for all, or a function of the stored record giving each person's text (null: nothing to send)
-async function broadcast(env, prefix, text, button) {
-  let sent = 0, cursor;
-  do {
-    const page = await env.SCANS.list({ prefix, cursor });
-    for (const { name } of page.keys) {
-      let t = text;
-      if (typeof text === 'function') { let rec = null; try { rec = JSON.parse(await env.SCANS.get(name)); } catch { /* old or broken record */ } t = text(rec); }
-      if (!t) continue;
-      const res = await tgSend(env, Number(name.slice(prefix.length)), t, button);
-      if (res.ok) sent++;
-      else if (res.status === 403) await env.SCANS.delete(name);
-    }
-    cursor = page.list_complete ? undefined : page.cursor;
-  } while (cursor);
-  return { sent };
+async function sendFlyerReminders(env, now, out) {
+  const { hour, weekday } = berlinClock(now), day = berlinDay(now);
+  if (weekday !== 0 || hour < 8 || hour >= 8 + WINDOW_HOURS || !env.SCANS || !env.BOT_TOKEN) return { sent: 0, why: 'not Monday morning in Xanten' };
+  return deliver(env, out, { job: 'flyers', day, prefix: FLYERS.prefix, text: flyerText(day), button: FLYERS.button, legacy: 'fsent:' + day });
 }
 
-async function sendReminders(env, now) {
-  const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Berlin', hour: '2-digit', hourCycle: 'h23' }).format(now));
-  if (hour !== 18 || !env.SCANS || !env.BOT_TOKEN) return { sent: 0, why: 'not 18:00 in Xanten' };
+async function sendReminders(env, now, out) {
+  const { hour } = berlinClock(now);
+  if (hour < 18 || hour >= 18 + WINDOW_HOURS || !env.SCANS || !env.BOT_TOKEN) return { sent: 0, why: 'not the evening in Xanten' };
   const day = berlinDay(now, 1);
-  if (await env.SCANS.get('sent:' + day)) return { sent: 0, why: 'already sent' };
-  await env.SCANS.put('sent:' + day, '1', { expirationTtl: 3 * 86400 });
   // the first evening after the calendar's last day: say once that the reminders pause until the new calendar is in
   if (berlinDay(now) === cal.until) {
-    return { ...(await broadcast(env, SUB, `Календар вивозу сміття на ${cal.until.slice(0, 4)} рік закінчився. Нагадування продовжаться, щойно місто опублікує календар на наступний рік і його буде додано в застосунок.`, WASTE_BUTTON)), day, end: true };
+    const text = `Календар вивозу сміття на ${cal.until.slice(0, 4)} рік закінчився. Нагадування продовжаться, щойно місто опублікує календар на наступний рік і його буде додано в застосунок.`;
+    return { ...(await deliver(env, out, { job: 'waste-end', day, prefix: SUB, text, button: WASTE_BUTTON, legacy: 'sent:' + day })), day, end: true };
   }
   // each household gets the bins of its own district (records from before districts existed: LEGACY)
   const text = (rec) => { const bins = binsOn(cal, day, rec); return bins.length ? reminderText(day, bins) : null; };
-  return { ...(await broadcast(env, SUB, text, WASTE_BUTTON)), day };
+  return { ...(await deliver(env, out, { job: 'waste', day, prefix: SUB, text, button: WASTE_BUTTON, legacy: 'sent:' + day })), day };
 }
 
 /* ---------------- translation of scanned pages ---------------- */
@@ -336,15 +317,26 @@ async function translate(request, env, reply, path) {
   if (!text) return reply(400, { ok: false, error: 'no text' });
   if (text.length > TR_MAX_CHARS) return reply(413, { ok: false, error: 'text too long' });
 
+  // The page is counted before the model runs (about 13 s), not after: requests sent at the same moment can no longer
+  // all slip under the limit. A failed translation gives its page back.
   const key = `tr:${signed.user.id}:${berlinDay(new Date())}`;
-  const used = env.SCANS ? Number(await env.SCANS.get(key)) || 0 : 0;
+  const stored = env.SCANS ? Number(await env.SCANS.get(key)) || 0 : 0;
+  const used = Math.max(stored, TR_COUNT.get(key) || 0);   // no await from here to the set: one request at a time
   if (used >= TR_PER_DAY) return reply(429, { ok: false, error: 'daily_limit' });
+  if (TR_COUNT.size > 500) TR_COUNT.clear();
+  TR_COUNT.set(key, used + 1);
+  const save = (n) => (env.SCANS ? env.SCANS.put(key, String(n), { expirationTtl: 2 * 86400 }) : null);
+  await save(used + 1);
 
   const out = await runModel(env, pair, text);
-  if (out.error) return reply(out.status, { ok: false, error: out.error });
-  if (env.SCANS) await env.SCANS.put(key, String(used + 1), { expirationTtl: 2 * 86400 });
+  if (out.error) {
+    const back = Math.max(0, (TR_COUNT.get(key) || 1) - 1);
+    TR_COUNT.set(key, back); await save(back);
+    return reply(out.status, { ok: false, error: out.error });
+  }
   return reply(200, { ok: true, text: out.text });
 }
+const TR_COUNT = new Map();   // pages counted per person and day in this Worker instance (KV is only eventually consistent)
 
 async function runModel(env, pair, text) {
   const [from, to] = pair.split('-');
@@ -440,6 +432,7 @@ async function readSigned(request, env, reply) {
   if (typeof initData !== 'string' || !initData) return reply(401, { ok: false, error: 'no initData' });
   const user = await verifyInitData(initData, env.BOT_TOKEN);
   if (!user) return reply(401, { ok: false, error: 'initData check failed' });
+  if (!(await admit(env, user))) return reply(403, { ok: false, error: 'not_allowed' });
   return { form, user };
 }
 

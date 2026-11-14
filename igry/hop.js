@@ -6,7 +6,7 @@ import { $, esc, haptic, tg, load, store, toast, reduce, plural, SPEAKER } from 
 import * as progress from './progress.js';
 import * as garden from './garten.js';
 import * as sound from '../audio/say.js';
-import { LEVELS } from './hop/levels.js?v=2';
+import { LEVELS } from './hop/levels.js?v=279db025';
 
 const SOUND_KEY = 'dsimya-hop-sound';
 
@@ -327,7 +327,7 @@ export function create(root) {
     if (!eng) {
       $('#hp-load', stage).hidden = false;
       try {
-        const mod = await import('./hop/engine.js?v=2');
+        const mod = await import('./hop/engine.js?v=561b69a0');
         if (document.fonts && document.fonts.load) await Promise.race([document.fonts.load('700 44px Unbounded'), new Promise((r) => setTimeout(r, 1500))]).catch(() => {});
         eng = mod.createEngine($('#hp-cv', stage), { onEvent });
         window.__hop = { get engine() { return eng; }, LEVELS, begin, state: () => state };

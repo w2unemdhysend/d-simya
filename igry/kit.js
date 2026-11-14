@@ -24,7 +24,7 @@ export function cloudGet(key) {
   return new Promise((res) => { if (!cloud) return res(null); try { cloud.getItem(key, (err, v) => { let o = null; try { o = err || !v ? null : JSON.parse(v); } catch (e) {} res(o); }); } catch (e) { res(null); } });
 }
 export function cloudSet(key, v) { if (cloud) try { cloud.setItem(key, JSON.stringify(v)); } catch (e) {} }
-export const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+export { esc } from '../assets/site.js';
 export function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 const pr = new Intl.PluralRules('uk-UA');
 export const plural = (n, one, few, many) => ({ one, few, many }[pr.select(n)] || many);

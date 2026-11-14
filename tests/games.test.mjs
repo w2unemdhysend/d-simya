@@ -8,7 +8,7 @@ import { SCENES, REACT, lines } from '../igry/data/dialog.js';
 import { THEMES } from '../igry/data/memory.js';
 import { POOL, INTERVAL, MAX_BOX } from '../igry/data/garten.js';
 import { SKINS, SKIN, reach, reached, drumSVG } from '../igry/skins.js';
-import { LEVELS as HOP } from '../igry/hop/levels.js?v=2';
+import { LEVELS as HOP } from '../igry/hop/levels.js?v=279db025';
 
 let fails = 0;
 const t = (name, ok, info = '') => { if (!ok) fails++; console.log(ok ? 'PASS' : 'FAIL', name, ok ? '' : info); };

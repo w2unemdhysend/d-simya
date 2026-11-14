@@ -1,0 +1,21 @@
+{
+  "name": "d-simya",
+  "private": true,
+  "description": "D-SIM'YA: Telegram Mini App для родини в Ксантені — сторінки (GitHub Pages) і сервер (Cloudflare Worker)",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "setup": "git config core.hooksPath tools/hooks",
+    "test": "node tools/test.mjs",
+    "test:worker": "node tools/test.mjs access bot features transit worker",
+    "e2e": "node tools/e2e.mjs",
+    "stamp": "node tools/stamp.mjs",
+    "check": "node tools/stamp.mjs --check && node tools/test.mjs",
+    "serve": "python3 -m http.server 8080",
+    "dev": "npx wrangler dev",
+    "deploy:dry": "npx wrangler deploy --dry-run --outdir .wrangler/dry",
+    "allow": "node tools/allow.mjs"
+  }
+}

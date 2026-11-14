@@ -34,7 +34,7 @@ def static_checks():
     versions = set()
     for p in pages:
         html = open(os.path.join(ROOT, p)).read()
-        versions |= set(re.findall(r'assets/((?:ui|page)\.(?:css|js)\?v=\d+)', html))
+        versions |= set(re.findall(r'assets/((?:ui|page)\.(?:css|js)\?v=[0-9a-z]+)', html))
         d = os.path.dirname(p)
         check(f'sw.js keeps the page {d or "home"}', (d + '/' if d else './') in core)
         for css in re.findall(r'<link rel="stylesheet" href="(?!https?:)([^"]+)"', html):

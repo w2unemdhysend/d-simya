@@ -2,7 +2,7 @@
 // A skin is a set of colours for the drum, an optional picture inside the glass and the emoji that flies up on a tap.
 import { SCENES } from './data/dialog.js';
 import { THEMES } from './data/memory.js';
-import { LEVELS } from './hop/levels.js?v=2';
+import { LEVELS } from './hop/levels.js?v=279db025';
 
 const SOCK = 'M46 26h7v10q0 7-7 7h-6q-4 0-4-4t4-4h6z';
 const DOTS = [[50, 22], [74, 36], [74, 64], [50, 78], [26, 64], [26, 36]];

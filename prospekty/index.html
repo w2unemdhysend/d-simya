@@ -2,6 +2,7 @@
 <html lang="uk">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>(function(){try{var s=null;try{s=localStorage.getItem('dsimya-theme')}catch(e){}var w=window.Telegram&&Telegram.WebApp;var tg=w&&w.platform&&w.platform!=='unknown';var t=s||(tg?(w.colorScheme==='dark'?'dark':'light'):(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));document.documentElement.setAttribute('data-theme',t)}catch(e){}})();addEventListener('unhandledrejection',function(e){var r=e.reason;if(r&&/Transition was (aborted|skipped)/.test(r.message||''))e.preventDefault()});</script>
@@ -131,7 +132,7 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-top:10px}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 @media (min-width:480px){h1{font-size:38px}}
 </style>
-<link rel="stylesheet" href="../assets/ui.css?v=21">
+<link rel="stylesheet" href="../assets/ui.css?v=f0a1e7d6">
 </head>
 <body>
 <div class="wrap">
@@ -171,8 +172,9 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-top:10px}
   </main>
   <p class="foot">Адреси REWE, EDEKA, dm і Rossmann взято з пошуку магазинів на сайтах мереж, решту з OpenStreetMap, програми знижок за оглядом MonsterDealz і сайтами мереж, станом на жовтень–листопад 2026. Якщо щось змінилося, напиши, і я виправлю.</p>
 </div>
-<script src="../assets/ui.js?v=23"></script>
+<script src="../assets/ui.js?v=d12c4fef"></script>
 <script type="module">
+import { esc, API } from '../assets/site.js';
 import { berlinDay } from '../smittia/due.js';
 import { flyerWeek, closures, rangeText, dayText, addDays } from './week.js';
 
@@ -215,7 +217,6 @@ const CHAINS = [
 // sections below "Мої магазини", in this order
 const GROUPS = [['food', 'Супермаркети'], ['drug', 'Дрогерії', 'Косметика, гігієна, побутова хімія, дитячі товари. Більшість ліків продають тільки в аптеці (Apotheke).']];
 const TOWNS = {xanten:'Xanten', wesel:'Wesel'};
-const WORKER_URL = 'https://d-simya.whysends.workers.dev';   // same Worker as the scanner
 const $ = (s, r) => (r || document).querySelector(s);
 const tgApp = window.Telegram && window.Telegram.WebApp;
 const tg = tgApp && tgApp.platform && tgApp.platform !== 'unknown' ? tgApp : null;
@@ -223,7 +224,6 @@ if (tg) { try { tg.ready(); tg.expand(); } catch (e) {} }
 const haptic = (k) => { try { if (!tg || !tg.HapticFeedback) return; k ? tg.HapticFeedback.notificationOccurred(k) : tg.HapticFeedback.selectionChanged(); } catch (e) {} };
 const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } };
 const store = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
-const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;'})[c]);
 const svg = (d, extra = '') => `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"${extra}>${d}</svg>`;
 const ARROW = svg('<path d="M14 5h5v5M19 5l-8 8M18 14v4.5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 4 18.5v-11A1.5 1.5 0 0 1 5.5 6H10"/>');
 const CHECK = svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>', ' stroke-width="2.4"');
@@ -334,7 +334,7 @@ $('#list').addEventListener('submit', async (e) => {
   const old = f.parentElement.querySelector('.added'); if (old) old.remove();
   try {
     const fd = new FormData(); fd.append('initData', tg.initData); fd.append('action', 'add'); fd.append('t', t); fd.append('s', SHOP(f.dataset.chain)); fd.append('u', week.saturday);
-    const r = await fetch(WORKER_URL.replace(/\/*$/, '/') + 'list', { method: 'POST', body: fd });
+    const r = await fetch(API + 'list', { method: 'POST', body: fd });
     const d = await r.json(); if (!d.ok) throw new Error(d.error);
     f.insertAdjacentHTML('afterend', `<p class="added">✓ «${esc(t)}» у списку покупок · <a href="../spysok/">відкрити</a></p>`);
     input.value = ''; haptic('success');
@@ -349,7 +349,7 @@ const sw = $('#sw'), state = $('#sw-state');
 function show(on, text, cls) { sw.setAttribute('aria-checked', String(on)); state.textContent = text; state.className = 'state' + (cls ? ' ' + cls : ''); }
 async function call(action) {
   const fd = new FormData(); fd.append('initData', tg.initData); fd.append('action', action); fd.append('kind', 'prospekty');
-  const r = await fetch(WORKER_URL.replace(/\/*$/, '/') + 'reminders', {method:'POST', body:fd});
+  const r = await fetch(API + 'reminders', {method:'POST', body:fd});
   const d = await r.json(); if (!d.ok) throw new Error(d.error); return d;
 }
 const failText = (e) => e && e.message === 'bot_blocked'

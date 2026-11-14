@@ -4,8 +4,8 @@
 // front faster (the depth), neon and lamps glow, rain falls before and behind. The rules (physics.js) step 120 times a
 // second; the page (igry/hop.js) gives the stick and the jump and shows what the engine reports.
 import * as THREE from '../../assets/three/r185/three.module.min.js';
-import { K, createWorld, step, pose, half } from './physics.js?v=2';
-import { ART, THEMES, M, at, mesh, rng, makeSock, makeLetter, platformMesh, makeBelow, makeScenery, mistBand } from './art.js?v=1';
+import { K, createWorld, step, pose, half } from './physics.js?v=0393d637';
+import { ART, THEMES, M, at, mesh, rng, makeSock, makeLetter, platformMesh, makeBelow, makeScenery, mistBand } from './art.js?v=342ed2b4';
 
 // three.js r185 draws with WebGL 2
 export function webgl() {

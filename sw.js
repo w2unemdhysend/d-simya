@@ -11,21 +11,23 @@
    · the map: the tiles of Xanten and the way to Wesel, saved by the map page once (about 5 MB), and the tiles seen in
      passing (up to 600); a tile is kept under one name whatever weekly version the tile server is at
    Nothing else is kept: not the shopping list, not translations, not searches.
-   When the asset version (?v=) changes, update it here too (tests/offline_e2e.py checks that they match). */
+   The versions (?v=… and VERSION) are written by tools/stamp.mjs (npm run stamp, also the pre-commit hook): VERSION is
+   a hash of everything in CORE, so the phones refresh their copy after any change of the site. A new page or shared
+   file must be added to CORE by hand (tests/offline_e2e.py checks the pages). */
 
-const VERSION = '2026-11-13.7';
+const VERSION = 'bc29abae92';
 const CORE_CACHE = 'dsimya-core-' + VERSION, DATA_CACHE = 'dsimya-data', STATIC_CACHE = 'dsimya-static', AUDIO_CACHE = 'dsimya-audio';
 const CITY_CACHE = 'dsimya-city', TILE_CACHE = 'dsimya-tiles', MAX_TILES = 600;
 const CORE = [
   'manifest.webmanifest', 'assets/icons/icon-192.png', 'assets/icons/icon-512.png', 'assets/icons/maskable-512.png', 'assets/icons/favicon-48.png', 'assets/icons/apple-180.png',
   './', 'pralka/', 'sushka/', 'scan/', 'smittia/', 'prospekty/', 'spysok/', 'transport/', 'pogoda/', 'igry/', 'bot/', 'ekstreno/', 'rozmovnyk/', 'marshrut/', 'a1/', 'mapa/',
-  'assets/ui.css?v=21', 'assets/ui.js?v=23', 'assets/page.css?v=2', 'rozmovnyk/phrases.js', 'audio/index.js', 'audio/say.js', 'assets/fonts/noto-sans.ttf',
-  'smittia/kalender.json', 'smittia/due.js', 'smittia/wohin.js', 'prospekty/week.js', 'pogoda/wx.js', 'igry/words.js', 'igry/games.css?v=3',
+  'assets/ui.css?v=f0a1e7d6', 'assets/ui.js?v=d12c4fef', 'assets/page.css?v=503e4d0f', 'assets/site.js', 'scan/scan.js?v=d1048c25', 'rozmovnyk/phrases.js', 'audio/index.js', 'audio/say.js', 'assets/fonts/noto-sans.ttf',
+  'smittia/kalender.json', 'smittia/due.js', 'smittia/wohin.js', 'prospekty/week.js', 'pogoda/wx.js', 'igry/words.js', 'igry/games.css?v=4b1eb845',
   'igry/kit.js', 'igry/progress.js', 'igry/garten.js', 'igry/satz.js', 'igry/zahlen.js', 'igry/dialog.js', 'igry/memory.js', 'igry/skins.js',
   'igry/data/garten.js', 'igry/data/satz.js', 'igry/data/zahlen.js', 'igry/data/dialog.js', 'igry/data/memory.js',
-  'igry/hop.js?v=2', 'igry/hop/levels.js?v=2', 'igry/hop/engine.js?v=2', 'igry/hop/physics.js?v=2', 'igry/hop/art.js?v=1', 'assets/three/r185/three.module.min.js', 'assets/three/r185/three.core.min.js',
-  'a1/a1.css?v=4', 'a1/app.js?v=4', 'a1/text.js', 'a1/people.js', 'a1/data/index.js', 'a1/data/wortschatz.js', 'a1/data/wortschatz2.js', 'a1/data/k01.js', 'a1/data/k02.js', 'a1/data/k03.js', 'a1/data/k04.js', 'a1/data/k05.js',
-  'mapa/mapa.css?v=4', 'mapa/app.js?v=4', 'mapa/style.js?v=3', 'mapa/geo.js?v=3',
+  'igry/hop.js?v=ec7468cc', 'igry/hop/levels.js?v=279db025', 'igry/hop/engine.js?v=561b69a0', 'igry/hop/physics.js?v=0393d637', 'igry/hop/art.js?v=342ed2b4', 'assets/three/r185/three.module.min.js', 'assets/three/r185/three.core.min.js',
+  'a1/a1.css?v=a48f9cdc', 'a1/app.js?v=f107ded0', 'a1/text.js', 'a1/people.js', 'a1/data/index.js', 'a1/data/wortschatz.js', 'a1/data/wortschatz2.js', 'a1/data/k01.js', 'a1/data/k02.js', 'a1/data/k03.js', 'a1/data/k04.js', 'a1/data/k05.js',
+  'mapa/mapa.css?v=b396043c', 'mapa/app.js?v=b79893e7', 'mapa/style.js?v=58c25b0c', 'mapa/geo.js?v=cd9607b8',
   'a1/data/k06.js', 'a1/data/k07.js', 'a1/data/k08.js', 'a1/data/k09.js', 'a1/data/k10.js', 'a1/data/k11.js', 'a1/data/k12.js', 'a1/data/k13.js', 'a1/data/k14.js', 'a1/data/k15.js', 'a1/data/k16.js',
   'a1/data/k17.js', 'a1/data/k18.js', 'a1/data/k19.js', 'a1/data/k20.js', 'a1/data/k21.js', 'a1/data/k22.js', 'a1/data/k23.js', 'a1/data/k24.js',
   'a1/data/k25.js', 'a1/data/k26.js', 'a1/data/k27.js', 'a1/data/k28.js', 'a1/data/k29.js', 'a1/data/k30.js', 'a1/data/k31.js', 'a1/data/k32.js',
@@ -34,9 +36,28 @@ const DATA = /^\/(weather|warnings|transit\/departures|transit\/area)$/;
 const MAX_DATA = 40;
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CORE_CACHE).then((c) => Promise.all(CORE.map((u) => c.add(new Request(u, { cache: 'reload' })).catch(() => {})))));
+  e.waitUntil(fillCore());
   self.skipWaiting();
 });
+
+// Puts every CORE file into the cache, each one tried twice. A file that still fails (a bad connection while the app
+// installs) does not stop the rest; it is fetched again in the background on the next page opened online, until
+// everything is there, so the app ends up working offline without waiting for the next version.
+let coreComplete = false, filling = null;
+function fillCore() {
+  if (coreComplete) return Promise.resolve();
+  if (filling) return filling;
+  filling = (async () => {
+    const c = await caches.open(CORE_CACHE);
+    const get = (u) => c.add(new Request(u, { cache: 'reload' }));
+    const missing = [];
+    for (const u of CORE) if (!(await c.match(u))) missing.push(u);
+    const failed = (await Promise.all(missing.map((u) => get(u).then(() => null, () => get(u).then(() => null, () => u))))).filter(Boolean);
+    coreComplete = !failed.length;
+    if (failed.length) console.log('offline copy incomplete, will retry:', failed.join(', '));
+  })().finally(() => { filling = null; });
+  return filling;
+}
 
 self.addEventListener('activate', (e) => {
   e.waitUntil(caches.keys()
@@ -51,7 +72,10 @@ self.addEventListener('fetch', (e) => {
   if (url.origin === self.location.origin) {
     // the spoken clips: kept once played or fetched ahead; the name changes when a clip changes, so never stale
     if (url.pathname.includes('/audio/') && url.pathname.endsWith('.mp3')) return e.respondWith(audio(url.href));
-    if (req.mode === 'navigate' || req.destination === 'document') e.respondWith(networkFirst(req, CORE_CACHE, 2500, true));
+    if (req.mode === 'navigate' || req.destination === 'document') {
+      e.respondWith(networkFirst(req, CORE_CACHE, 2500, true));
+      if (!coreComplete && navigator.onLine !== false) e.waitUntil(fillCore().catch(() => {}));
+    }
     else e.respondWith(staleWhileRevalidate(req, CORE_CACHE));
   } else if (url.hostname.endsWith('.workers.dev') && DATA.test(url.pathname)) {
     e.respondWith(networkFirst(req, DATA_CACHE, 6000, false));

@@ -2,6 +2,7 @@
 <html lang="uk">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>(function(){try{var s=null;try{s=localStorage.getItem('dsimya-theme')}catch(e){}var w=window.Telegram&&Telegram.WebApp;var tg=w&&w.platform&&w.platform!=='unknown';var t=s||(tg?(w.colorScheme==='dark'?'dark':'light'):(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));document.documentElement.setAttribute('data-theme',t)}catch(e){}})();addEventListener('unhandledrejection',function(e){var r=e.reason;if(r&&/Transition was (aborted|skipped)/.test(r.message||''))e.preventDefault()});</script>
@@ -135,7 +136,7 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;padding-top:8px}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 @media (min-width:480px){h1{font-size:38px}}
 </style>
-<link rel="stylesheet" href="../assets/ui.css?v=21">
+<link rel="stylesheet" href="../assets/ui.css?v=f0a1e7d6">
 </head>
 <body>
 <div class="wrap">
@@ -235,19 +236,17 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;padding-top:8px}
   <p class="foot" id="foot"></p>
 </div>
 
-<script src="../assets/ui.js?v=23"></script>
+<script src="../assets/ui.js?v=d12c4fef"></script>
 <script type="module">
+import { esc, API } from '../assets/site.js';
 import { BINS, binsOn, berlinDay, prefsOf, districtOf } from './due.js';
 import { find as findItem, whereFor } from './wohin.js';
 
-// Same Worker as the scanner (worker/send-scan.js)
-const WORKER_URL = 'https://d-simya.whysends.workers.dev';
 const $ = (s) => document.querySelector(s);
 const tgApp = window.Telegram && window.Telegram.WebApp;
 const tg = tgApp && tgApp.platform && tgApp.platform !== 'unknown' ? tgApp : null;
 const haptic = (k) => { try { if (!tg || !tg.HapticFeedback) return; k ? tg.HapticFeedback.notificationOccurred(k) : tg.HapticFeedback.selectionChanged(); } catch (e) {} };
 if (tg) { try { tg.ready(); tg.expand(); } catch (e) {} }
-const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;'})[c]);
 
 // The household's choice: {district, place, street, bins, rhythm}. Kept on this device and, inside Telegram,
 // in the user's Telegram cloud storage, so phone and computer agree. The street never leaves the user's own storage.
@@ -446,7 +445,7 @@ function show(on, text, cls) { sw.setAttribute('aria-checked', String(on)); stat
 async function call(action) {
   const fd = new FormData(); fd.append('initData', tg.initData); fd.append('action', action);
   if (prefs) { const p = prefsOf(cal, prefs); fd.append('district', p.district); fd.append('bins', p.bins.join(',')); fd.append('rhythm', p.rhythm); }
-  const r = await fetch(WORKER_URL.replace(/\/*$/, '/') + 'reminders', { method: 'POST', body: fd });
+  const r = await fetch(API + 'reminders', { method: 'POST', body: fd });
   const d = await r.json(); if (!d.ok) throw new Error(d.error); return d;
 }
 const failText = (e) => e && e.message === 'bot_blocked'

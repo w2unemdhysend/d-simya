@@ -40,9 +40,30 @@ import { fetchWarnings } from './warn.js';
 const PATHS = ['/transit/stops', '/transit/departures', '/transit/trip', '/transit/area', '/transit/course', '/transit/line', '/transit/walk', '/weather', '/warnings'];
 export function isTransit(path) { return PATHS.includes(path); }
 
+// These endpoints need no sign-in, so anyone could call them in a loop. Each address gets at most RATE calls a minute
+// in one Worker instance; the ones that are never cached (an exact spot: walking routes, stops near me — each call
+// reaches OSRM or VRR) get fewer, and with the LIMITER binding (wrangler.jsonc) that cap holds across all of Cloudflare.
+const RATE = { light: 240, heavy: 30 };
+const hits = new Map();   // `${kind}:${address}` → {n, until}
+async function tooMany(request, env, heavy) {
+  const ip = request.headers.get('CF-Connecting-IP');
+  if (!ip) return false;   // not through Cloudflare's edge (local tests)
+  const kind = heavy ? 'heavy' : 'light', key = `${kind}:${ip}`, now = Date.now();
+  let h = hits.get(key);
+  if (!h || h.until <= now) {
+    if (hits.size > 5000) for (const [k, v] of hits) if (v.until <= now) hits.delete(k);
+    h = { n: 0, until: now + 60000 }; hits.set(key, h);
+  }
+  if (++h.n > RATE[kind]) return true;
+  if (heavy && env.LIMITER) { try { return !(await env.LIMITER.limit({ key: ip })).success; } catch { return false; } }
+  return false;
+}
+
 export async function transit(request, env, ctx, reply, cors) {
   if (request.method !== 'GET') return reply(405, { ok: false, error: 'GET only' });
   const url = new URL(request.url), p = url.searchParams;
+  const heavy = url.pathname === '/transit/walk' || (url.pathname === '/transit/stops' && (p.has('lat') || /\d/.test(p.get('q') || '')));
+  if (await tooMany(request, env, heavy)) return reply(429, { ok: false, error: 'too_many' });
   try {
     if (url.pathname === '/transit/stops') {
       if (p.has('lat') || p.has('lon')) {

@@ -1,0 +1,8 @@
+#!/bin/sh
+# Before each commit: are the asset versions stamped (tools/stamp.mjs)? If not, stamps them and stops the commit,
+# so the new versions can be looked at and added. Switched on once per clone: npm run setup
+if ! node tools/stamp.mjs --check >/dev/null 2>&1; then
+  node tools/stamp.mjs
+  echo "Asset versions updated (above). Add those files and commit again." >&2
+  exit 1
+fi

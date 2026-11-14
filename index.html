@@ -2,6 +2,7 @@
 <html lang="uk">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>(function(){try{var s=null;try{s=localStorage.getItem('dsimya-theme')}catch(e){}var w=window.Telegram&&Telegram.WebApp;var tg=w&&w.platform&&w.platform!=='unknown';var t=s||(tg?(w.colorScheme==='dark'?'dark':'light'):(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));document.documentElement.setAttribute('data-theme',t)}catch(e){}})();addEventListener('unhandledrejection',function(e){var r=e.reason;if(r&&/Transition was (aborted|skipped)/.test(r.message||''))e.preventDefault()});</script>
@@ -133,7 +134,7 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-top:14px}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 @media (min-width:480px){h1{font-size:36px}}
 </style>
-<link rel="stylesheet" href="assets/ui.css?v=21">
+<link rel="stylesheet" href="assets/ui.css?v=f0a1e7d6">
 </head>
 <body>
 <div class="wrap">
@@ -184,9 +185,10 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-top:14px}
   </main>
   <p class="foot">D-SIM’YA — помічник для життя в Німеччині. Свайп від лівого краю відкриває розділи.</p>
 </div>
-<script src="assets/ui.js?v=23"></script>
+<script src="assets/ui.js?v=d12c4fef"></script>
 <script type="module">
-import { WORKER_URL, PLACES, homePlace, getWeather, getWarnings, warnWhen, wxIcon, wxText, advice, deg } from './pogoda/wx.js';
+import { esc, API } from './assets/site.js';
+import { PLACES, homePlace, getWeather, getWarnings, warnWhen, wxIcon, wxText, advice, deg } from './pogoda/wx.js';
 import { BINS, binsOn, berlinDay, prefsOf } from './smittia/due.js';
 import { flyerWeek, closures, rangeText, dayText, addDays } from './prospekty/week.js';
 
@@ -194,7 +196,6 @@ const $ = (s, r) => (r || document).querySelector(s);
 const tgApp = window.Telegram && window.Telegram.WebApp;
 const tg = tgApp && tgApp.platform && tgApp.platform !== 'unknown' ? tgApp : null;
 if (tg) { try { tg.ready(); tg.expand(); if (tg.BackButton) tg.BackButton.hide(); } catch (e) {} }
-const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;'})[c]);
 const load = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } };
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 const ICON = {
@@ -301,7 +302,7 @@ async function loadDeps() {
   const stop = await stopNow();
   $('#dep-lab').textContent = 'Транспорт · ' + shortStop(stop.name);
   try {
-    const r = await fetch(WORKER_URL.replace(/\/*$/, '/') + 'transit/departures?stop=' + encodeURIComponent(stop.id));
+    const r = await fetch(API + 'transit/departures?stop=' + encodeURIComponent(stop.id));
     const d = await r.json(); if (!d.ok) throw new Error(d.error);
     depData = d;
     $('#dep-live').hidden = !d.deps.some((x) => x.live);
@@ -337,7 +338,7 @@ function renderList(d) {
 if (tg && tg.initData) {
   renderList(load('spysok-cache'));
   const fd = new FormData(); fd.append('initData', tg.initData); fd.append('action', 'get');
-  fetch(WORKER_URL.replace(/\/*$/, '/') + 'list', { method: 'POST', body: fd }).then((r) => r.json()).then((d) => {
+  fetch(API + 'list', { method: 'POST', body: fd }).then((r) => r.json()).then((d) => {
     if (!d.ok) throw new Error(d.error);
     const keep = { items: d.items, members: d.members, v: d.v };
     try { localStorage.setItem('spysok-cache', JSON.stringify(keep)); } catch (e) {}

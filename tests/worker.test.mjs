@@ -4,6 +4,8 @@
 import { createHmac } from 'node:crypto';
 import worker from '../worker/send-scan.js';
 const TOKEN = '123456:TEST-not-a-real-token';
+// the test people are let in by id, as the ALLOWED_USERS setting would (who may use the bot: tests/access.test.mjs)
+const ALLOWED_USERS = '4242,5151,555,777,7777,8888,999,31337';
 function sign(fields, token = TOKEN, includeSigInHash = true) {
   const entries = Object.entries(fields).filter(([k]) => includeSigInHash || k !== 'signature');
   const dcs = entries.sort(([a], [b]) => (a < b ? -1 : 1)).map(([k, v]) => `${k}=${v}`).join('\n');
@@ -26,7 +28,7 @@ async function call(initData, file = pdf, method = 'POST') {
   sent = null;
   const fd = new FormData(); if (initData !== undefined) fd.append('initData', initData); if (file) fd.append('file', file); fd.append('caption', 'Скан, 1 стор.');
   const req = new Request('https://w.example/', method === 'POST' ? { method, body: fd } : { method });
-  const res = await worker.fetch(req, { BOT_TOKEN: TOKEN });
+  const res = await worker.fetch(req, { BOT_TOKEN: TOKEN, ALLOWED_USERS });
   return { status: res.status, body: await res.json().catch(() => null), acao: res.headers.get('Access-Control-Allow-Origin'), sent };
 }
 const cases = [
@@ -58,7 +60,7 @@ const SCANS = {
   async delete(k) { kv.delete(k); },
   async list({ prefix }) { return { keys: [...kv.keys()].filter((k) => k.startsWith(prefix)).map((name) => ({ name })), list_complete: true }; },
 };
-const env = { BOT_TOKEN: TOKEN, SCANS };
+const env = { BOT_TOKEN: TOKEN, SCANS, ALLOWED_USERS };
 const jpg = (n) => new File([new Uint8Array([0xFF, 0xD8, 0xFF, 0xE0, n, n, n])], `p${n}.jpg`, { type: 'image/jpeg' });
 async function post(initData, files, e = env) {
   const fd = new FormData(); fd.append('initData', initData); files.forEach((f) => fd.append('page', f));
@@ -91,7 +93,7 @@ r = await post(sign(base), [jpg(1), new File(['%PDF-1.4'], 'x.jpg')]);
 t('handoff: non-JPEG refused, nothing stored', r.status === 415 && kv.size === 0);
 r = await post(sign(base, '999:other'), [jpg(1)]);
 t('handoff: forged signature refused', r.status === 401 && kv.size === 0);
-r = await post(sign(base), [jpg(1)], { BOT_TOKEN: TOKEN });
+r = await post(sign(base), [jpg(1)], { BOT_TOKEN: TOKEN, ALLOWED_USERS });
 t('handoff: missing KV binding reported', r.status === 500);
 res = await get('/handoff/../../etc');
 t('handoff: malformed id is not found', res.status === 404);
@@ -155,7 +157,7 @@ let rec = JSON.parse(kv.get('sub:4242'));
 t('district 1 household: saved with its bins, unknown ones dropped, no street', r.body.on && rec.district === '1' && rec.bins.join() === 'papier,gelb' && rec.rhythm === '14' && !('street' in rec), JSON.stringify(rec));
 t('its confirmation names its own next pickup', messages[0] && /Найближчий вивіз: .*(Синій|Жовтий)/.test(messages[0].text) && !messages[0].text.includes('Сірий'), messages[0] && messages[0].text);
 kv.set('sub:555', JSON.stringify({ id: 555 }));   // switched on before districts existed
-kv.delete('sent:2026-12-01');
+for (const k of [...kv.keys()]) if (/^(done|got):waste:2026-12-01/.test(k)) kv.delete(k);   // as if that evening had not been sent yet
 msgs = await cron('2026-11-30T17:00:00Z');
 { const a = msgs.find((m) => m.chat_id === 4242), b = msgs.find((m) => m.chat_id === 555);
   t('evening before 1.12: district 1 gets its blue bin, the old subscription its grey bins as before', a && a.text.includes('Синій бак') && !a.text.includes('Сірий') && b && b.text.includes('Сірий бак (Restmüll)'),

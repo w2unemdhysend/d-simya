@@ -24,6 +24,21 @@ Telegram Mini App для життя в Німеччині: домашні пом
 Фото обробляються на пристрої; на сервер іде лише те, що потрібно для дії, яку ти вибрав.
 Після першого відкриття з інтернетом основні сторінки працюють і без нього. D-SIM’YA можна встановити на телефон як застосунок (пункт «Установити на телефон» у меню): з іконки він відкривається й без мережі, тоді як Telegram без мережі Mini App не відкриває.
 
+## Доступ
+
+Бот і особисті функції (нагадування, спільний список покупок, переклад, надсилання PDF у чат) працюють лише для людей, яких я додав. Решта сайту відкрита.
+
+## Розробка
+
+Потрібен Node 22+.
+
+```bash
+npm test          # тести
+npm run stamp     # версії файлів після змін сайту
+```
+
+Календар вивозу сміття (`smittia/kalender.json`) я оновлюю щороку, коли місто публікує новий.
+
 Сторонні частини: шрифт Noto Sans (SIL Open Font License, [`assets/fonts/`](assets/fonts/)); озвучення розмовника, навчальних ігор і словника курсу синтезовано [Piper](https://github.com/rhasspy/piper) (MIT) голосом Thorsten ([Thorsten-Voice](https://github.com/thorstenMueller/Thorsten-Voice), CC0), скрипт [`tools/tts.py`](tools/tts.py); гра [three.js](https://threejs.org/) (MIT, [`assets/three/`](assets/three/)); мапа [MapLibre GL JS](https://maplibre.org/) (BSD-3-Clause, [`assets/maplibre/`](assets/maplibre/)) з тайлами [OpenFreeMap](https://openfreemap.org/) (© OpenMapTiles, дані © учасники OpenStreetMap); пішохідні маршрути [OSRM](https://project-osrm.org/) на сервері FOSSGIS (routing.openstreetmap.de); розпізнавання тексту [Tesseract.js](https://github.com/naptha/tesseract.js) (Apache 2.0), яке завантажується з jsDelivr і перевіряється за хешем офіційного випуску.
 Дані про пральку й сушарку взято з інструкцій Beko WMB 71243/71443/71643 PTE та Gorenje SP10.
 Попередження про негоду: Deutscher Wetterdienst (через Bright Sky). Розклад і час наживо: VRR OpenService (Fahrplanauskünfte werden durch den VRR zur Verfügung gestellt. Alle Angaben ohne Gewähr.). Погода: [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0).

@@ -175,7 +175,7 @@ async def main(tmp):
         worker = {'sent': b'', 'pages': [], 'meta_calls': 0, 'deleted': False}
         async def with_worker_url(route):
             resp = await route.fetch(); body = await resp.text()
-            await route.fulfill(response=resp, body=re.sub(r"var WORKER_URL = '[^']*';", "var WORKER_URL = 'https://send.test';", body))
+            await route.fulfill(response=resp, body=re.sub(r"export const WORKER_URL = '[^']*';", "export const WORKER_URL = 'https://send.test';", body))
         async def fake_worker(route):
             req = route.request; path = req.url.split('send.test', 1)[1]
             cors = {'Access-Control-Allow-Origin': '*'}
@@ -200,7 +200,7 @@ async def main(tmp):
             await route.fulfill(status=404, headers=cors, body='{}')
 
         ctx, pg = await new_page(browser, TG_ANDROID.replace("initData: ''", "initData: 'query_id=AAH&hash=00'"))
-        await ctx.route('**/scan/', with_worker_url); await ctx.route('https://send.test/**', fake_worker)
+        await ctx.route('**/assets/site.js*', with_worker_url); await ctx.route('https://send.test/**', fake_worker)
         await pg.goto(url); await pg.wait_for_timeout(500)
         await pg.set_input_files('#in-gallery', f'{tmp}/p4.jpg'); await to_crop_and_quad(pg); await add_page(pg)
         visible = await pg.evaluate("['btn-pdf', 'btn-jpg', 'btn-share', 'btn-send', 'btn-browser'].filter(id => !document.getElementById(id).hidden)")
@@ -219,7 +219,7 @@ async def main(tmp):
 
         ctx = await browser.new_context(viewport={'width': 390, 'height': 844})
         await ctx.route('**/telegram.org/**', lambda r: r.fulfill(body='', content_type='text/javascript'))
-        await ctx.route('**/scan/', with_worker_url); await ctx.route('https://send.test/**', fake_worker)
+        await ctx.route('**/assets/site.js*', with_worker_url); await ctx.route('https://send.test/**', fake_worker)
         pg = await ctx.new_page(); pg.on('pageerror', lambda e: fails.append(f'page error: {e}'))
         await pg.goto(url); await pg.wait_for_timeout(400)
         await pg.set_input_files('#in-gallery', f'{tmp}/p2.jpg'); await to_crop_and_quad(pg); await add_page(pg)   # a page the browser already had

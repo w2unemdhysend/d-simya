@@ -2,6 +2,7 @@
 <html lang="uk">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>(function(){try{var s=null;try{s=localStorage.getItem('dsimya-theme')}catch(e){}var w=window.Telegram&&Telegram.WebApp;var tg=w&&w.platform&&w.platform!=='unknown';var t=s||(tg?(w.colorScheme==='dark'?'dark':'light'):(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));document.documentElement.setAttribute('data-theme',t)}catch(e){}})();addEventListener('unhandledrejection',function(e){var r=e.reason;if(r&&/Transition was (aborted|skipped)/.test(r.message||''))e.preventDefault()});</script>
@@ -142,7 +143,7 @@ h2.lab{font-family:var(--f-body);font-weight:600;font-size:12px;letter-spacing:.
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 @media (min-width:480px){h1{font-size:38px}}
 </style>
-<link rel="stylesheet" href="../assets/ui.css?v=21">
+<link rel="stylesheet" href="../assets/ui.css?v=f0a1e7d6">
 </head>
 <body>
 <div class="wrap">
@@ -184,16 +185,16 @@ h2.lab{font-family:var(--f-body);font-weight:600;font-size:12px;letter-spacing:.
   </main>
   <p class="foot">Попередження: <a href="https://www.dwd.de/DE/wetter/warnungen_gemeinden/warnWetter_node.html" target="_blank" rel="noopener">Deutscher Wetterdienst</a> (через Bright Sky), оновлюються кожні 5 хвилин. Прогноз: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (CC BY 4.0) з моделей DWD та інших метеослужб. Оновлюються кожні 10 хвилин. Місце «Тут» округлюється приблизно до кілометра й ніде не зберігається.</p>
 </div>
-<script src="../assets/ui.js?v=23"></script>
+<script src="../assets/ui.js?v=d12c4fef"></script>
 <script type="module">
-import { PLACES, WORKER_URL, homePlace, getWeather, getWarnings, warnWhen, wxIcon, wxText, advice, deg } from './wx.js';
+import { esc, API } from '../assets/site.js';
+import { PLACES, homePlace, getWeather, getWarnings, warnWhen, wxIcon, wxText, advice, deg } from './wx.js';
 
 const $ = (s, r) => (r || document).querySelector(s);
 const tgApp = window.Telegram && window.Telegram.WebApp;
 const tg = tgApp && tgApp.platform && tgApp.platform !== 'unknown' ? tgApp : null;
 if (tg) { try { tg.ready(); tg.expand(); } catch (e) {} }
 const haptic = () => { try { if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged(); } catch (e) {} };
-const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;'})[c]);
 const svg = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 const TIP = {
   rain: svg('<path d="M3 12a9 9 0 0 1 18 0z"/><path d="M12 12v6.5a2 2 0 0 1-4 0"/>'),
@@ -330,7 +331,7 @@ $('#warns').addEventListener('click', async (e) => {
   b.disabled = true; b.textContent = 'Перекладаю…';
   try {
     const fd = new FormData(); fd.append('initData', tg.initData); fd.append('pair', 'de-uk'); fd.append('text', de.slice(0, 4000));
-    const r = await fetch(WORKER_URL.replace(/\/*$/, '/') + 'translate', { method: 'POST', body: fd });
+    const r = await fetch(API + 'translate', { method: 'POST', body: fd });
     const d = await r.json(); if (!d.ok) throw new Error(d.error);
     trDone.set(de, d.text); renderWarnings();
     const open = document.querySelectorAll('.warn details')[Number(b.dataset.tr)]; if (open) open.open = true;
@@ -346,7 +347,7 @@ function showSw(on, text, cls) { sw.setAttribute('aria-checked', String(on)); st
 async function call(action) {
   const fd = new FormData(); fd.append('initData', tg.initData); fd.append('action', action); fd.append('kind', 'wetter');
   fd.append('place', subPlace); fd.append('level', String(level));
-  const r = await fetch(WORKER_URL.replace(/\/*$/, '/') + 'reminders', { method: 'POST', body: fd });
+  const r = await fetch(API + 'reminders', { method: 'POST', body: fd });
   const d = await r.json(); if (!d.ok) throw new Error(d.error); return d;
 }
 const failText = (e) => e && e.message === 'bot_blocked' ? 'Бот не може тобі написати. Відкрий чат із ботом, натисни «Почати» (Start) і спробуй ще раз.' : 'Не вдалося. Перевір інтернет і спробуй ще раз.';

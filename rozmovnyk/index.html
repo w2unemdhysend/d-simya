@@ -2,6 +2,7 @@
 <html lang="uk">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>(function(){try{var s=null;try{s=localStorage.getItem('dsimya-theme')}catch(e){}var w=window.Telegram&&Telegram.WebApp;var tg=w&&w.platform&&w.platform!=='unknown';var t=s||(tg?(w.colorScheme==='dark'?'dark':'light'):(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));document.documentElement.setAttribute('data-theme',t)}catch(e){}})();addEventListener('unhandledrejection',function(e){var r=e.reason;if(r&&/Transition was (aborted|skipped)/.test(r.message||''))e.preventDefault()});</script>
@@ -12,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@600;700&display=swap">
-<link rel="stylesheet" href="../assets/page.css?v=2">
+<link rel="stylesheet" href="../assets/page.css?v=503e4d0f">
 <style>
 /* Layout: one column. A search field and situation chips on top, then the phrases of the chosen situation: German
    large (it is what gets said or shown), Ukrainian under it, a button to hear it (a recorded MP3 per phrase: Android's
@@ -41,7 +42,7 @@
 .bigview button{flex:1;min-height:54px;border-radius:14px;border:1px solid var(--line);background:var(--surface);font-weight:600;font-size:17px;cursor:pointer}
 .bigview button.main{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 </style>
-<link rel="stylesheet" href="../assets/ui.css?v=21">
+<link rel="stylesheet" href="../assets/ui.css?v=f0a1e7d6">
 </head>
 <body>
 <div class="wrap">
@@ -65,8 +66,9 @@
   <div class="words"><div id="big-de" lang="de"></div><div class="uk" id="big-uk"></div></div>
   <div class="bar"><button type="button" id="big-say" class="main">Прослухати</button><button type="button" id="big-close">Закрити</button></div>
 </div>
-<script src="../assets/ui.js?v=23"></script>
+<script src="../assets/ui.js?v=d12c4fef"></script>
 <script type="module">
+import { esc } from '../assets/site.js';
 import { SITUATIONS } from './phrases.js';
 import { AUDIO } from '../audio/index.js';
 
@@ -75,7 +77,6 @@ const tgApp = window.Telegram && window.Telegram.WebApp;
 const tg = tgApp && tgApp.platform && tgApp.platform !== 'unknown' ? tgApp : null;
 if (tg) { try { tg.ready(); tg.expand(); } catch (e) {} }
 const haptic = () => { try { if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged(); } catch (e) {} };
-const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;'})[c]);
 const SPEAKER = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 9.5v5h3.2l4.3 3.5v-12L7.700 9.500z"/><path d="M15.500 9a4.200 4.200 0 0 1 0 6M18 6.500a7.800 7.800 0 0 1 0 11"/></svg>';
 
 /* ---------- speaking: a recorded MP3 per phrase (tools/tts.py); the phone's own voice only for a phrase without one ---------- */

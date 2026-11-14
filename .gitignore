@@ -3,3 +3,5 @@ __pycache__/
 .wrangler/
 node_modules/
 audio/*.take.mp3
+# screenshots of a local page-test run (SHOTS); the reference ones live in docs/screenshots
+shots/

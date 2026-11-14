@@ -1,10 +1,15 @@
 # Runs every test of the site and the Worker on each push and pull request.
-# Publishing (GitHub Pages, Cloudflare) is separate and not blocked by this: a red run here is the signal to look.
+#
+# The Worker cannot be deployed with failing tests: Cloudflare's build runs them first (wrangler.jsonc, "build").
+# The pages: GitHub Pages publishes the main branch as it is, unless the site is switched to "GitHub Actions" (README,
+# «Публікація»). Then the last job below publishes it — only when every test here passed, and without the tests,
+# tools and Worker sources. Until then that job is skipped and nothing changes.
 name: tests
 on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:
@@ -12,7 +17,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   worker:
-    name: Worker (Node)
+    name: Worker and logic (Node)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -20,16 +25,19 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Worker tests
-        run: |
-          set -e
-          for t in tests/*.test.mjs; do echo "::group::$t"; node "$t"; echo "::endgroup::"; done
+      - name: Asset versions stamped (npm run stamp)
+        run: node tools/stamp.mjs --check
+      - name: Node tests
+        run: node tools/test.mjs
   pages:
     name: Pages (headless Chrome)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -39,13 +47,27 @@ jobs:
           pip install --quiet playwright pillow numpy
           python -m playwright install --with-deps chromium
       - name: Page tests
+        run: SHOTS="$RUNNER_TEMP/shots" node tools/e2e.mjs
+  publish:
+    name: Publish the pages
+    needs: [worker, pages]
+    # on a push to main, or by hand (Actions → tests → Run workflow on main), e.g. right after switching the site over
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && vars.PAGES_FROM_ACTIONS == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: The site without what only developers need
         run: |
-          mkdir -p "$RUNNER_TEMP/shots"
-          export SHOTS="$RUNNER_TEMP/shots"
-          failed=""
-          for t in tests/*_e2e.py; do
-            echo "::group::$t"
-            python "$t" || failed="$failed $t"
-            echo "::endgroup::"
-          done
-          if [ -n "$failed" ]; then echo "::error::failed:$failed"; exit 1; fi
+          mkdir _site
+          rsync -a --exclude-from=tools/site-exclude.txt ./ _site/
+          touch _site/.nojekyll
+      - uses: actions/upload-pages-artifact@v3
+      - id: deploy
+        uses: actions/deploy-pages@v4

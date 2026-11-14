@@ -3,6 +3,7 @@
 // of the chosen level is issued for the household's place.
 
 import cal from '../smittia/kalender.json' with { type: 'json' };
+import { allowedId } from './access.js';
 
 const API = 'https://api.brightsky.dev/alerts';
 // DWD levels: 1 yellow (Wetterwarnung), 2 orange (markantes Wetter), 3 red (Unwetter), 4 dark red (extremes Unwetter)
@@ -82,7 +83,7 @@ export function warnConfirmText(place, level, list) {
 }
 
 // Every 30 minutes: new warnings for each subscriber's place, each warning once (per event, level and day)
-export async function sendWarnings(env, now, tgSend, button) {
+export async function sendWarnings(env, now, out, button) {
   if (!env.SCANS || !env.BOT_TOKEN) return { sent: 0 };
   const subs = [];
   let cursor;
@@ -105,9 +106,12 @@ export async function sendWarnings(env, now, tgSend, button) {
       if (w.level < (s.level || 3)) continue;
       const key = `wsent:${s.id}:${w.code || w.event}:${w.level}:${(w.onset || '').slice(0, 10)}`;
       if (await env.SCANS.get(key)) continue;
-      const res = await tgSend(env, s.id, warnText(s.place, w), button);
-      if (res.status === 403) { await env.SCANS.delete('wsub:' + s.id); break; }
-      if (res.ok) { sent++; await env.SCANS.put(key, '1', { expirationTtl: 2 * 86400 }); }
+      const allowed = await allowedId(env, s.id);
+      if (allowed === false) { await env.SCANS.delete('wsub:' + s.id); break; }
+      if (!allowed) break;
+      const r = await out.send(s.id, warnText(s.place, w), button);   // not sent now: the next run tries again
+      if (r.blocked) { await env.SCANS.delete('wsub:' + s.id); break; }
+      if (r.ok) { sent++; await env.SCANS.put(key, '1', { expirationTtl: 2 * 86400 }); }
     }
   }
   return { sent };
