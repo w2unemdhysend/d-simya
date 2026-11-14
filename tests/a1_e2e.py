@@ -77,8 +77,8 @@ async def main():
           counts: [...document.querySelectorAll('#view-hub .chrow .pr')].map(x => x.textContent), words: window.__a1.WORDS.length, n: window.__a1.CHAPTERS.length})""")
         N = hub['n']
         want = [f'{p} · розділи {a}–{min(b, N)}' for p, a, b in [('A1.1', 1, 8), ('A1.2', 9, 16), ('A2.1', 17, 24), ('A2.2', 25, 32)] if a <= N]
-        check(f'course: a start card for chapter 1, four tiles, {N} chapters grouped A1.1, A1.2, A2.1 … with 0/N exercises',
-              'Почати' in hub['card'] and 'Знайомство' in hub['card'] and hub['tiles'] == ['Словник', 'Граматика', 'Вимова', 'Сад слів']
+        check(f'course: a start card for chapter 1, the trainers and four tiles, {N} chapters grouped A1.1, A1.2, A2.1 … with 0/N exercises',
+              'Почати' in hub['card'] and 'Знайомство' in hub['card'] and hub['tiles'] == ['Тренажери', 'Словник', 'Граматика', 'Вимова', 'Сад слів']
               and N >= 17 and hub['groups'] == want and hub['rows'] == N and all(c.startswith('0/') for c in hub['counts']), str(hub))
         check('course: title, no Back, the dictionary tile counts every entry', await text(pg, 'h1') == 'Німецька A1–A2' and await pg.is_hidden('#backbtn')
               and not await pg.evaluate('Telegram.WebApp.BackButton.shown') and str(hub['words']) in await text(pg, '[data-view="dict"] small'))

@@ -19,6 +19,7 @@
  *   POST /commands         chat commands on|off|status: points the bot's webhook at this Worker (see brief.js)
  *   POST /tg               Telegram's webhook: /bus /wetter /muell /wort /help in a private chat
  *   POST /list             the family shopping list (Durable Object), see list.js
+ *   POST /talk             «Розмова»: a German conversation with the AI, with corrections (talk.js)
  *   POST /forma            «Харчування» and «Тренування»: the person's records, partners and their progress (forma.js)
  *   POST /voice            a recording → the text and the things to buy in it (Whisper on Workers AI, voice.js)
  *   POST /report           an error on someone's phone (no personal data), told to whoever wants failures (report.js)
@@ -76,6 +77,7 @@ import { sendWeekly } from './chat.js';
 import { transcribe, itemsOf, diaryCommand, voiceAllowed } from './voice.js';
 import { partnersOf } from './forma.js';
 import { noteNeurons } from './usage.js';
+import { talk } from './talk.js';
 export { ShoppingList } from './list.js';   // the Durable Object classes must be exported by the main module
 export { Forma } from './forma.js';
 
@@ -147,6 +149,12 @@ export default {
       return formaRoute(env, signed, reply);
     }
     if (path === '/translate' || path === '/translate/check') return translate(request, env, reply, path);
+    if (path === '/talk') {   // practising German with the AI (talk.js)
+      if (request.method !== 'POST') return reply(405, { ok: false, error: 'POST only' });
+      const signed = await readSigned(request, env, reply);
+      if (signed instanceof Response) return signed;
+      return talk(signed, env, reply);
+    }
     if (path !== '/') return reply(404, { ok: false, error: 'not found' });
     if (request.method !== 'POST') return reply(405, { ok: false, error: 'POST only' });
 

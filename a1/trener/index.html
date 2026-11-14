@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>(function(){try{var s=null;try{s=localStorage.getItem('dsimya-theme')}catch(e){}var w=window.Telegram&&Telegram.WebApp;var tg=w&&w.platform&&w.platform!=='unknown';var t=s||(tg?(w.colorScheme==='dark'?'dark':'light'):(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));document.documentElement.setAttribute('data-theme',t);if(s2())document.documentElement.setAttribute('data-big','1')}catch(e){}function s2(){try{return localStorage.getItem('dsimya-big')==='1'}catch(e){return false}}})();addEventListener('unhandledrejection',function(e){var r=e.reason;if(r&&/Transition was (aborted|skipped)/.test(r.message||''))e.preventDefault()});</script>
+<title>Тренажери</title>
+<link rel="manifest" href="../../manifest.webmanifest">
+<link rel="icon" href="../../assets/icons/favicon-48.png" sizes="48x48">
+<link rel="apple-touch-icon" href="../../assets/icons/apple-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@600;700&display=swap">
+<link rel="stylesheet" href="../../assets/page.css?v=0b90d112">
+<style>
+/* The trainers: a hub (level, today's count and streak, a card per trainer with what is due again, «Розмова з ШІ»),
+   a session of ten questions (the task big, the choices as large buttons, at once right or wrong with the rule), and
+   the conversation (a chat: the AI answers as the other side, each line of mine gets ✓ or the corrected sentence). */
+.view{display:grid;gap:12px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.today{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.today b{font-size:18px}
+.trs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.tr{display:grid;gap:2px;align-content:start;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--surface);text-align:left;font:inherit;color:inherit;cursor:pointer;min-height:96px;position:relative}
+.tr .i{font-size:24px;line-height:1.1}
+.tr b{font-weight:600;font-size:15.5px;line-height:1.25}
+.tr small{color:var(--muted);font-size:13px;line-height:1.3}
+.tr .due{position:absolute;top:8px;right:8px;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:var(--accent);color:var(--bg);font-size:12.5px;font-weight:700;display:grid;place-items:center}
+.wide{grid-column:1/-1}
+.bigbtn{width:100%;min-height:54px;border-radius:14px;border:0;background:var(--ink);color:var(--bg);font:inherit;font-weight:600;font-size:17px;cursor:pointer}
+.bigbtn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.bar{height:6px;border-radius:999px;background:var(--line);overflow:hidden}.bar i{display:block;height:100%;background:var(--on);transition:width .3s ease}
+.q{display:grid;gap:10px;text-align:center;padding:18px 14px}
+.q .task{font:700 24px/1.3 var(--f-display);overflow-wrap:anywhere}
+.q .hint{color:var(--muted);font-size:15px}
+.opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.opts.one{grid-template-columns:1fr}
+.opt{min-height:56px;padding:8px 10px;border-radius:14px;border:1px solid var(--line);background:var(--surface);font:inherit;font-size:18px;font-weight:600;color:var(--ink);cursor:pointer;overflow-wrap:anywhere;touch-action:manipulation}
+.opt.right{background:color-mix(in srgb, var(--on) 22%, var(--surface));border-color:var(--on)}
+.opt.wrong{background:var(--danger-soft);border-color:var(--danger)}
+.opt:disabled{cursor:default}
+.fb{border-radius:14px;padding:12px;font-size:15.5px;line-height:1.4}
+.fb.ok{background:color-mix(in srgb, var(--on) 14%, var(--surface))}
+.fb.bad{background:var(--danger-soft)}
+.fb b{display:block;margin-bottom:2px}
+.line{min-height:56px;display:flex;flex-wrap:wrap;gap:6px;padding:8px;border:2px dashed var(--line);border-radius:14px;align-content:flex-start}
+.pool{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.wchip{min-height:44px;padding:0 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface);font:inherit;font-size:17px;font-weight:600;color:var(--ink);cursor:pointer}
+.res{text-align:center;display:grid;gap:8px}
+.res .big{font:700 36px/1.1 var(--f-display)}
+.miss{list-style:none;margin:0;padding:0;display:grid;gap:6px;text-align:left}
+.miss li{padding:8px 10px;border-radius:10px;background:var(--bg);font-size:15px}
+/* the conversation */
+.scn{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.chat{display:grid;gap:8px}
+.msg{max-width:88%;padding:10px 12px;border-radius:16px;font-size:16px;line-height:1.4;overflow-wrap:anywhere}
+.msg.a{background:var(--surface);border:1px solid var(--line);justify-self:start;border-bottom-left-radius:6px}
+.msg.u{background:var(--ink);color:var(--bg);justify-self:end;border-bottom-right-radius:6px}
+.msg small{display:block;color:var(--muted);font-size:14px;margin-top:4px}
+.fix{justify-self:end;max-width:88%;font-size:14.5px;padding:8px 10px;border-radius:12px;line-height:1.4}
+.fix.ok{color:var(--on)}
+.fix.bad{background:var(--danger-soft)}
+.compose{display:flex;gap:8px;position:sticky;bottom:0;padding:8px 0;background:var(--bg)}
+.compose textarea{flex:1;min-height:48px;max-height:140px;padding:12px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-size:16px;resize:none}
+.compose button{flex:none;width:52px;border-radius:14px;border:0;background:var(--ink);color:var(--bg);font-size:20px;cursor:pointer}
+.note{margin:0;color:var(--muted);font-size:14.5px}
+.err{color:var(--danger);font-weight:600}
+.backrow{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.linkbtn{border:0;background:none;color:var(--ink);text-decoration:underline;font:inherit;cursor:pointer;padding:8px 0;min-height:44px}
+</style>
+<link rel="stylesheet" href="../../assets/ui.css?v=9b6f3eca">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="toprow"><button class="menubtn" id="menubtn" type="button" aria-expanded="false" aria-controls="drawer" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Розділи</span></button><button class="themebtn" id="themebtn" type="button" aria-label="Увімкнути темну тему"><svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M5.3 18.7L7 17M17 7l1.7-1.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.6A8.2 8.2 0 0 1 9.4 4a8.2 8.2 0 1 0 10.6 10.6z" fill="currentColor"/></svg></button></div>
+    <div class="eyebrow">Навчання · німецька</div>
+    <h1>Тренажери</h1>
+    <p class="lede">Безкінечні вправи зі слів курсу: артиклі, множина, дієслова, Perfekt, відмінки, прикметники, порядок слів. Помилки повертаються, доки не запам’ятаються. І розмова з ШІ.</p>
+  </header>
+  <main>
+    <section class="view" id="view-hub"></section>
+    <section class="view" id="view-run" hidden></section>
+    <section class="view" id="view-talk" hidden></section>
+  </main>
+  <p class="foot">Вправи складено зі словника й прикладів курсу «Німецька A1–A2». Прогрес зберігається на цьому телефоні.</p>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="../../assets/ui.js?v=14708139"></script>
+<script type="module" src="app.js?v=ce66c691"></script>
+</body>
+</html>

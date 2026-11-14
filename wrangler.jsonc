@@ -12,7 +12,7 @@
   "keep_vars": true,
   // Every deploy (wrangler deploy, also Cloudflare's own build on a push) first runs the server's tests, about 1 s:
   // if one fails, nothing is deployed and the Worker that runs now stays (the same list: npm run test:worker)
-  "build": { "command": "node tools/test.mjs access bot features forma leave misto transit worker", "watch_dir": "worker" },
+  "build": { "command": "node tools/test.mjs access bot features forma leave misto trener transit worker", "watch_dir": "worker" },
   "kv_namespaces": [{ "binding": "SCANS" }],
   // Workers AI translates scanned pages (free plan: 10 000 neurons a day)
   "ai": { "binding": "AI" },

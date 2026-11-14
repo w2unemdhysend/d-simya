@@ -212,3 +212,6 @@ td{min-width:4.5em}
 .chat.notr .bub .tr{display:none}
 .bub .meta{justify-self:end;display:inline-flex;align-items:center;gap:3px;font-size:11.5px;color:var(--chat-meta);margin-top:1px;font-variant-numeric:tabular-nums}
 .msg.out .meta{color:var(--chat-me-ink)}
+
+/* the trainers: a whole row above the other tiles */
+.grid2 > .tile.wide{grid-column:1/-1}
