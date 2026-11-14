@@ -15,7 +15,7 @@
    a hash of everything in CORE, so the phones refresh their copy after any change of the site. A new page or shared
    file must be added to CORE by hand (tests/offline_e2e.py checks the pages). */
 
-const VERSION = '054685de0c';
+const VERSION = 'a7539481fe';
 const CORE_CACHE = 'dsimya-core-' + VERSION, DATA_CACHE = 'dsimya-data', STATIC_CACHE = 'dsimya-static', AUDIO_CACHE = 'dsimya-audio';
 const CITY_CACHE = 'dsimya-city', TILE_CACHE = 'dsimya-tiles', MAX_TILES = 600;
 const CORE = [

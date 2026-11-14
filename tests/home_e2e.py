@@ -68,6 +68,13 @@ async def page(browser, url, when=DEP['at'], store=None, tg='', width=390, schem
 
 TEXT = "s => document.querySelector(s).textContent.replace(/\\s+/g, ' ').trim()"
 
+# each row of each tile grid: how many tiles, whether they share one style, whether a lone tile spans the grid
+TILE_ROWS = """() => [...document.querySelectorAll('main .grid2')].flatMap((g) => {
+  const gw = g.getBoundingClientRect().width, rows = new Map();
+  for (const t of g.children) { const r = t.getBoundingClientRect(), k = Math.round(r.top); if (!rows.has(k)) rows.set(k, []); rows.get(k).push({ q: t.classList.contains('quiet'), w: r.width }); }
+  return [...rows.values()].map((r) => ({ n: r.length, quiet: r[0].q, same: r.every((x) => x.q === r[0].q), full: r.length === 1 && r[0].w > gw - 2 }));
+})"""
+
 async def main():
     url = serve()
     async with async_playwright() as p:
@@ -94,14 +101,16 @@ async def main():
         fly = await pg.evaluate(TEXT, '#c-fly')
         check('flyers: KW 46, until Saturday 14 November, 2 seen', 'KW 46' in fly and 'Акції до суботи, 14 листопада' in fly and 'Переглянуто 2 проспекти' in fly, fly)
         links = await pg.evaluate("() => [...document.querySelectorAll('main a')].map(a => a.getAttribute('href'))")
-        check('cards and tiles lead to every section; help, then instructions, the bot last', links[:6] == ['pogoda/', 'smittia/', 'transport/', 'prospekty/', 'spysok/', 'yizha/'] and links[7:] == ['sport/', 'mapa/', 'scan/', 'ekstreno/', 'rozmovnyk/', 'a1/', 'pralka/', 'sushka/', 'bot/'], str(links))
-        check('D-Ticket on a computer: Google Play in a new tab', links[6].startswith('https://play.google.com/store/apps/details?id=mentz.com.vrr_cibo_app') and await pg.get_attribute('#t-dticket', 'target') == '_blank')
+        check('cards and tiles lead to every section; help, then instructions, the bot last', links[:7] == ['pogoda/', 'smittia/', 'transport/', 'prospekty/', 'spysok/', 'yizha/', 'sport/'] and links[8:] == ['mapa/', 'scan/', 'ekstreno/', 'rozmovnyk/', 'a1/', 'pralka/', 'sushka/', 'bot/'], str(links))
+        check('D-Ticket on a computer: Google Play in a new tab', links[7].startswith('https://play.google.com/store/apps/details?id=mentz.com.vrr_cibo_app') and await pg.get_attribute('#t-dticket', 'target') == '_blank')
         check('shopping list outside Telegram: says it works through the bot', 'через бота' in await pg.evaluate(TEXT, '#c-list'))
         check('no DWD warning: no warning line', await pg.locator('.dwd').count() == 0)
         groups = await pg.evaluate("[...document.querySelectorAll('main .group')].map(g => g.textContent)")
         check('"Навчання" above the course tile, "Інструкції" above the appliance tiles', groups == ['Навчання', 'Інструкції', 'Telegram'], str(groups))
         check('course tile without progress: what it holds', await pg.text_content('#a1-sub') == 'Граматика, словник з озвученням, вправи')
         check('fits 390 px', await pg.evaluate('document.documentElement.scrollWidth') <= 390)
+        rows = await pg.evaluate(TILE_ROWS)
+        check('tiles: one style per row; a compact (quiet) tile alone in its row takes the whole width', all(r['same'] and (r['n'] > 1 or not r['quiet'] or r['full']) for r in rows), str(rows))
         if OUT: await pg.screenshot(path=os.path.join(OUT, 'home-390.png'), full_page=True)
 
         # minutes count down, data refreshes every 30 s
@@ -127,6 +136,7 @@ async def main():
         check('waste later: "У вівторок", 17 листопада, grey (2 тижні), not highlighted', 'У вівторок' in waste and '17 листопада' in waste and 'Сірий (2 тижні)' in waste and 'soon' not in await pg.get_attribute('#c-waste', 'class'), waste)
         check('morning greeting at 10:00', await pg.evaluate(TEXT, '#hello') == 'Доброго ранку')
         check('food card without a goal yet: what it is for', 'Калорії, вага й мета' in await pg.evaluate(TEXT, '#c-food'))
+        check('workouts card without a programme: what it is for', 'Вправи вдома' in await pg.evaluate(TEXT, '#c-sport'))
         await ctx.close()
 
         # food and workouts from the records «Харчування» and «Тренування» keep on the phone
@@ -139,7 +149,8 @@ async def main():
         ctx, pg, w = await page(browser, url, when='2026-11-13T09:00:00Z', store={'forma-db': {'seq': 0, 'recs': recs, 'dirty': []}})
         food = await pg.evaluate(TEXT, '#c-food')
         check('food card: what is left of the target today, eaten, the last weight', 'Ще 1' in food and 'З’їдено 178' in food and '83,4 кг' in food, food)
-        check('workouts tile: the next workout', await pg.text_content('#sport-sub') == 'Далі: B, спина й прес', await pg.text_content('#sport-sub'))
+        sport = await pg.evaluate(TEXT, '#c-sport')
+        check('workouts card on a workout day (Friday): the next workout, minutes, the week', 'Сьогодні: B, спина й прес' in sport and 'хв' in sport and 'цього тижня 1 з 3' in sport, sport)
         await ctx.close()
 
         # Christmas week: closed days on the flyers card

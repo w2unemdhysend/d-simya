@@ -169,10 +169,13 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-top:14px}
       <div class="ch"><span class="ic" data-icon="food"></span><span class="lab">Харчування</span><span data-icon="next"></span></div>
       <div id="food-body"></div>
     </a>
+    <a class="card" id="c-sport" href="sport/" style="--i:6">
+      <div class="ch"><span class="ic" data-icon="gym"></span><span class="lab">Тренування</span><span data-icon="next"></span></div>
+      <div id="sport-body"></div>
+    </a>
     <div class="grid2">
-      <a class="tile dt" id="t-dticket" href="https://play.google.com/store/apps/details?id=mentz.com.vrr_cibo_app" target="_blank" rel="noopener" style="--i:6">
+      <a class="tile dt" id="t-dticket" href="https://play.google.com/store/apps/details?id=mentz.com.vrr_cibo_app" target="_blank" rel="noopener" style="--i:7">
         <span class="ic" aria-hidden="true">D</span><span><b>Мій D-Ticket</b><small id="dt-sub">Відкрити VRR App</small></span></a>
-      <a class="tile" href="sport/" style="--i:7"><span class="ic" data-icon="gym"></span><span><b>Тренування</b><small id="sport-sub">Вправи вдома з анімацією</small></span></a>
       <a class="tile" href="mapa/" style="--i:8"><span class="ic" data-icon="map"></span><span><b>Мапа</b><small>Зупинки, пішки, де автобус</small></span></a>
       <a class="tile" href="scan/" style="--i:9"><span class="ic" data-icon="scan"></span><span><b>Сканер</b><small>Фото документа в PDF і переклад</small></span></a>
       <a class="tile" href="ekstreno/" style="--i:10"><span class="ic" data-icon="sos"></span><span><b>Екстрено</b><small>112, черговий лікар, аптека</small></span></a>
@@ -197,7 +200,7 @@ import { PLACES, homePlace, getWeather, getWarnings, warnWhen, wxIcon, wxText, a
 import { BINS, binsOn, berlinDay, prefsOf } from './smittia/due.js';
 import { flyerWeek, closures, rangeText, dayText, addDays } from './prospekty/week.js';
 import { valid, target, sum } from './yizha/calc.js';
-import { PLAN, nextWorkout } from './sport/plans.js';
+import { PLAN, nextWorkout, steps, seconds, weekOf } from './sport/plans.js';
 
 const $ = (s, r) => (r || document).querySelector(s);
 const tgApp = window.Telegram && window.Telegram.WebApp;
@@ -367,12 +370,20 @@ if (tg && tg.initData) {
     $('#food-body').innerHTML = `<div class="big">${left >= 0 ? `Ще ${left.toLocaleString('uk-UA')} ккал` : `+${(-left).toLocaleString('uk-UA')} ккал понад норму`}</div>` +
       `<p class="sub">${eaten.length ? `З’їдено ${k.toLocaleString('uk-UA')} з ${t.toLocaleString('uk-UA')}` : `Сьогодні ще нічого не записано · норма ${t.toLocaleString('uk-UA')}`} · вага ${String(Math.round(kg * 10) / 10).replace('.', ',')} кг</p>`;
   } else $('#food-body').innerHTML = '<div class="big">Калорії, вага й мета</div><p class="sub">Щоденник їжі для схуднення: продукти, штрихкоди, прогрес разом з родиною.</p>';
+  // the next workout: today, done today, or a rest day; how many this week
   const s = recs['s|sport'] && !recs['s|sport'].d ? recs['s|sport'].v : null;
   if (s && PLAN[s.plan]) {
-    const done = live('x').filter((r) => r.v.kind === 'w'), today = done.some((r) => r.id.startsWith(day + '~'));
-    const wk = nextWorkout(PLAN[s.plan], done.filter((r) => r.v.plan === s.plan && r.id.slice(0, 10) >= s.start).length);
-    $('#sport-sub').textContent = today ? 'Сьогодні вже є ✓' : `Далі: ${wk.id}, ${wk.uk.toLowerCase()}`;
-  }
+    const plan = PLAN[s.plan], done = live('x').filter((r) => r.v.kind === 'w');
+    const wd = (new Date(day + 'T12:00:00Z').getUTCDay() + 6) % 7, monday = addDays(day, -wd);
+    const wk = nextWorkout(plan, done.filter((r) => r.v.plan === s.plan && r.id.slice(0, 10) >= s.start).length);
+    const mins = Math.round(seconds(steps(plan.id, wk, weekOf(s.start, day))) / 60), name = `${wk.id}, ${wk.uk.toLowerCase()}`;
+    const week = `цього тижня ${done.filter((r) => r.id.slice(0, 10) >= monday).length} з ${s.days.length}`;
+    $('#sport-body').innerHTML = done.some((r) => r.id.startsWith(day + '~'))
+      ? `<div class="big">Сьогодні вже є ✓</div><p class="sub">Наступне: ${esc(name)} · ${week}</p>`
+      : s.days.includes(wd)
+        ? `<div class="big">Сьогодні: ${esc(name)}</div><p class="sub">≈ ${mins} хв · ${week}</p>`
+        : `<div class="big">Сьогодні відпочинок</div><p class="sub">Наступне: ${esc(name)} · ${week}. Прогулянка теж рахується.</p>`;
+  } else $('#sport-body').innerHTML = '<div class="big">Вправи вдома з анімацією</div><p class="sub">Дві програми без інвентарю й нагадування від бота.</p>';
 }
 
 /* ---------- German A1–A2: where the course was left off (the course keeps it on the phone) ---------- */
