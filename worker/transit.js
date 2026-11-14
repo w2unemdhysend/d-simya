@@ -19,6 +19,7 @@
 //                                        FOSSGIS server, © OpenStreetMap contributors); the spots are never kept
 //   GET /weather?lat=<..>&lon=<..>       now, next 24 hours and 7 days (Open-Meteo)
 //   GET /warnings?lat=<..>&lon=<..>      official weather warnings of the Deutscher Wetterdienst (through Bright Sky)
+//   GET /events                          what is on in Xanten: the city's event calendar (events.js)
 //
 // VRR OpenService terms: live queries for one person at a time, no bulk download, and the source is named
 // on the page ("Fahrplanauskünfte werden durch den VRR zur Verfügung gestellt. Alle Angaben ohne Gewähr.").
@@ -36,8 +37,9 @@ const CACHE_V = 3;         // raise when the shape of an answer changes, so a ne
 const inGermany = (lat, lon) => lat >= 47 && lat <= 55.2 && lon >= 5.8 && lon <= 15.1;
 
 import { fetchWarnings } from './warn.js';
+import { events } from './events.js';
 
-const PATHS = ['/transit/stops', '/transit/departures', '/transit/trip', '/transit/area', '/transit/course', '/transit/line', '/transit/walk', '/weather', '/warnings'];
+const PATHS = ['/transit/stops', '/transit/departures', '/transit/trip', '/transit/area', '/transit/course', '/transit/line', '/transit/walk', '/weather', '/warnings', '/events'];
 export function isTransit(path) { return PATHS.includes(path); }
 
 // These endpoints need no sign-in, so anyone could call them in a loop. Each address gets at most RATE calls a minute
@@ -76,6 +78,10 @@ export async function transit(request, env, ctx, reply, cors) {
       if (q.length < 2 || q.length > 60) return reply(400, { ok: false, error: 'q: 2 to 60 characters' });
       // a text with a number is probably someone's address: answered, never kept
       return await cached(`stops:${q.toLowerCase()}`, /\d/.test(q) ? 0 : 86400, ctx, cors, url.origin, () => stops(q));
+    }
+    if (url.pathname === '/events') {   // the city's event calendar: the same for everyone, kept six hours
+      const today = berlinStamp(new Date()).slice(0, 10);
+      return await cached(`events:${today}`, 6 * 3600, ctx, cors, url.origin, () => events(today));
     }
     if (url.pathname === '/transit/departures') {
       const stop = String(p.get('stop') || '');
