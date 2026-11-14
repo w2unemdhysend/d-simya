@@ -50,6 +50,22 @@ export function del(k, id) {
 }
 export const pending = () => db.dirty.length;
 
+// Every live record (a copy to keep), and putting a copy back: a record is taken where the copy is newer
+export const dump = () => Object.values(db.recs).filter((r) => !r.d).map((r) => ({ k: r.k, id: r.id, u: r.u, v: r.v }));
+export function restore(rows) {
+  let n = 0;
+  for (const r of rows || []) {
+    if (!r || typeof r.k !== 'string' || typeof r.id !== 'string' || !(r.u > 0) || r.v == null) continue;
+    const key = r.k + '|' + r.id, mine = db.recs[key];
+    if (mine && mine.u >= r.u) continue;
+    db.recs[key] = { k: r.k, id: r.id, u: r.u, v: r.v };
+    if (!db.dirty.includes(key)) db.dirty.push(key);
+    n++;
+  }
+  if (n) { save(); emit(true); later(); }
+  return n;
+}
+
 /* ---------- the server ---------- */
 function later(ms = 900) { if (!tg) return; clearTimeout(timer); timer = setTimeout(sync, ms); }
 

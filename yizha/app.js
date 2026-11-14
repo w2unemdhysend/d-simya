@@ -138,7 +138,7 @@ function renderSetup() {
     <div class="preview" id="s-prev"></div>
     <p class="err" id="s-err" hidden></p>
     <button class="btn primary" id="s-save" type="button">${d.edit ? 'Зберегти' : 'Почати'}</button>
-    ${d.edit ? '<button class="btn" id="s-cancel" type="button">Скасувати</button>' : ''}
+    ${d.edit ? '<button class="btn" id="s-cancel" type="button">Скасувати</button>' : `<label class="linkbtn" style="position:relative;justify-self:center;text-align:center">Маєш копію своїх записів? Відновити з файлу<input type="file" accept="application/json,.json" id="restore0" aria-label="Файл копії" style="position:absolute;inset:0;opacity:0;cursor:pointer"></label><p class="state" id="data-state"></p>`}
   </div>`;
   previewSetup();
 }
@@ -406,7 +406,13 @@ function renderFoods() {
     ${ds.length ? `<ul class="list">${ds.map((f) => row(f, 'dish')).join('')}</ul>` : '<p class="note">Домашній борщ чи улюблений салат: склади страву з продуктів один раз, і далі додавай порцію одним дотиком.</p>'}
     <h3 class="group">Мої продукти</h3>
     ${fs.length ? `<ul class="list">${fs.map((f) => row(f, 'food')).join('')}</ul>` : '<p class="note">Тут з’являться продукти, знайдені за штрихкодом, і ті, що ти додаси сам(а) з етикетки.</p>'}
-    <p class="note small">У довіднику ${BUILT.length} продуктів і страв з офіційної німецької бази BLS 4.0 і рецептів українських страв. Упаковані продукти шукаються в Open Food Facts.</p>`;
+    <p class="note small">У довіднику ${BUILT.length} продуктів і страв з офіційної німецької бази BLS 4.0 і рецептів українських страв. Упаковані продукти шукаються в Open Food Facts.</p>
+    <section class="card" aria-labelledby="h-data"><h2 id="h-data">Мої дані</h2>
+      <p class="note">Копія всіх записів: їжа, вага, вимірювання, тренування, свої продукти й страви. Збережи її собі, щоб нічого не втратити.</p>
+      <div class="btns" style="margin-top:10px">${db.synced() ? '<button class="btn soft" type="button" data-data="send">Надіслати копію в чат</button>' : ''}<button class="btn soft" type="button" data-data="file">Завантажити файл</button></div>
+      <label class="btn soft" style="position:relative;margin-top:8px">Відновити з копії<input type="file" accept="application/json,.json" id="restore" aria-label="Файл копії" style="position:absolute;inset:0;opacity:0;cursor:pointer"></label>
+      <p class="state" id="data-state"></p>
+    </section>`;
 }
 
 /* ---------- the sheet: adding food, portions, barcode, own foods and dishes ---------- */
@@ -727,6 +733,22 @@ document.addEventListener('click', (e) => {
   const ub = t.closest('[data-unbuddy]');
   if (ub) { if (ub.dataset.armed) { db.call('leave', { id: ub.dataset.unbuddy }).then(() => { buddyCode = ''; loadBuddies(true); }).catch(() => buddyErr('Не вдалося. Спробуй ще раз.')); } else { ub.dataset.armed = '1'; ub.style.color = 'var(--danger)'; ub.setAttribute('aria-label', 'Натисни ще раз, щоб більше не ділитися'); setTimeout(() => { delete ub.dataset.armed; ub.style.color = ''; }, 3500); haptic(); } return; }
   const sw = t.closest('#r-yizha, #r-vaga'); if (sw && !sw.disabled) { toggleRemind(sw.id.slice(2), sw.getAttribute('aria-checked') !== 'true'); return; }
+  // a copy of one's data
+  const dd = t.closest('[data-data]');
+  if (dd) {
+    const st = $('#data-state'), say = (cls, text) => { st.className = 'state ' + cls; st.textContent = text; };
+    if (dd.dataset.data === 'send') {
+      dd.disabled = true; say('', 'Надсилаю…');
+      db.sync().then(() => db.call('export')).then((r) => { say('on', `Надіслано в чат з ботом: копія (${r.records} записів) і таблиця для Excel.`); haptic('success'); })
+        .catch((er) => say('err', er.offline ? 'Немає зв’язку. Спробуй, коли буде інтернет.' : 'Не вдалося надіслати. Спробуй ще раз.')).finally(() => { dd.disabled = false; });
+    } else {
+      const blob = new Blob([JSON.stringify({ app: 'D-SIM’YA', kind: 'forma', made: new Date().toISOString(), rows: db.dump() })], { type: 'application/json' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `d-simya-kopiia-${today()}.json`;
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      say('on', tg ? 'Якщо файл не з’явився, скористайся кнопкою «Надіслати копію в чат».' : 'Файл збережено в завантаження.');
+    }
+    return;
+  }
   // own foods
   const nw = t.closest('[data-new]');
   if (nw) { const k = nw.dataset.new; if (k === 'food') openSheet('custom', { then: 'save' }); else if (k === 'dish') openSheet('dish', { draft: { n: '', items: [], total: '', por: 300 } }); else openSheet('scan', { meal: defaultMeal(), day: today() }); return; }
@@ -770,6 +792,17 @@ document.addEventListener('input', (e) => {
 });
 document.addEventListener('change', (e) => {
   const t = e.target;
+  if ((t.id === 'restore' || t.id === 'restore0') && t.files && t.files[0]) {
+    const say = (cls, text) => { const st = $('#data-state'); if (st) { st.className = 'state ' + cls; st.textContent = text; } };
+    t.files[0].text().then((text) => {
+      const d = JSON.parse(text);
+      if (!d || d.kind !== 'forma' || !Array.isArray(d.rows)) throw new Error('not a copy');
+      const n = db.restore(d.rows);   // the views are drawn anew: say it on the new card
+      say('on', n ? `Відновлено ${n} ${plural(n, 'запис', 'записи', 'записів')}.` : 'Усе з копії вже є тут.');
+      haptic('success');
+    }).catch(() => { say('err', 'Це не копія D-SIM’YA або файл пошкоджено.'); haptic('error'); });
+    return;
+  }
   if (t.id === 'r-yizha-time') remindPrefs('yizha');
   else if (t.id === 'r-vaga-time' || t.id === 'r-vaga-wd') remindPrefs('vaga');
   else if (t.id === 'scanfile' && t.files && t.files[0]) {

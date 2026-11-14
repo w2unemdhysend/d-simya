@@ -3,12 +3,16 @@
 //     checks in a row, about an hour, and again when it is back
 //   · one of the cron jobs throws (once a day per job)
 //   · the waste calendar is about to run out and next year's dates are not in the app yet (Mondays, last 30 days)
+//   · a page broke on someone's phone (report.js), at most five new errors a day
+//   · today's free allowance of Workers, KV, Durable Objects or Workers AI passes 80 % or runs out (usage.js)
 // With nobody subscribed nothing is checked.
 
 import cal from '../smittia/kalender.json' with { type: 'json' };
 import { berlinDay } from '../smittia/due.js';
 import { fetchWarnings } from './warn.js';
 import { weather, departures } from './transit.js';
+import { usageNotes } from './usage.js';
+import { errorNotes } from './report.js';
 
 export const ALERTS = 'asub:';
 const CHECKS = [
@@ -59,6 +63,9 @@ export async function watch(env, now, failedJobs, alert) {
     }
   }));
   if (JSON.stringify(state) !== before) await env.SCANS.put('health', JSON.stringify(state));
+
+  try { out.push(...(await errorNotes(env, day))); } catch (e) { console.log('error notes failed', String(e && e.message || e)); }
+  out.push(...(await usageNotes(env, now)));
 
   const note = calendarNote(now);
   if (note && !(await env.SCANS.get('acal:' + day))) { await env.SCANS.put('acal:' + day, '1', { expirationTtl: 2 * 86400 }); out.push(note); }

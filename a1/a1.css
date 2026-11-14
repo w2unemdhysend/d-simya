@@ -1,7 +1,7 @@
 /* «Німецька A1». Base colours and cards come from assets/page.css. German inside the Ukrainian explanations is set apart
    by colour and weight (no italics: the fonts have none), articles keep the colours of the games (der blue, die red,
    das green), tables scroll sideways inside their card on narrow phones instead of squeezing the words. */
-:root{--der:#1F5FAF;--die:#B3261E;--das:#2E7D32;--deink:#00626F;--ok:#2E7D32;--ok-soft:#DDEFDC;--warn-soft:#F9E7D4}
+:root{--der:#1F5FAF;--die:#B3261E;--das:#2A7530;--deink:#00626F;--ok:#2A7530;--ok-soft:#DDEFDC;--warn-soft:#F9E7D4}
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){--der:#8AB4F8;--die:#FF8A80;--das:#81C995;--deink:#7FD3DC;--ok:#66BB6A;--ok-soft:#173220;--warn-soft:#3A2614}
 }

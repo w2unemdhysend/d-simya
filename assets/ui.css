@@ -193,3 +193,10 @@ html.rv-on .wrap{animation:none}
 :where(.chip,.btn,.ghost,.act,.row,.hcard,.card a,.drawer a,button.primary){transition:scale .15s ease, background-color .2s ease, color .2s ease, border-color .2s ease}
 :where(.chip,.btn,.ghost,.act,.row,.hcard,.card a,.drawer a,button.primary):active{scale:.97}
 @media (prefers-reduced-motion: reduce){.rv{opacity:1;translate:none}}
+
+/* «Великий» text (Налаштування in the menu): everything a little bigger, quieter greys darker or lighter and lines more
+   visible, for eyes that need it. The map and the games keep their own scale (their touch maths would go wrong). */
+:root[data-big="1"] body:not(.mapapp):not(.gameapp){zoom:1.15}
+:root[data-big="1"]{--muted:#3F4B53;--line:#9AA7AF}
+:root[data-big="1"][data-theme="dark"]{--muted:#C4CFD5;--line:#4A5861}
+@media (prefers-color-scheme: dark){:root[data-big="1"]:not([data-theme="light"]){--muted:#C4CFD5;--line:#4A5861}}

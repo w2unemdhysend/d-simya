@@ -21,7 +21,7 @@ import { button } from './config.js';
 import { deliver, berlinClock } from './deliver.js';
 import { allowedId } from './access.js';
 
-const KINDS = new Set(['p', 'w', 'e', 'f', 'r', 'x', 's']);
+const KINDS = new Set(['p', 'w', 'e', 'f', 'r', 'x', 's', 'd', 'n']);   // … d|<day> water, sleep, steps, measures · n|<id> meal plan
 const ID = /^[\w~.:-]{1,80}$/;
 const MAX_V = 6000, MAX_CHANGES = 300, MAX_RECS = 40000, PAGE = 400, MAX_BUDDIES = 4;
 const pad = (n) => String(n).padStart(12, '0');
@@ -49,6 +49,7 @@ export class Forma {
     const a = await request.json();
     if (a.op === 'sync') return Response.json(await this.sync(a));
     if (a.op === 'summary') return Response.json(await this.summary(a.today));
+    if (a.op === 'dump') return Response.json(await this.dump());
     return Response.json({ error: 'op' }, { status: 400 });
   }
 
@@ -79,6 +80,17 @@ export class Forma {
     }
     const more = log.size === PAGE;
     return { seq: more ? Number([...log.keys()].pop().slice(2)) : seq, rows, more };
+  }
+
+  // Every live record, for a copy the person keeps (action=export)
+  async dump() {
+    const rows = [];
+    for (const [k, r] of await this.s.list({ prefix: 'r:' })) {
+      if (!r || r.d) continue;
+      const i = k.indexOf('|');
+      rows.push({ k: k.slice(2, i), id: k.slice(i + 1), u: r.u, v: r.v });
+    }
+    return { rows };
   }
 
   // What partners and the bot need to know about the week up to `today`
@@ -170,7 +182,39 @@ export async function formaRoute(env, signed, reply) {
     }
     return reply(200, { ok: true, buddies: out });
   }
-  return reply(400, { ok: false, error: 'action: sync, invite, join, leave or buddies' });
+  if (action === 'export') {
+    const { rows } = await ask(env, me, { op: 'dump' }), day = berlinDay(new Date());
+    const files = [[`d-simya-kopiia-${day}.json`, 'application/json', JSON.stringify({ app: 'D-SIM’YA', kind: 'forma', made: new Date().toISOString(), rows })],
+      [`d-simya-shchodennyk-${day}.csv`, 'text/csv', diaryCsv(rows)]];
+    for (const [name, type, body] of files) {
+      const fd = new FormData();
+      fd.append('chat_id', String(me));
+      fd.append('document', new File([body], name, { type }));
+      if (type === 'application/json') fd.append('caption', 'Копія записів «Харчування» й «Тренування». Щоб відновити: «Продукти» → «Відновити з копії».');
+      const r = await fetch(`https://api.telegram.org/bot${env.BOT_TOKEN}/sendDocument`, { method: 'POST', body: fd });
+      if (!r.ok) return reply(502, { ok: false, error: 'telegram' });
+    }
+    return reply(200, { ok: true, records: rows.length });
+  }
+  return reply(400, { ok: false, error: 'action: sync, invite, join, leave, buddies or export' });
+}
+
+// The diary as a table for Excel or Google Sheets: semicolons and a BOM, so German Excel opens Cyrillic and commas right
+export function diaryCsv(rows) {
+  const q = (v) => { const t = String(v == null ? '' : v); return /[;"\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };
+  const n = (x) => String(Math.round(Number(x || 0) * 10) / 10).replace('.', ',');
+  const MEAL = { b: 'Сніданок', l: 'Обід', d: 'Вечеря', s: 'Перекуси' };
+  const lines = [['Дата', 'Що', 'Назва', 'Скільки', 'Ккал', 'Білки, г', 'Жири, г', 'Вуглеводи, г', 'Прийом / вид'].join(';')];
+  const out = [];
+  for (const r of rows) {
+    const day = r.id.slice(0, 10), v = r.v || {};
+    if (r.k === 'e') { const k = (Number(v.g) || 0) / 100; out.push([day, 'їжа', v.n, `${n(v.g)} ${v.l ? 'мл' : 'г'}`, Math.round((v.kcal || 0) * k), n(v.p * k), n(v.f * k), n(v.c * k), MEAL[v.meal] || '']); }
+    else if (r.k === 'w') out.push([r.id, 'вага', '', `${n(v.kg)} кг`, '', '', '', '', '']);
+    else if (r.k === 'x') out.push([day, v.kind === 'walk' ? 'прогулянка' : 'тренування', v.title || '', `${v.min || 0} хв`, v.kcal || '', '', '', '', v.kind || '']);
+    else if (r.k === 'd') out.push([r.id, 'день', '', '', '', '', '', '', JSON.stringify(v)]);
+  }
+  out.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+  return '\uFEFF' + lines.concat(out.map((row) => row.map(q).join(';'))).join('\r\n') + '\r\n';
 }
 
 /* ---------------- reminders ---------------- */

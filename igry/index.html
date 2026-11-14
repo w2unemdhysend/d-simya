@@ -5,7 +5,7 @@
 <meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script>(function(){try{var s=null;try{s=localStorage.getItem('dsimya-theme')}catch(e){}var w=window.Telegram&&Telegram.WebApp;var tg=w&&w.platform&&w.platform!=='unknown';var t=s||(tg?(w.colorScheme==='dark'?'dark':'light'):(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));document.documentElement.setAttribute('data-theme',t)}catch(e){}})();addEventListener('unhandledrejection',function(e){var r=e.reason;if(r&&/Transition was (aborted|skipped)/.test(r.message||''))e.preventDefault()});</script>
+<script>(function(){try{var s=null;try{s=localStorage.getItem('dsimya-theme')}catch(e){}var w=window.Telegram&&Telegram.WebApp;var tg=w&&w.platform&&w.platform!=='unknown';var t=s||(tg?(w.colorScheme==='dark'?'dark':'light'):(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));document.documentElement.setAttribute('data-theme',t);if(s2())document.documentElement.setAttribute('data-big','1')}catch(e){}function s2(){try{return localStorage.getItem('dsimya-big')==='1'}catch(e){return false}}})();addEventListener('unhandledrejection',function(e){var r=e.reason;if(r&&/Transition was (aborted|skipped)/.test(r.message||''))e.preventDefault()});</script>
 <title>Мініігри</title>
 <link rel="manifest" href="../manifest.webmanifest">
 <link rel="icon" href="../assets/icons/favicon-48.png" sizes="48x48">
@@ -20,8 +20,8 @@
 :root{
   padding-top:var(--sat); padding-bottom:var(--sab);
   --bg:#E7ECEF; --surface:#F6F8F9; --ink:#12181C; --muted:#53616A; --line:#C7D0D5;
-  --accent:#9A5800; --accent-soft:#F7E3BF; --ok:#2E7D32; --danger:#B3261E;
-  --glass:#BFD8E6; --chrome:#9AA6AD; --der:#1F5FAF; --die:#B3261E; --das:#2E7D32;
+  --accent:#9A5800; --accent-soft:#F7E3BF; --ok:#2A7530; --danger:#B3261E;
+  --glass:#BFD8E6; --chrome:#9AA6AD; --der:#1F5FAF; --die:#B3261E; --das:#2A7530;
   --f-display:"Unbounded","Arial Black",system-ui,sans-serif;
   --f-body:"Onest","Segoe UI",Roboto,system-ui,sans-serif;
 }
@@ -179,9 +179,9 @@ body.playing .top .eyebrow,body.playing .top h1,body.playing .top .lede,body.pla
 @media (min-width:480px){h1{font-size:38px}}
 </style>
 <link rel="stylesheet" href="games.css?v=4b1eb845">
-<link rel="stylesheet" href="../assets/ui.css?v=f0a1e7d6">
+<link rel="stylesheet" href="../assets/ui.css?v=9b6f3eca">
 </head>
-<body>
+<body class="gameapp">
 <div class="wrap">
   <header class="top">
     <div class="toprow"><button class="menubtn" id="menubtn" type="button" aria-expanded="false" aria-controls="drawer" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Розділи</span></button><button class="themebtn" id="themebtn" type="button" aria-label="Увімкнути темну тему"><svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M5.3 18.7L7 17M17 7l1.7-1.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.6A8.2 8.2 0 0 1 9.4 4a8.2 8.2 0 1 0 10.6 10.6z" fill="currentColor"/></svg></button></div>
@@ -304,7 +304,7 @@ body.playing .top .eyebrow,body.playing .top h1,body.playing .top .lede,body.pla
   <p class="foot" id="foot">Прогрес зберігається на цьому пристрої.</p>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="../assets/ui.js?v=1aa9d745"></script>
+<script src="../assets/ui.js?v=89a0048a"></script>
 <script type="module">
 import { API } from '../assets/site.js';
 import { WORDS, RULES, ruleOf } from './words.js';

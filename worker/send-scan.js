@@ -18,6 +18,7 @@
  *   POST /tg               Telegram's webhook: /bus /wetter /muell /wort /help in a private chat
  *   POST /list             the family shopping list (Durable Object), see list.js
  *   POST /forma            «Харчування» and «Тренування»: the person's records, partners and their progress (forma.js)
+ *   POST /report           an error on someone's phone (no personal data), told to whoever wants failures (report.js)
  *   POST /translate        text of one scanned page (recognised on the phone) → its translation,
  *                          by Gemma 4 on Workers AI (free daily allowance)
  *   GET  /translate/check  translates a fixed sentence (?page=1: a fixed letter): shows the model answers;
@@ -41,6 +42,7 @@
  *   ALLOWED_ORIGIN  text, defaults to the origin of SITE in config.js
  *   ALLOWED_USERS   text, optional: more Telegram usernames or ids, comma separated (the family is in config.js)
  *   LIMITER         rate limiting binding, optional (wrangler.jsonc): caps the public endpoints per address
+ *   CF_ACCOUNT_ID, CF_API_TOKEN   optional: watch the free plan's daily allowance (usage.js)
  *
  * Safety:
  *   - All POSTs must carry Telegram's signed initData; it is checked with HMAC-SHA256
@@ -65,6 +67,8 @@ import { WORD_BUTTON, wordConfirmText, sendWordOfDay } from './word.js';
 import { HOME_BUTTON, profileOf, stopsOf, briefConfirmText, sendBriefs, webhook, commands } from './brief.js';
 import { ALERTS, runJobs, watch } from './health.js';
 import { formaRoute, HEALTH, healthPrefs, healthConfirm, sendHealth } from './forma.js';
+import { report } from './report.js';
+import { noteNeurons } from './usage.js';
 export { ShoppingList } from './list.js';   // the Durable Object classes must be exported by the main module
 export { Forma } from './forma.js';
 
@@ -88,8 +92,9 @@ export default {
       status, headers: { ...cors, 'Content-Type': 'application/json; charset=utf-8' },
     });
 
-    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
     const path = new URL(request.url).pathname;
+    if (path === '/report') return report(request, env, origin, berlinDay(new Date()));   // errors on the phones, before anything else
+    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
     if (isTransit(path)) return transit(request, env, ctx, reply, cors);   // public timetable and weather data, no sign-in
     if (!env.BOT_TOKEN) return reply(500, { ok: false, error: 'BOT_TOKEN is not set' });
     const hand = path.match(/^\/handoff(?:\/([0-9a-f-]{36})(?:\/(\d{1,2}))?)?\/?$/);
@@ -380,6 +385,7 @@ async function runModel(env, pair, text) {
   const diag = { ms: Date.now() - t0, finish: choice && choice.finish_reason, usage: res && res.usage, contentChars: t.length,
     reasoningChars: reasoning ? String(reasoning).length : 0, messageKeys: msg ? Object.keys(msg) : null, inChars: text.length };
   console.log('translate', JSON.stringify(diag));
+  try { await noteNeurons(env, res && res.usage); } catch (e) { /* the count is only for the warning */ }
   return t ? { text: t, diag } : { status: 502, error: 'ai_empty', diag };
 }
 

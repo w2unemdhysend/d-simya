@@ -5,7 +5,7 @@
 <meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script>(function(){try{var s=null;try{s=localStorage.getItem('dsimya-theme')}catch(e){}var w=window.Telegram&&Telegram.WebApp;var tg=w&&w.platform&&w.platform!=='unknown';var t=s||(tg?(w.colorScheme==='dark'?'dark':'light'):(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));document.documentElement.setAttribute('data-theme',t)}catch(e){}})();addEventListener('unhandledrejection',function(e){var r=e.reason;if(r&&/Transition was (aborted|skipped)/.test(r.message||''))e.preventDefault()});</script>
+<script>(function(){try{var s=null;try{s=localStorage.getItem('dsimya-theme')}catch(e){}var w=window.Telegram&&Telegram.WebApp;var tg=w&&w.platform&&w.platform!=='unknown';var t=s||(tg?(w.colorScheme==='dark'?'dark':'light'):(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));document.documentElement.setAttribute('data-theme',t);if(s2())document.documentElement.setAttribute('data-big','1')}catch(e){}function s2(){try{return localStorage.getItem('dsimya-big')==='1'}catch(e){return false}}})();addEventListener('unhandledrejection',function(e){var r=e.reason;if(r&&/Transition was (aborted|skipped)/.test(r.message||''))e.preventDefault()});</script>
 <title>Вивіз сміття</title>
 <link rel="manifest" href="../manifest.webmanifest">
 <link rel="icon" href="../assets/icons/favicon-48.png" sizes="48x48">
@@ -18,7 +18,7 @@
 :root{
   padding-top:var(--sat); padding-bottom:var(--sab);
   --bg:#E7ECEF; --surface:#F6F8F9; --ink:#12181C; --muted:#53616A; --line:#C7D0D5;
-  --accent:#9A5800; --accent-soft:#F7E3BF; --on:#2E7D32; --danger:#B3261E;
+  --accent:#9A5800; --accent-soft:#F7E3BF; --on:#2A7530; --danger:#B3261E;
   --f-display:"Unbounded","Arial Black",system-ui,sans-serif;
   --f-body:"Onest","Segoe UI",Roboto,system-ui,sans-serif;
 }
@@ -136,7 +136,7 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;padding-top:8px}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 @media (min-width:480px){h1{font-size:38px}}
 </style>
-<link rel="stylesheet" href="../assets/ui.css?v=f0a1e7d6">
+<link rel="stylesheet" href="../assets/ui.css?v=9b6f3eca">
 </head>
 <body>
 <div class="wrap">
@@ -236,7 +236,7 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;padding-top:8px}
   <p class="foot" id="foot"></p>
 </div>
 
-<script src="../assets/ui.js?v=1aa9d745"></script>
+<script src="../assets/ui.js?v=89a0048a"></script>
 <script type="module">
 import { esc, API } from '../assets/site.js';
 import { BINS, binsOn, berlinDay, prefsOf, districtOf } from './due.js';

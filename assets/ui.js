@@ -243,6 +243,7 @@
     d.querySelector('#dfoot').addEventListener('click', function(e){
       var b = e.target.closest('[data-install]'); if (b) { install(b.getAttribute('data-install')); return; }
       var g = e.target.closest('[data-gender]'); if (g) { try { if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged(); } catch(err){} setGender(g.getAttribute('data-gender')); }
+      var bg = e.target.closest('[data-big]'); if (bg) { try { if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged(); } catch(err){} setBig(bg.getAttribute('data-big') === '1'); }
     });
     menu = { open: open, close: close, isOpen: isOpen, d: d, panel: panel };
   }
@@ -388,6 +389,29 @@
     });
   }
 
+  /* ---------- errors on this phone: what broke (never who) goes to the server, so it can be fixed (worker/report.js).
+     Only on the real site, at most three a page and each message once a session; long numbers and addresses blanked. ---------- */
+  var reported = 0;
+  function reportError(msg, src){
+    try {
+      var real = location.protocol === 'https:' && !/^(localhost|127\.)/.test(location.hostname);
+      if (!msg || reported >= 3 || !(real || localStorage.getItem('dsimya-report-test'))) return;
+      msg = String(msg).replace(/\d{5,}/g, '#').replace(/[\w.+-]+@[\w-]+\.[\w.]+/g, '…@…').slice(0, 200);
+      if (/^Script error\.?$|Transition was (aborted|skipped)|ResizeObserver loop/.test(msg)) return;
+      var once = 'dsimya-err:' + msg.slice(0, 60);
+      if (sessionStorage.getItem(once)) return;
+      sessionStorage.setItem(once, '1'); reported++;
+      var ua = navigator.userAgent, browser = (ua.match(/(Chrome|Firefox|Version)\/(\d+)/) || [])[0] || '';
+      var where = (tg ? 'Telegram ' + tg.platform : /Android/.test(ua) ? 'Android' : /iPhone|iPad/.test(ua) ? 'iOS' : 'комп’ютер') + (browser ? ', ' + browser.replace('Version', 'Safari') : '');
+      var page = location.pathname.slice(new URL(SITE).pathname.length) || 'головна';
+      var me = document.querySelector('script[src*="ui.js"]'), v = me ? (me.getAttribute('src').split('v=')[1] || '') : '';
+      var body = JSON.stringify({ p: page, m: msg, s: String(src || '').replace(/^.*\//, '').replace(/[?#].*?(:\d)/, '$1').slice(0, 120), t: where, v: v });
+      import(SITE + 'assets/site.js').then(function(m){ return fetch(m.API + 'report', { method: 'POST', body: body, keepalive: true }); }).catch(function(){});
+    } catch(e){}
+  }
+  window.addEventListener('error', function(e){ if (e && e.message) reportError(e.message, (e.filename || '') + ':' + (e.lineno || 0) + ':' + (e.colno || 0)); });
+  window.addEventListener('unhandledrejection', function(e){ var r = e && e.reason; if (e.defaultPrevented) return; reportError(r && (r.message || String(r)), r && r.stack ? String(r.stack).split('\n')[1] : ''); });
+
   function init(){
     var b = document.getElementById('themebtn');
     if (b) b.addEventListener('click', function(){
@@ -517,7 +541,18 @@
     var s = document.getElementById('dset'); if (!s) return;
     var g = gender(), opt = function(v, name, kind){ return '<button type="button" role="radio" data-gender="' + v + '" aria-checked="' + (g === v) + '"><b>' + name + '</b><small>' + kind + '</small></button>'; };
     s.innerHTML = '<div class="drawer-group">Налаштування</div><div class="set-row"><span class="set-t"><b>Рід у прикладах</b><small>Від чийого імені говорять приклади й діалоги курсу німецької</small></span>' +
-      '<div class="seg" role="radiogroup" aria-label="Рід у прикладах">' + opt('m', 'Тарас Шевченко', 'чоловічий рід') + opt('f', 'Леся Українка', 'жіночий рід') + '</div></div>';
+      '<div class="seg" role="radiogroup" aria-label="Рід у прикладах">' + opt('m', 'Тарас Шевченко', 'чоловічий рід') + opt('f', 'Леся Українка', 'жіночий рід') + '</div></div>' +
+      '<div class="set-row"><span class="set-t"><b>Текст</b><small>Більші літери й чіткіший контраст на всіх сторінках</small></span>' +
+      '<div class="seg" role="radiogroup" aria-label="Розмір тексту"><button type="button" role="radio" data-big="0" aria-checked="' + !big() + '"><b>Звичайний</b></button>' +
+      '<button type="button" role="radio" data-big="1" aria-checked="' + big() + '"><b style="font-size:19px">Великий</b></button></div></div>';
+  }
+  /* bigger text and clearer contrast (ui.css): set at once on every page by the line in its head that sets the theme */
+  var BKEY = 'dsimya-big';
+  function big(){ try { return localStorage.getItem(BKEY) === '1'; } catch(e){ return false; } }
+  function setBig(on){
+    try { if (on) localStorage.setItem(BKEY, '1'); else localStorage.removeItem(BKEY); } catch(e){}
+    if (on) root.setAttribute('data-big', '1'); else root.removeAttribute('data-big');
+    paintSet(); tabsThumb(true);
   }
   function paintInstall(){
     var f = document.getElementById('dinst'); if (!f) return;

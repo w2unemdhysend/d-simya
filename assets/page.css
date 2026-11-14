@@ -3,7 +3,7 @@
 :root{
   padding-top:var(--sat); padding-bottom:var(--sab);
   --bg:#E7ECEF; --surface:#F6F8F9; --ink:#12181C; --muted:#53616A; --line:#C7D0D5; --accent:#9A5800;
-  --accent-soft:#F7E3BF; --on:#2E7D32; --danger:#B3261E; --danger-soft:#F9DEDC;
+  --accent-soft:#F7E3BF; --on:#2A7530; --danger:#B3261E; --danger-soft:#F9DEDC;
   --f-display:"Unbounded","Arial Black",system-ui,sans-serif;
   --f-body:"Onest","Segoe UI",Roboto,system-ui,sans-serif;
 }

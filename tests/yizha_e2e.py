@@ -91,6 +91,9 @@ class Server:
             if not other: return await route.fulfill(status=404, json={'ok': False, 'error': 'bad_code'})
             self.buddies.setdefault(uid, set()).add(other); self.buddies.setdefault(other, set()).add(uid)
             return await route.fulfill(json={'ok': True})
+        if action == 'export':
+            self.exports = getattr(self, 'exports', 0) + 1
+            return await route.fulfill(json={'ok': True, 'records': len(self.recs.get(uid, {}))})
         if action == 'buddies':
             return await route.fulfill(json={'ok': True, 'buddies': [self.summary(b) for b in self.buddies.get(uid, ())]})
         return await route.fulfill(status=400, json={'ok': False})
@@ -267,6 +270,26 @@ async def main():
         check('the week: days written down and the average', 'Записано 2 дні з 7' in text, text)
         if OUT: await pg.screenshot(path=os.path.join(OUT, 'yizha-progress.png'), full_page=True)
         check('390 px: nothing scrolls sideways', await pg.evaluate(OVERFLOW) <= 0)
+        # a copy of the data, and putting it back on another device
+        await pg.click('#tab-foods'); await pg.wait_for_timeout(300)
+        check('outside Telegram: only the file (no sending to the chat)', await pg.locator('[data-data="send"]').count() == 0)
+        async with pg.expect_download() as dl:
+            await pg.click('[data-data="file"]')
+        raw = open(await (await dl.value).path(), 'rb').read()
+        copy = json.loads(raw)
+        path = {'name': 'd-simya-kopiia.json', 'mimeType': 'application/json', 'buffer': raw}
+        check('the copy holds the profile, the diary, own foods and dishes', copy['kind'] == 'forma' and {'p', 'w', 'e', 'f', 'r'} <= {r['k'] for r in copy['rows']}, str({r['k'] for r in copy['rows']}))
+        await ctx.close()
+        ctx, pg = await phone(browser, base, server)
+        check('a new device starts with the questions, and offers to restore a copy', await pg.is_visible('#view-setup') and await pg.locator('#restore0').count() == 1)
+        await pg.set_input_files('#restore0', path); await pg.wait_for_timeout(500)
+        check('restored from the copy at the start: no questions, the diary is back', await pg.is_visible('#tabs') and 'Сирники' in str(await pg.evaluate(ENTRIES)), str(await pg.evaluate(ENTRIES)))
+        await pg.click('#tab-foods'); await pg.wait_for_timeout(200)
+        check('…own dishes too', 'Сирники домашні' in await pg.text_content('#view-foods'))
+        await pg.set_input_files('#restore', path); await pg.wait_for_timeout(300)
+        check('…a second time: nothing new', 'вже є тут' in await pg.text_content('#data-state'))
+        await pg.set_input_files('#restore', {'name': 'x.json', 'mimeType': 'application/json', 'buffer': b'{"a":1}'}); await pg.wait_for_timeout(300)
+        check('…a wrong file is explained', 'не копія' in await pg.text_content('#data-state'))
         await ctx.close()
 
         # ---------- Telegram: two phones of one person, partners ----------
@@ -300,6 +323,10 @@ async def main():
         await s.fill('#b-code', code.lower()); await s.press('#b-code', 'Enter'); await s.wait_for_timeout(600)
         buddy = await s.text_content('#buddies')
         check('partners: the second person sees the first, days written down, no food', 'Ольга' in buddy and 'записан' in buddy and 'Сирники' not in buddy, buddy)
+        await a.click('#tab-foods'); await a.wait_for_timeout(300)
+        await a.click('[data-data="send"]'); await a.wait_for_timeout(800)
+        check('in Telegram: the copy is sent to the chat by the bot', getattr(server, 'exports', 0) == 1 and 'Надіслано' in await a.text_content('#data-state'), await a.text_content('#data-state'))
+        await a.click('#tab-progress'); await a.wait_for_timeout(300)
         # reminders
         await a.click('#r-yizha'); await a.wait_for_timeout(300)
         r = server.reminders[-1] if server.reminders else {}

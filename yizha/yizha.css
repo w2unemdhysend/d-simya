@@ -1,6 +1,6 @@
 /* «Харчування» (and the shared pieces «Тренування» uses: buttons, fields, the sheet, food and exercise icons, the toast).
    Base colours, cards, chips and switches come from assets/page.css. */
-:root{--ok:#2E7D32;--ok-soft:#DDEFDC;--warn:#9A5800;--warn-soft:#F7E3BF;--prot:#1F5FAF;--fat:#B8860B;--carb:#2E7D32;--ring-bg:#DCE3E7;--over:#B3261E}
+:root{--ok:#2A7530;--ok-soft:#DDEFDC;--warn:#9A5800;--warn-soft:#F7E3BF;--prot:#1F5FAF;--fat:#B8860B;--carb:#2E7D32;--ring-bg:#DCE3E7;--over:#B3261E}
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){--ok:#66BB6A;--ok-soft:#173220;--warn:#FFB424;--warn-soft:#3A2909;--prot:#8AB4F8;--fat:#F2C14E;--carb:#81C995;--ring-bg:#26313A;--over:#FF8A80}
 }

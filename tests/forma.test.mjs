@@ -92,9 +92,13 @@ const FORMA = {
   get(id) { if (!objects.has(id)) objects.set(id, new Forma({ storage: memStorage() })); const o = objects.get(id); return { fetch: (url, init) => o.fetch(new Request(url, init)) }; },
 };
 const env = { BOT_TOKEN: TOKEN, SCANS, FORMA, ALLOWED_USERS: '4242,5151,555,777,7777,8888,999,31337' };
-const messages = [];
+const messages = [], docs = [];
+let graph = null;   // what Cloudflare's analytics answers
 globalThis.fetch = async (url, init) => {
-  if (new URL(String(url)).hostname === 'api.telegram.org') { const m = JSON.parse(init.body); messages.push(m); return Response.json({ ok: true }); }
+  const u = new URL(String(url));
+  if (u.hostname === 'api.telegram.org' && u.pathname.endsWith('/sendDocument')) { const f = init.body; const file = f.get('document'), head = new Uint8Array(await file.slice(0, 3).arrayBuffer()); docs.push({ chat: f.get('chat_id'), name: file.name, bom: head[0] === 0xEF && head[1] === 0xBB && head[2] === 0xBF, text: await file.text() }); return Response.json({ ok: true }); }
+  if (u.hostname === 'api.telegram.org') { const m = JSON.parse(init.body); messages.push(m); return Response.json({ ok: true }); }
+  if (u.hostname === 'api.cloudflare.com') { graph.calls++; return Response.json(graph.answer); }
   return new Response('unexpected', { status: 599 });
 };
 async function post(path, user, fields) {
@@ -194,6 +198,48 @@ t('a missed half hour is caught up once', (await cron('2026-11-16T17:00:00Z')).f
 t('quiet when already trained / weighed today', sportText({}, { workouts: [{ day: '2026-11-16', kind: 'w' }] }, '2026-11-16') === null && weighText({ weighed: '2026-11-16' }, '2026-11-16') === null);
 t('quiet when the day is written down and within the target', mealText({ target: 1500, days: [{ day: 'd', kcal: 1300, n: 4 }] }, 'd') === null);
 t('a day over the target: kind words', mealText({ target: 1500, days: [{ day: 'd', kcal: 1800, n: 4 }] }, 'd').includes('на 300 більше'));
+
+/* ---------- a copy of one's data ---------- */
+docs.length = 0;
+const ex = await post('/forma', USER_B, { action: 'export' });
+t('export: two files to the person\'s own chat', ex.status === 200 && docs.length === 2 && docs.every((d) => d.chat === '5151'), JSON.stringify(ex.body));
+const copy = JSON.parse(docs[0].text);
+t('…a copy with every record (profile, weights, food, workout)', copy.kind === 'forma' && ['p', 'w', 'e', 'x'].every((k) => copy.rows.some((r) => r.k === k)) && copy.rows.every((r) => r.u > 0));
+t('…and a table: BOM, semicolons, a food line with kcal', docs[1].bom && docs[1].text.startsWith('Дата;Що;') && /2026-11-14;їжа;Сирники;150 г;302;/.test(docs[1].text), docs[1].text.slice(0, 300));
+
+/* ---------- errors on the phones ---------- */
+const ORIGIN_OK = 'https://w2unemdhysend.github.io';
+async function rep(body, origin = ORIGIN_OK) {
+  const res = await worker.fetch(new Request('https://w.example/report', { method: 'POST', headers: origin ? { Origin: origin } : {}, body: JSON.stringify(body) }), env, {});
+  return res.status;
+}
+t('a report from elsewhere: 403', (await rep({ p: 'x', m: 'boom' }, 'https://evil.example')) === 403);
+t('a report without a message: 400', (await rep({ p: 'x' })) === 400);
+t('a report: 204', (await rep({ p: 'yizha/', m: 'TypeError: x is undefined for user 4242424242 mail me@example.com', s: 'app.js?v=1:10:5', t: 'Telegram android', v: 'abc' })) === 204);
+for (let i = 0; i < 3; i++) await rep({ p: 'yizha/', m: 'TypeError: x is undefined for user 4242424242 mail me@example.com', s: 'app.js?v=1:10:5', t: 'Telegram android' });
+for (let i = 0; i < 7; i++) await rep({ p: 'sport/', m: 'Error number ' + 'abcdefg'[i], s: 'app.js:1' });
+const errKeys = [...kv.keys()].filter((k) => k.startsWith('cerr:'));
+t('each error kept once, numbers and addresses blanked', errKeys.length === 8 && [...kv.entries()].filter(([k]) => k.startsWith('cerr:')).every(([, v]) => !/4242424242|me@example/.test(v)), String(errKeys.length));
+kv.set('asub:5151', JSON.stringify({ id: 5151 }));
+let got2 = await cron('2026-11-14T10:00:00Z');
+const bugs = got2.filter((m) => m.text.startsWith('🐞'));
+t('the cron tells about new errors, at most five a day', bugs.length === 5 && bugs[0].text.includes('«yizha/»') && bugs[0].text.includes('Telegram android'), JSON.stringify(bugs.map((b) => b.text.slice(0, 60))));
+got2 = await cron('2026-11-14T10:30:00Z');
+t('…and not again', !got2.some((m) => m.text.startsWith('🐞')));
+
+/* ---------- the free plan ---------- */
+const { noteNeurons, usageNotes } = await import('../worker/usage.js');
+await noteNeurons(env, { neurons: 7000 }); await noteNeurons(env, { neurons: 1200.5 });
+graph = { calls: 0, answer: { data: { viewer: { accounts: [{ workers: [{ sum: { requests: 20000 } }], durable: [{ sum: { requests: 100 } }], kv: [{ sum: { requests: 850 }, dimensions: { actionType: 'write' } }, { sum: { requests: 900 }, dimensions: { actionType: 'read' } }] }] } } } };
+const today = new Date().toISOString().slice(0, 10);
+let notes = await usageNotes(env, new Date(today + 'T09:10:00Z'));
+t('without a token: only Workers AI is watched (82 %)', graph.calls === 0 && notes.length === 1 && notes[0].includes('82 %') && notes[0].includes('нейронів'), JSON.stringify(notes));
+const env2 = { ...env, CF_API_TOKEN: 'x', CF_ACCOUNT_ID: 'acc' };
+notes = await usageNotes(env2, new Date(today + 'T10:10:00Z'));
+t('with a token: KV writes at 85 % are reported, AI not again, the rest is fine', graph.calls === 1 && notes.length === 1 && notes[0].includes('85 %') && notes[0].includes('записів KV'), JSON.stringify(notes));
+t('…only once an hour (at :00–:29)', (await usageNotes(env2, new Date(today + 'T10:40:00Z'))).length === 0 && graph.calls === 1);
+graph.answer = { errors: [{ message: 'not authorized' }] };
+t('a bad token: no crash, nothing said', (await usageNotes(env2, new Date(today + 'T11:10:00Z'))).length === 0);
 
 console.log(fails ? `${fails} FAILED` : 'all passed');
 process.exit(fails ? 1 : 0);
