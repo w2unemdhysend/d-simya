@@ -124,8 +124,8 @@ export function weekReport(w, partners = []) {
   const kgFor = last ? last.kg : w.profile && w.profile.start ? w.profile.start.kg : 70, t = valid(w.profile) ? target(w.profile, kgFor, Number(day.slice(0, 4))).kcal : null;
   const inT = t ? days.filter((d) => sum(week.filter((e) => e.id.startsWith(d))).kcal <= t * 1.05).length : null;
   lines.push(days.length ? `🍽 Записано ${days.length} з 7 днів${t ? `, у нормі ${inT}` : ''}, у середньому ${fmt(sum(week).kcal / days.length)} ккал на день` : '🍽 Цього тижня щоденник порожній. Навіть кілька записів на день допомагають.');
-  const moves = w.moves.filter((m) => m.id.slice(0, 10) >= from), tr = moves.filter((m) => m.kind === 'w'), walks = moves.filter((m) => m.kind === 'walk');
-  lines.push(`💪 Тренувань: ${tr.length} з ${w.planDays}${walks.length ? `, прогулянок: ${walks.length} (${fmt(walks.reduce((a, x) => a + (x.min || 0), 0))} хв)` : ''}`);
+  const moves = w.moves.filter((m) => m.id.slice(0, 10) >= from), tr = moves.filter((m) => m.kind === 'w'), walks = moves.filter((m) => m.kind === 'walk'), quick = moves.filter((m) => m.kind === 'z');
+  lines.push(`💪 Тренувань: ${tr.length} з ${w.planDays}${quick.length ? `, зарядок і занять для спини: ${quick.length}` : ''}${walks.length ? `, прогулянок: ${walks.length} (${fmt(walks.reduce((a, x) => a + (x.min || 0), 0))} хв)` : ''}`);
   const dd = Object.values(w.days), water = dd.filter((x) => x.water > 0), sleep = dd.filter((x) => x.sleep > 0);
   if (water.length) lines.push(`💧 Вода: у середньому ${fmt(water.reduce((a, x) => a + x.water, 0) / water.length / 1000, 1)} л на день`);
   if (sleep.length) lines.push(`😴 Сон: у середньому ${fmt(sleep.reduce((a, x) => a + x.sleep, 0) / sleep.length, 1)} год`);

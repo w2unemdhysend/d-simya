@@ -1,16 +1,20 @@
 // The workout programmes of «Тренування»: three workouts that take turns (A, B, C), three times a week, getting a little
 // harder every two weeks. Each workout: a warm-up, a circle of exercises done for time (work, rest) several rounds,
 // and a cool-down. All at home, without equipment; a chair and a wall are enough.
+// And short sessions outside the programme: a morning routine and a session for the back, any day.
 import { MOVE } from './moves.js';
 
 // week of the programme → seconds of work and rest, rounds of the circle
 const STEPS = {
   soft: [{ from: 1, work: 30, rest: 30, rounds: 2 }, { from: 3, work: 35, rest: 25, rounds: 2 }, { from: 5, work: 35, rest: 25, rounds: 3 }, { from: 7, work: 40, rest: 20, rounds: 3 }],
+  back: [{ from: 1, work: 30, rest: 20, rounds: 2 }, { from: 3, work: 40, rest: 20, rounds: 2 }, { from: 5, work: 45, rest: 15, rounds: 2 }, { from: 7, work: 45, rest: 15, rounds: 3 }],
   home: [{ from: 1, work: 30, rest: 30, rounds: 3 }, { from: 3, work: 35, rest: 25, rounds: 3 }, { from: 5, work: 40, rest: 20, rounds: 3 }, { from: 7, work: 45, rest: 15, rounds: 3 }, { from: 9, work: 45, rest: 15, rounds: 4 }],
 };
 const WARM_SOFT = [['march', 60], ['armcircle', 40], ['stepjack', 40]];
 const WARM_HOME = [['march', 45], ['armcircle', 30], ['stepjack', 30], ['jack', 30]];
 const COOL = [['hamstring', 40], ['quad', 50], ['breathe', 40]];
+const WARM_BACK = [['march', 60], ['armcircle', 30], ['sidebend', 40]];
+const COOL_BACK = [['child', 45], ['kneehug', 40], ['breathe', 40]];
 
 export const PLANS = [
   { id: 'soft', uk: 'М’який старт', note: 'Без стрибків і різких рухів, бережно до колін і спини. Для початку після перерви, для старшого віку, з великою вагою.', level: 'легко',
@@ -18,6 +22,12 @@ export const PLANS = [
       { id: 'A', uk: 'Ноги й рівновага', warm: WARM_SOFT, circle: ['chairsquat', 'wallpush', 'calf', 'sideleg', 'birddog'], cool: COOL },
       { id: 'B', uk: 'Спина й прес', warm: WARM_SOFT, circle: ['bridge', 'birddog', 'wallpush', 'deadbug', 'standcross'], cool: COOL },
       { id: 'C', uk: 'Усе тіло', warm: WARM_SOFT, circle: ['chairsquat', 'standcross', 'wallpush', 'bridge', 'march'], cool: COOL },
+    ] },
+  { id: 'back', uk: 'Здорова спина', note: 'Рухливість і сильні м’язи спини та кору, без скручувань під навантаженням і стрибків. При гострому болю, онімінні або після травми спершу порада лікаря.', level: 'легко',
+    workouts: [
+      { id: 'A', uk: 'Рухливість', warm: WARM_BACK, circle: ['catcow', 'birddog', 'bridge', 'kneehug', 'deadbug'], cool: COOL_BACK },
+      { id: 'B', uk: 'Сильна спина', warm: WARM_BACK, circle: ['bridge', 'superman', 'birddog', 'wallpush', 'deadbug'], cool: COOL_BACK },
+      { id: 'C', uk: 'Легкість у попереку', warm: WARM_BACK, circle: ['catcow', 'bridge', 'sidebend', 'birddog', 'child'], cool: COOL_BACK },
     ] },
   { id: 'home', uk: 'Спалюємо вдома', note: 'Кругові тренування на все тіло з кардіо. Для тих, хто вже трохи рухається й хоче швидшого результату.', level: 'середньо',
     workouts: [
@@ -27,6 +37,16 @@ export const PLANS = [
     ] },
 ];
 export const PLAN = Object.fromEntries(PLANS.map((p) => [p.id, p]));
+
+// Short sessions, one exercise after another without rest: they do not move the programme on
+export const QUICK = [
+  { id: 'morning', uk: 'Ранкова зарядка', icon: '🌅', note: 'Усе стоячи, без килимка: прокинутися й розім’яти суглоби.',
+    list: [['march', 50], ['armcircle', 30], ['sidebend', 30], ['stepjack', 30], ['standcross', 30], ['squat', 30], ['calf', 30], ['hamstring', 30], ['breathe', 40]] },
+  { id: 'back', uk: 'Для спини', icon: '🧘', note: 'На килимку, повільно: розрухати спину після сидіння й зняти напругу.',
+    list: [['catcow', 60], ['child', 45], ['birddog', 60], ['bridge', 60], ['deadbug', 60], ['kneehug', 45], ['bridge', 45], ['birddog', 45], ['catcow', 45], ['child', 60], ['breathe', 45]] },
+];
+export const QUICK_OF = Object.fromEntries(QUICK.map((q) => [q.id, q]));
+export const quickSteps = (q) => q.list.map(([move, secs], i) => ({ kind: 'work', move, secs, round: 1, rounds: 1, i: i + 1, n: q.list.length }));
 
 export const weekOf = (startDay, day) => Math.max(1, Math.floor((Date.parse(day + 'T12:00:00Z') - Date.parse(startDay + 'T12:00:00Z')) / (7 * 86400000)) + 1);
 export function stepOf(planId, week) {

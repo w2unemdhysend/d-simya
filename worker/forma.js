@@ -136,7 +136,7 @@ export class Forma {
     return {
       name: (await s.get('name')) || '', day, target: tgt, days,
       start: prof && prof.start ? prof.start.kg : null, goal: prof ? prof.goal : null, kg, weighed: last ? last.day : null,
-      workouts: moves.map(([k, r]) => ({ day: k.slice(4, 14), kind: r.v.kind || 'w', min: Number(r.v.min) || 0 })),
+      workouts: moves.map(([k, r]) => ({ day: k.slice(4, 14), kind: r.v.kind || 'w', min: Number(r.v.min) || 0, ...(r.v.q ? { q: String(r.v.q) } : {}) })),
     };
   }
 }
@@ -148,7 +148,7 @@ export function partnerView(id, sum) {
   const logged = sum.days.filter((d) => d.n > 0);
   const inTarget = sum.target ? logged.filter((d) => d.kcal <= sum.target * 1.05).length : null;
   const week = sum.workouts.filter((w) => w.kind === 'w').length;
-  return { id, name: sum.name || 'Без імені', lost, toGo, logged: logged.length, inTarget, workouts: week, walks: sum.workouts.length - week, active: logged.length ? logged[logged.length - 1].day : null };
+  return { id, name: sum.name || 'Без імені', lost, toGo, logged: logged.length, inTarget, workouts: week, walks: sum.workouts.filter((w) => w.kind === 'walk').length, active: logged.length ? logged[logged.length - 1].day : null };
 }
 
 const stub = (env, id) => env.FORMA.get(env.FORMA.idFromName('u:' + id));
@@ -236,7 +236,7 @@ export function diaryCsv(rows) {
     const day = r.id.slice(0, 10), v = r.v || {};
     if (r.k === 'e') { const k = (Number(v.g) || 0) / 100; out.push([day, 'їжа', v.n, `${n(v.g)} ${v.l ? 'мл' : 'г'}`, Math.round((v.kcal || 0) * k), n(v.p * k), n(v.f * k), n(v.c * k), MEAL[v.meal] || '']); }
     else if (r.k === 'w') out.push([r.id, 'вага', '', `${n(v.kg)} кг`, '', '', '', '', '']);
-    else if (r.k === 'x') out.push([day, v.kind === 'walk' ? 'прогулянка' : 'тренування', v.title || '', `${v.min || 0} хв`, v.kcal || '', '', '', '', v.kind || '']);
+    else if (r.k === 'x') out.push([day, v.kind === 'walk' ? 'прогулянка' : v.kind === 'z' ? 'заняття' : 'тренування', v.title || '', `${v.min || 0} хв`, v.kcal || '', '', '', '', v.kind || '']);
     else if (r.k === 'd') out.push([r.id, 'день', '', '', '', '', '', '', JSON.stringify(v)]);
   }
   out.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
@@ -252,6 +252,7 @@ export const HEALTH = {
   yizha: { prefix: 'msub:', button: button('Харчування', 'yizha/'), time: '20:00' },
   vaga: { prefix: 'vsub:', button: button('Записати вагу', 'yizha/?tab=progress'), time: '07:30' },
   zvit: { prefix: 'zsub:', button: button('Прогрес', 'yizha/?tab=progress'), time: '19:00' },
+  zaryadka: { prefix: 'esub:', button: button('Зарядка', 'sport/?quick=morning'), time: '07:30' },
 };
 
 // The choices a page sends, cleaned up
@@ -269,6 +270,7 @@ export function healthPrefs(kind, f) {
 export function healthConfirm(kind, p) {
   if (kind === 'sport') return `Нагадування про тренування увімкнено: ${p.days.map((d) => SHORT[d]).join(', ')} о ${p.time}. Я напишу, яке тренування на черзі.`;
   if (kind === 'vaga') return `Нагадування про зважування увімкнено: щотижня в ${WEEKDAYS[p.wd]} о ${p.time}. Зважуйся зранку, до сніданку, в той самий час: так цифри можна порівнювати.`;
+  if (kind === 'zaryadka') return `Нагадування про ранкову зарядку увімкнено: щодня о ${p.time}. П’ять хвилин стоячи, щоб прокинутися. Якщо зарядку вже зроблено, мовчатиму.`;
   if (kind === 'zvit') return `Звіт тижня увімкнено: щонеділі о ${p.time} я надішлю підсумок — вага, дні в нормі, тренування, вода, сон і як справи в партнерів.`;
   return `Нагадування про харчування увімкнено: щодня о ${p.time} я скажу, скільки записано за день. Якщо все вже записано і в нормі, не турбуватиму.`;
 }
@@ -290,12 +292,16 @@ export function sportText(rec, sum, day) {
   if (sum && sum.workouts.some((w) => w.day === day && w.kind === 'w')) return null;   // already trained today
   return `💪 Сьогодні день тренування${rec.next ? `: «${rec.next}»` : ''}${rec.mins ? `, близько ${rec.mins} хв` : ''}. Увімкни, і застосунок покаже кожну вправу.`;
 }
+export function morningText(sum, day) {
+  if (sum && sum.workouts.some((w) => w.day === day && w.kind === 'z' && w.q === 'morning')) return null;   // done already
+  return '🌅 Доброго ранку! Ранкова зарядка: 5 хвилин стоячи, без килимка. Увімкни, і голос тренера поведе.';
+}
 export function weighText(sum, day) {
   if (sum && sum.weighed === day) return null;
   return '⚖️ Час зважитися: зранку, до сніданку, після туалету. Запиши вагу, і графік покаже тенденцію, а не випадкові коливання.';
 }
 
-// One cron job for the three reminders: each person at their own half hour (or the one after, if the run missed them)
+// One cron job for the four reminders: each person at their own half hour (or the one after, if the run missed them)
 export async function sendHealth(env, now, out) {
   if (!env.SCANS || !env.BOT_TOKEN) return { sent: 0 };
   const slot = slotOf(now), prev = prevSlot(slot), day = berlinDay(now), wd = berlinClock(now).weekday;
@@ -308,5 +314,7 @@ export async function sendHealth(env, now, out) {
     due: at, text: async (rec) => { const s = await sum(rec); return s ? mealText(s, day) : mealText({ days: [], target: null }, day); } });
   results.vaga = await deliver(env, out, { job: 'weigh', day, prefix: HEALTH.vaga.prefix, finish: false, button: HEALTH.vaga.button,
     due: (rec) => at(rec) && rec.wd === wd, text: async (rec) => weighText(await sum(rec), day) });
+  results.zaryadka = await deliver(env, out, { job: 'zaryadka', day, prefix: HEALTH.zaryadka.prefix, finish: false, button: HEALTH.zaryadka.button,
+    due: at, text: async (rec) => morningText(await sum(rec), day) });
   return results;
 }

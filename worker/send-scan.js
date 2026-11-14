@@ -13,6 +13,8 @@
  *                            prospekty (Monday flyers) · wetter (DWD weather warnings; place, level 1–3) · wort (word of the day)
  *                            ranok (morning digest; time, place, waste choices, stops) · zboi (messages about failures)
  *                            sport (workout days and time, the next workout) · yizha (meals, a time) · vaga (weighing, weekday and time)
+ *                            zvit (the Sunday report) · zaryadka (the morning routine, a time)
+ *                            vyhid («Час виходити»: plans=[{from, to, by, days, walk, dt}], up to three routes; leave.js)
  *   POST /stops            the stops pinned in «Транспорт» (stops=[{id, name}], up to four): /bus and the digest show them
  *   POST /commands         chat commands on|off|status: points the bot's webhook at this Worker (see brief.js)
  *   POST /tg               Telegram's webhook: /bus /wetter /muell /wort /help in a private chat
@@ -61,7 +63,8 @@ import { ORIGIN, SENDS_PER_RUN, button } from './config.js';
 import { tgSend, outbox } from './telegram.js';
 import { admit } from './access.js';
 import { deliver, broadcast, berlinClock } from './deliver.js';
-import { isTransit, transit } from './transit.js';
+import { isTransit, transit, trip } from './transit.js';
+import { PREFIX as LEAVE, BUTTON as LEAVE_BUTTON, leavePrefs, leaveConfirm, sendLeave } from './leave.js';
 import { PLACES, fetchWarnings, warnConfirmText, sendWarnings } from './warn.js';
 import { listRoute } from './list.js';
 import { WORD_BUTTON, wordConfirmText, sendWordOfDay } from './word.js';
@@ -183,7 +186,7 @@ export default {
         ['нагадування про сміття', () => sendReminders(env, now, out)], ['проспекти', () => sendFlyerReminders(env, now, out)],
         ['попередження DWD', () => sendWarnings(env, now, out, WEATHER_BUTTON)], ['слово дня', () => sendWordOfDay(env, now, out)],
         ['ранкове зведення', () => sendBriefs(env, now, out)], ['здоров’я', () => sendHealth(env, now, out)],
-        ['звіт тижня', () => sendWeekly(env, now, out, deliver, partnersOf)],
+        ['звіт тижня', () => sendWeekly(env, now, out, deliver, partnersOf)], ['час виходити', () => sendLeave(env, now, out, trip)],
       ]);
       try { await watch(env, now, failed, (text) => broadcast(env, out, ALERTS, text, HOME_BUTTON)); } catch (e) { console.log('watch failed', String(e && e.stack || e)); }
     })());
@@ -198,7 +201,7 @@ const WEATHER_BUTTON = button('Погода', 'pogoda/');
 // how long after its hour a job may still send to whoever was missed (Telegram busy, the run's budget used up)
 const WINDOW_HOURS = 3;
 const KINDS = { smittia: 'sub:', prospekty: FLYERS.prefix, wetter: 'wsub:', wort: 'dsub:', ranok: 'bsub:', zboi: ALERTS,
-  sport: HEALTH.sport.prefix, yizha: HEALTH.yizha.prefix, vaga: HEALTH.vaga.prefix, zvit: HEALTH.zvit.prefix };
+  sport: HEALTH.sport.prefix, yizha: HEALTH.yizha.prefix, vaga: HEALTH.vaga.prefix, zvit: HEALTH.zvit.prefix, zaryadka: HEALTH.zaryadka.prefix, vyhid: LEAVE };
 
 // The stops pinned in «Транспорт»: kept in the person's profile (for /bus) and in a running digest. Only the stops
 // change; the place and waste choices stay as the «Бот» page sent them.
@@ -231,7 +234,9 @@ async function reminders(request, env, reply) {
     : kind === 'wetter' ? { place: PLACES[f.get('place')] ? String(f.get('place')) : 'Xanten', level: [1, 2, 3].includes(Number(f.get('level'))) ? Number(f.get('level')) : 2 }
     : kind === 'ranok' ? profileOf(f)   // also kept as the person's profile: the chat commands answer for the same place, bins and stop
     : HEALTH[kind] ? healthPrefs(kind, f)
+    : kind === 'vyhid' ? leavePrefs(f)
     : null;
+  if (kind === 'vyhid' && (action === 'on' || action === 'prefs') && !prefs) return reply(400, { ok: false, error: 'plans: one to three routes with stops, a time and days' });
   if (kind === 'ranok' && (action === 'on' || action === 'prefs') && !('stops' in prefs)) {
     // the page did not send pinned stops (it does not know them on this phone): the ones pinned before stay
     try { const old = JSON.parse(await env.SCANS.get('prof:' + signed.user.id)); if (old && Array.isArray(old.stops)) prefs.stops = old.stops; } catch { /* no profile yet */ }
@@ -259,6 +264,7 @@ async function reminders(request, env, reply) {
     else if (kind === 'wort') { text = wordConfirmText(new Date()); button = WORD_BUTTON; }
     else if (kind === 'ranok') { text = briefConfirmText(prefs); button = HOME_BUTTON; }
     else if (HEALTH[kind]) { text = healthConfirm(kind, prefs); button = HEALTH[kind].button; }
+    else if (kind === 'vyhid') { text = leaveConfirm(prefs); button = LEAVE_BUTTON; }
     else if (kind === 'zboi') { text = 'Сповіщення про збої увімкнено. Я напишу, якщо розклад VRR, погода чи попередження DWD перестануть відповідати, якщо зламається одне з моїх завдань або закінчуватиметься календар сміття.'; button = HOME_BUTTON; }
     else if (kind === 'wetter') {
       let list = [];
@@ -284,6 +290,7 @@ async function reminders(request, env, reply) {
   if (rec && kind === 'wetter') { try { const r = JSON.parse(rec); saved = { place: r.place, level: r.level }; } catch { /* old record */ } }
   if (rec && kind === 'ranok') { try { saved = { time: JSON.parse(rec).time }; } catch { /* broken record */ } }
   if (rec && HEALTH[kind]) { try { const r = JSON.parse(rec); saved = { time: r.time, days: r.days, wd: r.wd }; } catch { /* broken record */ } }
+  if (rec && kind === 'vyhid') { try { saved = { plans: JSON.parse(rec).plans }; } catch { /* broken record */ } }
   return reply(200, { ok: true, on: rec !== null, ...(saved || {}) });
 }
 

@@ -50,6 +50,22 @@
 .routes .chip{white-space:normal;text-align:left;line-height:1.25;padding-block:8px}
 .routes .x{flex:none;width:44px;height:44px;margin-left:-6px;border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:20px}
 .routes .pair{display:inline-flex;align-items:center}
+/* «Час виходити»: a bell next to each saved route; under the routes, the time to be there, the walk and the days */
+.routes .bell{flex:none;display:inline-flex;align-items:center;gap:4px;min-width:44px;height:44px;margin-left:-4px;padding:0 8px;border:0;border-radius:999px;background:transparent;color:var(--muted);cursor:pointer;font:inherit;font-size:14px;font-weight:600}
+.routes .bell svg{width:20px;height:20px}
+.routes .bell.on{color:var(--on);background:var(--surface)}
+.routes .bell[aria-expanded="true"]{color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.goedit{margin-top:12px;padding-top:12px;border-top:1px solid var(--line);display:grid;gap:10px}
+.goedit h4{margin:0;font-size:16px;font-weight:600;line-height:1.3}
+.goedit p{margin:0}
+.gorow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.gorow label{display:grid;gap:4px;font-size:14px;color:var(--muted)}
+.gorow input,.gorow select{min-height:48px;padding:0 10px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;font-size:17px;width:100%}
+.godays{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.godays .chip{padding:0;justify-content:center}
+.godays .chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.gobtns{display:flex;flex-wrap:wrap;gap:8px}
+.gobtns .btn.ghostbtn{background:transparent;color:var(--ink);border:1px solid var(--line)}
 .res-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:6px 2px -2px}
 .res-head h2{font-size:17px}
 .save{min-height:40px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:transparent;font-weight:600;font-size:14.5px;cursor:pointer;white-space:nowrap}
@@ -133,6 +149,7 @@ a.lnmap:active{transform:scale(.95)}
     <section class="card" id="saved" aria-labelledby="h-saved" hidden>
       <h3 class="group" id="h-saved" style="margin:0 0 8px">Мої маршрути</h3>
       <div class="routes" id="routes"></div>
+      <div class="goedit" id="goedit" hidden></div>
     </section>
 
     <div class="res-head" id="res-head" hidden><h2 id="res-title"></h2><button class="save" id="save" type="button" aria-pressed="false">Зберегти</button></div>
@@ -184,11 +201,76 @@ function renderEnds() {
   $('#go').disabled = !(from && to && from.id !== to.id);
   $('#dt').setAttribute('aria-checked', String(dticket));
 }
+const BELL = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="7.5"/><path d="M12 9v4l2.5 2M5 4.5l2.5-2M19 4.5l-2.5-2"/></svg>';
 function renderRoutes() {
   $('#saved').hidden = !routes.length;
   $('#routes').innerHTML = routes.map((r, i) => `<span class="pair"><button class="chip" type="button" data-route="${i}">${esc(r.from.name)} → ${esc(r.to.name)}</button>` +
+    `<button class="bell${r.go && r.go.on ? ' on' : ''}" type="button" data-gocfg="${i}" aria-expanded="${editing === i}" aria-label="Час виходити: ${esc(r.from.name)} → ${esc(r.to.name)}${r.go && r.go.on ? `, увімкнено, до ${r.go.by}` : ''}">${BELL}${r.go && r.go.on ? esc(r.go.by) : ''}</button>` +
     `<button class="x" type="button" data-drop="${i}" aria-label="Прибрати маршрут ${esc(r.from.name)} → ${esc(r.to.name)}">×</button></span>`).join('');
+  renderGo();
 }
+
+/* ---------- «Час виходити»: the bot writes when to leave for a saved route ---------- */
+const WD = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'нд'], WALKS = [0, 2, 3, 5, 7, 10, 12, 15, 20, 25, 30], MAX_GO = 3;
+let editing = null, draft = null;
+const canBot = () => !!(tg && tg.initData);
+function renderGo() {
+  const box = $('#goedit');
+  if (editing == null || !routes[editing]) { box.hidden = true; box.innerHTML = ''; return; }
+  const r = routes[editing], on = !!(r.go && r.go.on);
+  box.hidden = false;
+  box.innerHTML = `<h4>Час виходити: ${esc(r.from.name)} → ${esc(r.to.name)}</h4>
+    <p class="small">У вибрані дні бот напише, коли виходити з дому, щоб устигнути на останній рейс, який довезе вчасно. Запізнення враховано. Повідомлення приходить за пів години або ближче до виходу.</p>
+    <div class="gorow"><label>Бути на місці до<input type="time" id="go-by" step="300" value="${esc(draft.by)}"></label>
+      <label>До зупинки пішки<select id="go-walk">${WALKS.map((m) => `<option value="${m}"${m === draft.walk ? ' selected' : ''}>${m ? m + ' хв' : 'поруч'}</option>`).join('')}</select></label></div>
+    <div class="godays" role="group" aria-label="Дні">${WD.map((d, i) => `<button class="chip" type="button" data-goday="${i}" aria-pressed="${draft.days.includes(i)}">${d}</button>`).join('')}</div>
+    ${canBot() ? `<div class="gobtns"><button class="btn" type="button" id="go-save">${on ? 'Зберегти' : 'Увімкнути'}</button>${on ? '<button class="btn ghostbtn" type="button" id="go-off">Вимкнути</button>' : ''}</div><p class="state" id="go-state"></p>`
+      : '<p class="small">Повідомлення надсилає бот: відкрий «Маршрут» через бота в Telegram.</p>'}`;
+}
+function plansOf() {
+  return routes.filter((r) => r.go && r.go.on).slice(0, MAX_GO).map((r) => ({ from: r.from.id, fromName: r.from.name, to: r.to.id, toName: r.to.name, by: r.go.by, days: r.go.days, walk: r.go.walk, dt: r.go.dt !== false }));
+}
+async function sendGo() {
+  const plans = plansOf(), fd = new FormData();
+  fd.append('initData', tg.initData); fd.append('kind', 'vyhid'); fd.append('action', plans.length ? 'on' : 'off'); fd.append('plans', JSON.stringify(plans));
+  const res = await fetch(API + 'reminders', { method: 'POST', body: fd });
+  const d = await res.json().catch(() => ({}));
+  if (d.error === 'bot_blocked') throw new Error('blocked');
+  if (!res.ok) throw new Error(d.error || 'http ' + res.status);
+  return d;
+}
+async function saveGo(on) {
+  const r = routes[editing], st = $('#go-state'), btns = [...document.querySelectorAll('.gobtns .btn')], byEl = $('#go-by');
+  if (byEl && /^\d{2}:\d{2}$/.test(byEl.value)) draft.by = byEl.value;
+  if (on && !draft.days.length) { st.className = 'state err'; st.textContent = 'Вибери хоча б один день.'; haptic('error'); return; }
+  if (on && !(r.go && r.go.on) && routes.filter((x) => x.go && x.go.on).length >= MAX_GO) { st.className = 'state err'; st.textContent = `Можна до ${MAX_GO} маршрутів з нагадуванням.`; haptic('error'); return; }
+  const before = r.go;
+  r.go = { ...draft, on, dt: dticket };
+  btns.forEach((b) => { b.disabled = true; });
+  try {
+    await sendGo();
+    store('marshrut-routes', routes);
+    if (!on) editing = null;
+    renderRoutes();
+    const s2 = $('#go-state'); if (s2) { s2.className = 'state on'; s2.textContent = before && before.on ? 'Збережено.' : 'Увімкнено. Бот надіслав підтвердження в чат.'; }
+    haptic('success');
+  } catch (e) {
+    r.go = before;
+    btns.forEach((b) => { b.disabled = false; });
+    st.className = 'state err'; st.textContent = e.message === 'blocked' ? 'Бот не може написати: відкрий чат з ботом і натисни «Старт».' : 'Не вдалося. Перевір інтернет і спробуй ще раз.';
+    haptic('error');
+  }
+}
+$('#goedit').addEventListener('click', (e) => {
+  const d = e.target.closest('[data-goday]');
+  if (d) { const i = Number(d.dataset.goday); draft.days = draft.days.includes(i) ? draft.days.filter((x) => x !== i) : [...draft.days, i].sort(); d.setAttribute('aria-pressed', String(draft.days.includes(i))); haptic(); return; }
+  if (e.target.closest('#go-save')) { saveGo(true); return; }
+  if (e.target.closest('#go-off')) saveGo(false);
+});
+$('#goedit').addEventListener('change', (e) => {
+  if (e.target.id === 'go-by' && /^\d{2}:\d{2}$/.test(e.target.value)) draft.by = e.target.value;
+  if (e.target.id === 'go-walk') draft.walk = Number(e.target.value);
+});
 function openPick(which) {
   picking = picking === which ? null : which;
   $('#pick').hidden = !picking;
@@ -322,8 +404,22 @@ $('#save').addEventListener('click', () => {
   store('marshrut-routes', routes); renderRoutes(); renderSave(); haptic();
 });
 $('#routes').addEventListener('click', (e) => {
+  const bell = e.target.closest('[data-gocfg]');
+  if (bell) {
+    const i = Number(bell.dataset.gocfg), r = routes[i];
+    editing = editing === i ? null : i;
+    draft = { by: '08:00', days: [0, 1, 2, 3, 4], walk: 5, ...(r.go || {}) };
+    renderRoutes(); haptic();
+    if (editing != null) $('#goedit').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    return;
+  }
   const drop = e.target.closest('[data-drop]');
-  if (drop) { routes.splice(Number(drop.dataset.drop), 1); store('marshrut-routes', routes); renderRoutes(); renderSave(); haptic(); return; }
+  if (drop) {
+    const gone = routes.splice(Number(drop.dataset.drop), 1)[0];
+    editing = null; store('marshrut-routes', routes); renderRoutes(); renderSave(); haptic();
+    if (gone && gone.go && gone.go.on && canBot()) sendGo().catch(() => {});   // the bot stops writing about it
+    return;
+  }
   const b = e.target.closest('[data-route]'); if (!b) return;
   const r = routes[Number(b.dataset.route)]; from = r.from; to = r.to; renderEnds(); search(''); haptic();
 });

@@ -5,7 +5,8 @@
 Covers: the start is the saved stop, the destination is asked for; choosing by search; the request carries both ids,
 no time for "now", the chosen time for "later", long=1 only when "D-Ticket only" is off; connections with times in
 Xanten time, duration, changes, line badges; legs with platform, direction and the time to change; "Пізніші" asks
-from the last departure on and adds without doubles; saving a route and using it; swapping; errors. 340 px.
+from the last departure on and adds without doubles; saving a route and using it; swapping; errors; «Час виходити»
+for a saved route (the time to be there, the walk, the days; sent to the bot in Telegram, explained outside). 340 px.
 Exits 1 if a check fails.
 """
 import asyncio, copy, functools, http.server, json, os, re, sys, threading, urllib.parse
@@ -29,11 +30,16 @@ def serve():
     return f'http://127.0.0.1:{srv.server_address[1]}/'
 
 class Worker:
-    def __init__(self): self.calls, self.fail = [], False
+    def __init__(self): self.calls, self.fail, self.posts = [], False, []
     async def __call__(self, route):
         u = urllib.parse.urlparse(route.request.url); q = {k: v[0] for k, v in urllib.parse.parse_qs(u.query).items()}
         self.calls.append((u.path, q)); cors = {'Access-Control-Allow-Origin': '*'}
         if self.fail: return await route.fulfill(status=502, json={'ok': False, 'error': 'upstream'}, headers=cors)
+        if u.path == '/reminders':
+            body = route.request.post_data or ''
+            f = {m.group(1): m.group(2) for m in re.finditer(r'name="([^"]+)"\r\n\r\n(.*?)\r\n--', body, re.S)}
+            self.posts.append(f)
+            return await route.fulfill(json={'ok': True, 'on': f.get('action') == 'on'}, headers=cors)
         if u.path == '/transit/stops':
             return await route.fulfill(json={'ok': True, 'stops': [{'id': 'de:05112:16032', 'name': 'Duisburg Hbf', 'full': 'Duisburg, Duisburg Hbf', 'place': 'Duisburg'},
                                                                     {'id': 'de:05112:16078', 'name': 'Hbf Osteingang', 'full': 'Duisburg, Hbf Osteingang', 'place': 'Duisburg'}] if 'Duisburg' in q.get('q', '') else [], 'near': None}, headers=cors)
@@ -44,9 +50,13 @@ class Worker:
             return await route.fulfill(json=d, headers=cors)
         await route.fulfill(status=404, json={'ok': False}, headers=cors)
 
-async def page(browser, base, store=None, width=340, path='marshrut/'):
+TG = """window.Telegram = {WebApp: {platform: 'android', colorScheme: 'light', initData: 'user=%7B%22id%22%3A4242%7D&hash=x', initDataUnsafe: {user: {id: 4242}},
+  ready() {}, expand() {}, onEvent() {}, isVersionAtLeast() { return true; }, setHeaderColor() {}, setBackgroundColor() {}, openLink() {},
+  HapticFeedback: {selectionChanged() {}, impactOccurred() {}, notificationOccurred() {}}, BackButton: {show() {}, hide() {}, onClick() {}}}};"""
+
+async def page(browser, base, store=None, width=340, path='marshrut/', tg=False):
     ctx = await browser.new_context(viewport={'width': width, 'height': 820}, timezone_id='America/New_York')   # a phone set to another zone still shows Xanten time
-    await ctx.route('**/telegram.org/**', lambda r: r.fulfill(body='', content_type='text/javascript'))
+    await ctx.route('**/telegram.org/**', lambda r: r.fulfill(body=TG if tg else '', content_type='text/javascript'))
     await ctx.route('**/fonts.googleapis.com/**', lambda r: r.fulfill(body='', content_type='text/css'))
     w = Worker(); await ctx.route('**/*.workers.dev/**', w)
     if store: await ctx.add_init_script("if (!sessionStorage.getItem('seeded')) {" + ''.join(f"localStorage.setItem({json.dumps(k)}, {json.dumps(json.dumps(v))});" for k, v in store.items()) + "sessionStorage.setItem('seeded', '1'); }")
@@ -121,6 +131,29 @@ async def main():
         await pg.wait_for_selector('.trip')
         check('from «Мапа» («Маршрут сюди»): the stop is the end, searched at once from my stop', await pg.text_content('#to-name') == 'Duisburg Hbf' and await pg.text_content('#from-name') == 'Xanten Bahnhof'
               and [c for c in w.calls if c[0] == '/transit/trip'][-1][1] == {'from': 'de:05170:37032', 'to': 'de:05112:16032'} and pg.url.endswith('/marshrut/'), str(w.calls[-1]))
+        await ctx.close()
+
+        # «Час виходити»: outside Telegram it explains itself; in Telegram the plan goes to the bot
+        ROUTE = {'from': {'id': 'de:05170:37032', 'name': 'Xanten Bahnhof'}, 'to': {'id': 'de:05112:16032', 'name': 'Duisburg Hbf'}}
+        ctx, pg, w = await page(browser, base, store={'marshrut-routes': [ROUTE], 'marshrut-last': {'from': ROUTE['from'], 'to': ROUTE['to']}})
+        await pg.click('[data-gocfg="0"]'); await pg.wait_for_timeout(150)
+        check('«Час виходити» outside Telegram: the editor says the bot sends it', await pg.is_visible('#goedit') and 'через бота' in await pg.text_content('#goedit') and await pg.locator('#go-save').count() == 0)
+        await ctx.close()
+        ctx, pg, w = await page(browser, base, store={'marshrut-routes': [ROUTE], 'marshrut-last': {'from': ROUTE['from'], 'to': ROUTE['to']}}, tg=True)
+        await pg.click('[data-gocfg="0"]'); await pg.wait_for_timeout(150)
+        check('the editor: weekdays chosen, 08:00, five minutes to walk', await pg.input_value('#go-by') == '08:00' and await pg.locator('[data-goday][aria-pressed="true"]').count() == 5 and await pg.input_value('#go-walk') == '5')
+        await pg.fill('#go-by', '09:15'); await pg.select_option('#go-walk', '10'); await pg.click('[data-goday="5"]')
+        await pg.click('#go-save'); await pg.wait_for_timeout(300)
+        post = w.posts[-1] if w.posts else {}
+        plans = json.loads(post.get('plans', '[]'))
+        check('on: the bot gets the route, the time, the walk and the days', post.get('kind') == 'vyhid' and post.get('action') == 'on' and len(plans) == 1 and plans[0]['by'] == '09:15'
+              and plans[0]['walk'] == 10 and plans[0]['days'] == [0, 1, 2, 3, 4, 5] and plans[0]['from'] == 'de:05170:37032' and plans[0]['dt'] is True, str(post))
+        check('…the bell shows the time, the state says the bot confirmed', '09:15' in await pg.text_content('[data-gocfg="0"]') and 'Увімкнено' in await pg.text_content('#go-state'))
+        await pg.reload(); await pg.wait_for_timeout(400)
+        check('kept after reload', '09:15' in await pg.text_content('[data-gocfg="0"]'))
+        await pg.click('[data-gocfg="0"]'); await pg.wait_for_timeout(150); await pg.click('#go-off'); await pg.wait_for_timeout(300)
+        check('off: the bot is told there is nothing left', w.posts[-1].get('action') == 'off' and json.loads(w.posts[-1].get('plans')) == [] and '09:15' not in await pg.text_content('[data-gocfg="0"]'), str(w.posts[-1:]))
+        check('340 px with the editor: nothing scrolls sideways', await pg.evaluate('document.documentElement.scrollWidth <= innerWidth'))
         await ctx.close()
 
         ctx, pg, w = await page(browser, base)

@@ -5,7 +5,7 @@
 // when the day is already done). Run: node tests/forma.test.mjs   (Node 22+, no packages needed)
 import { createHmac } from 'node:crypto';
 import worker, { Forma, ShoppingList } from '../worker/send-scan.js';
-import { partnerView, mealText, sportText, weighText, okChange } from '../worker/forma.js';
+import { partnerView, mealText, sportText, weighText, morningText, okChange } from '../worker/forma.js';
 import { target, macros, trend, rate, eta, bmr, valid, portion, sum, burnt, floorOf, dayNum, dayOf } from '../yizha/calc.js';
 import { FOODS, CATS } from '../yizha/foods.js';
 
@@ -180,6 +180,9 @@ t('…kept with the person\'s id', JSON.parse(kv.get('tsub:5151')).id === 5151 &
 await post('/reminders', USER_B, { kind: 'yizha', action: 'on', time: '20:00' });
 await post('/reminders', USER_B, { kind: 'vaga', action: 'on', time: '07:30', wd: '0' });
 await post('/reminders', USER_A, { kind: 'yizha', action: 'on', time: '20:00' });
+messages.length = 0;
+await post('/reminders', USER_B, { kind: 'zaryadka', action: 'on', time: '07:00' });
+t('morning routine reminder on: confirmed, the button opens the routine', messages.length === 1 && messages[0].text.includes('ранкову зарядку') && messages[0].text.includes('07:00') && messages[0].reply_markup.inline_keyboard[0][0].web_app.url.endsWith('sport/?quick=morning'), JSON.stringify(messages));
 const st = await post('/reminders', USER_B, { kind: 'vaga', action: 'status' });
 t('status gives the saved time and weekday', st.body.on && st.body.time === '07:30' && st.body.wd === 0);
 async function cron(iso) {
@@ -196,12 +199,16 @@ t('meal reminder: what is written down today and what is left', bMeal && bMeal.t
 t('…for each person their own day', aMeal && aMeal.text.includes('200 ккал'), JSON.stringify(aMeal));
 t('…once a day', (await cron('2026-11-14T19:30:00Z')).filter((x) => x.text.startsWith('🍽')).length === 0);
 // Monday 16 Nov: workout day and weighing day
+got = await cron('2026-11-16T06:00:00Z');       // 07:00 Berlin
+t('the morning routine reminder at its time', got.some((x) => x.chat_id === 5151 && x.text.startsWith('🌅')), JSON.stringify(got));
 got = await cron('2026-11-16T06:30:00Z');       // 07:30 Berlin
+t('…once', !got.some((x) => x.text.startsWith('🌅')));
 t('weighing reminder on the chosen weekday', got.some((x) => x.chat_id === 5151 && x.text.startsWith('⚖️')));
 got = await cron('2026-11-16T16:30:00Z');
 t('workout reminder names the workout', got.some((x) => x.chat_id === 5151 && x.text.includes('«Тренування A: ноги»') && x.text.includes('22 хв')), JSON.stringify(got));
 t('a missed half hour is caught up once', (await cron('2026-11-16T17:00:00Z')).filter((x) => x.text.startsWith('💪')).length === 0);
 t('quiet when already trained / weighed today', sportText({}, { workouts: [{ day: '2026-11-16', kind: 'w' }] }, '2026-11-16') === null && weighText({ weighed: '2026-11-16' }, '2026-11-16') === null);
+t('quiet when the morning routine is done; a back session does not count', morningText({ workouts: [{ day: 'd', kind: 'z', q: 'morning' }] }, 'd') === null && morningText({ workouts: [{ day: 'd', kind: 'z', q: 'back' }] }, 'd') !== null);
 t('quiet when the day is written down and within the target', mealText({ target: 1500, days: [{ day: 'd', kcal: 1300, n: 4 }] }, 'd') === null);
 t('a day over the target: kind words', mealText({ target: 1500, days: [{ day: 'd', kcal: 1800, n: 4 }] }, 'd').includes('на 300 більше'));
 
