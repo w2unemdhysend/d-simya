@@ -12,7 +12,7 @@ import { join, dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
-const SKIP = /^(\.git|node_modules|audio|shots|assets\/three|assets\/maplibre|assets\/fonts|tests\/fixtures|\.wrangler)(\/|$)/;
+const SKIP = /^(\.git|node_modules|audio|shots|android|assets\/three|assets\/maplibre|assets\/fonts|tests\/fixtures|\.wrangler)(\/|$)/;
 const REF = /(["'])([^"'\s?]+)\?v=([0-9A-Za-z]+)\1/g;
 const check = process.argv.includes('--check');
 

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Kroky" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:colorAccent">#9A5800</item>
+        <item name="android:colorPrimary">#12181C</item>
+        <item name="android:windowBackground">#E7ECEF</item>
+        <item name="android:statusBarColor">#E7ECEF</item>
+        <item name="android:navigationBarColor">#E7ECEF</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+    </style>
+</resources>

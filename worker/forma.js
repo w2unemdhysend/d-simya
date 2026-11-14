@@ -20,6 +20,7 @@ import { target, valid, dayNum, dayOf } from '../yizha/calc.js';
 import { button } from './config.js';
 import { deliver, berlinClock } from './deliver.js';
 import { allowedId } from './access.js';
+import { stepAction } from './steps.js';
 
 const KINDS = new Set(['p', 'w', 'e', 'f', 'r', 'x', 's', 'd', 'n']);   // … d|<day> water, sleep, steps, measures · n|<id> meal plan
 const ID = /^[\w~.:-]{1,80}$/;
@@ -53,6 +54,10 @@ export class Forma {
     if (a.op === 'get') { const r = await this.s.get(`r:${a.k}|${a.id}`); return Response.json(r && !r.d ? { v: r.v, u: r.u } : {}); }
     if (a.op === 'mine') return Response.json(await this.mine());
     if (a.op === 'week') return Response.json(await this.week(a.today));
+    if (a.op === 'pair') return Response.json(await this.pair(a));
+    if (a.op === 'devices') return Response.json({ devices: await this.devices() });
+    if (a.op === 'unlink') return Response.json(await this.unlink(a.dev));
+    if (a.op === 'steps') return Response.json(await this.steps(a));
     return Response.json({ error: 'op' }, { status: 400 });
   }
 
@@ -83,6 +88,52 @@ export class Forma {
     }
     const more = log.size === PAGE;
     return { seq: more ? Number([...log.keys()].pop().slice(2)) : seq, rows, more };
+  }
+
+  // One record written here (not by a phone of the page): the same log as sync, so the pages pick it up
+  async write(k, id, v, u) {
+    const s = this.s, key = `r:${k}|${id}`, was = await s.get(key);
+    let seq = (await s.get('seq')) || 0;
+    if (!was) await s.put('count', ((await s.get('count')) || 0) + 1);
+    else await s.delete('s:' + pad(was.s));
+    seq++;
+    await s.put(key, { u, d: 0, v, s: seq }); await s.put('s:' + pad(seq), `${k}|${id}`); await s.put('seq', seq);
+  }
+
+  // The step counter's phones (steps.js): dev:<id> → {name, h (the token's hash), at, last, days}
+  async devices() {
+    return [...(await this.s.list({ prefix: 'dev:' })).entries()].map(([k, d]) => ({ dev: k.slice(4), name: d.name, at: d.at, last: d.last || null, today: d.today ?? null }))
+      .sort((a, b) => a.at - b.at);
+  }
+  async pair({ dev, h, name, max = 3 }) {
+    const list = [...(await this.s.list({ prefix: 'dev:' })).entries()].sort((a, b) => a[1].at - b[1].at), dropped = [];
+    while (list.length >= max) { const [k, d] = list.shift(); await this.s.delete(k); dropped.push(d.h); }
+    await this.s.put('dev:' + dev, { name, h, at: Date.now(), last: null });
+    return { dropped };
+  }
+  async unlink(dev) {
+    const d = await this.s.get('dev:' + dev);
+    if (d) await this.s.delete('dev:' + dev);
+    return { h: d ? d.h : null, devices: await this.devices() };
+  }
+  // The steps of some days from a paired phone: into each day's record (d|<day>), next to water and sleep. The phone
+  // counts the whole day, so its number replaces what was there; a day with no steps does not make a new record.
+  async steps({ dev, days = [], app = '' }) {
+    const d = await this.s.get('dev:' + dev);
+    if (!d) return { error: 'unknown_device' };
+    let saved = 0;
+    for (const { day, steps } of days) {
+      const r = await this.s.get('r:d|' + day), v = r && !r.d ? { ...r.v } : {};
+      if (v.steps === steps && v.stepsSrc === 'phone') continue;
+      if (!steps && !(r && !r.d)) continue;
+      v.steps = steps; v.stepsSrc = 'phone';
+      // newer than any edit on a page so far, so this number wins the next sync
+      await this.write('d', day, v, Math.max(Date.now(), ((r && r.u) || 0) + 1));
+      saved++;
+    }
+    const last = days[days.length - 1];
+    await this.s.put('dev:' + dev, { ...d, last: Date.now(), app, today: last ? last.steps : d.today ?? null, day: last ? last.day : d.day || null });
+    return { saved };
   }
 
   // Every live record, for a copy the person keeps (action=export)
@@ -183,6 +234,7 @@ export async function formaRoute(env, signed, reply) {
     return reply(200, { ok: true, ...d });
   }
   if (!env.SCANS) return reply(500, { ok: false, error: 'KV binding SCANS is not set' });
+  if (action.startsWith('step')) { const r = await stepAction(env, signed, action, ask, reply); if (r) return r; }
   const mine = (await readJson(env, 'fb:' + me)) || [];
   if (action === 'invite') {
     const code = code6();

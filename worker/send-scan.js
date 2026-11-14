@@ -19,6 +19,7 @@
  *   POST /commands         chat commands on|off|status: points the bot's webhook at this Worker (see brief.js)
  *   POST /tg               Telegram's webhook: /bus /wetter /muell /wort /help in a private chat
  *   POST /list             the family shopping list (Durable Object), see list.js
+ *   POST /steps/pair, /steps  the step counter app: pairing with a code from «Харчування», then the day's steps (steps.js)
  *   POST /talk             «Розмова»: a German conversation with the AI, with corrections (talk.js)
  *   POST /forma            «Харчування» and «Тренування»: the person's records, partners and their progress (forma.js)
  *   POST /voice            a recording → the text and the things to buy in it (Whisper on Workers AI, voice.js)
@@ -75,9 +76,10 @@ import { formaRoute, HEALTH, healthPrefs, healthConfirm, sendHealth } from './fo
 import { report } from './report.js';
 import { sendWeekly } from './chat.js';
 import { transcribe, itemsOf, diaryCommand, voiceAllowed } from './voice.js';
-import { partnersOf } from './forma.js';
+import { partnersOf, askForma } from './forma.js';
 import { noteNeurons } from './usage.js';
 import { talk } from './talk.js';
+import { stepsRoute } from './steps.js';
 export { ShoppingList } from './list.js';   // the Durable Object classes must be exported by the main module
 export { Forma } from './forma.js';
 
@@ -149,6 +151,7 @@ export default {
       return formaRoute(env, signed, reply);
     }
     if (path === '/translate' || path === '/translate/check') return translate(request, env, reply, path);
+    if (path === '/steps' || path === '/steps/pair') return stepsRoute(request, env, path, askForma, cors);   // the step counter app (steps.js)
     if (path === '/talk') {   // practising German with the AI (talk.js)
       if (request.method !== 'POST') return reply(405, { ok: false, error: 'POST only' });
       const signed = await readSigned(request, env, reply);

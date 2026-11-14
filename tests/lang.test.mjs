@@ -5,7 +5,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const SKIP = new Set(['.git', 'node_modules', '__pycache__', 'three', 'maplibre', 'fonts', 'audio']);
+const SKIP = new Set(['.git', 'node_modules', '__pycache__', 'three', 'maplibre', 'fonts', 'audio', 'build', '.gradle']);
 const TEXT = /\.(js|mjs|html|css|py|md|json|webmanifest|toml|yml|txt|svg)$/;
 const files = [];
 (function walk(d) { for (const n of readdirSync(d)) { const p = join(d, n); if (statSync(p).isDirectory()) { if (!SKIP.has(n)) walk(p); } else if (TEXT.test(n)) files.push(p); } })(ROOT);

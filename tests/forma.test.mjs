@@ -328,5 +328,46 @@ messages.length = 0;
 await hook(USER_A, { file_id: 'f3', duration: 200 });
 t('a voice message over a minute: asked to keep it short', messages.some((m) => m.text.includes('до хвилини')));
 
+/* ---------- the step counter app ---------- */
+{
+  const { berlinDay } = await import('../smittia/due.js');
+  const { cleanDays } = await import('../worker/steps.js');
+  const today = berlinDay(new Date()), dayAt = (n) => new Date(Date.parse(today + 'T12:00:00Z') + n * 86400000).toISOString().slice(0, 10);
+  const app = async (path, body, token, ip = '1.2.3.4') => {
+    const res = await worker.fetch(new Request('https://w.example' + path, { method: 'POST', headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': ip, ...(token ? { Authorization: 'Bearer ' + token } : {}) }, body: JSON.stringify(body) }), env, { waitUntil() {} });
+    return { status: res.status, body: await res.json().catch(() => null) };
+  };
+  const c = await post('/forma', USER_B, { action: 'stepcode' });
+  t('step counter: a code of 8 letters for 15 minutes', c.status === 200 && /^[A-Z2-9]{8}$/.test(c.body.code) && c.body.ttl === 900, JSON.stringify(c.body));
+  t('…a wrong code: 404', (await app('/steps/pair', { code: 'AAAAAAAA', device: 'X' })).status === 404);
+  const p1 = await app('/steps/pair', { code: c.body.code.toLowerCase().replace(/(....)/, '$1-'), device: 'Nothing Phone (2a)' });
+  t('…pairing with the code (any case, a dash): a token for the phone', p1.status === 200 && p1.body.token.length >= 40 && p1.body.name === 'Ольга', JSON.stringify(p1.body));
+  t('…the code works once', (await app('/steps/pair', { code: c.body.code, device: 'X' })).status === 404);
+  t('…only the token\'s hash is kept', ![...kv.values()].some((v) => String(v).includes(p1.body.token)));
+  t('steps without a token: 401', (await app('/steps', { days: [] })).status === 401 && (await app('/steps', { days: [] }, 'x'.repeat(43))).status === 401);
+  const s1 = await app('/steps', { days: [{ day: dayAt(-1), steps: 8123 }, { day: today, steps: 4210.6 }, { day: dayAt(3), steps: 5 }, { day: dayAt(-30), steps: 5 }, { day: today, steps: 1 }, { day: 'x', steps: 2 }, { day: dayAt(-2), steps: -4 }, { day: dayAt(-3), steps: 999999 }, { day: dayAt(-4), steps: 0 }], app: '1.0' }, p1.body.token);
+  t('…the steps of yesterday and today saved; the future, old days, nonsense and empty new days left out', s1.status === 200 && s1.body.saved === 2, JSON.stringify(s1.body));
+  const rowsB = (await sync(USER_B, 0, [])).body.rows.filter((r) => r.k === 'd');
+  const dToday = rowsB.find((r) => r.id === today), dYest = rowsB.find((r) => r.id === dayAt(-1));
+  t('…in the day records the pages sync, marked as from the phone', dToday && dToday.v.steps === 4211 && dToday.v.stepsSrc === 'phone' && dYest && dYest.v.steps === 8123, JSON.stringify(rowsB));
+  // the page wrote water today before the phone's number arrived: the phone keeps the water and adds its steps
+  await sync(USER_B, 0, [{ k: 'd', id: dayAt(-5), u: Date.now() - 1000, v: { water: 750, steps: 3000 } }]);
+  await app('/steps', { days: [{ day: dayAt(-5), steps: 6400 }] }, p1.body.token);
+  const d5 = (await sync(USER_B, 0, [])).body.rows.find((r) => r.k === 'd' && r.id === dayAt(-5));
+  t('…a day with water from the page: the water stays, the phone\'s steps replace the typed ones', d5.v.water === 750 && d5.v.steps === 6400, JSON.stringify(d5));
+  const same = await app('/steps', { days: [{ day: dayAt(-5), steps: 6400 }] }, p1.body.token);
+  t('…the same number again changes nothing', same.body.saved === 0);
+  const devs = await post('/forma', USER_B, { action: 'stepdevices' });
+  t('the page lists the phone: name, last sent, today\'s steps', devs.body.devices.length === 1 && devs.body.devices[0].name === 'Nothing Phone (2a)' && devs.body.devices[0].last > 0, JSON.stringify(devs.body));
+  t('another person sees no phone of hers', (await post('/forma', USER_A, { action: 'stepdevices' })).body.devices.length === 0);
+  const un = await post('/forma', USER_B, { action: 'stepunlink', dev: devs.body.devices[0].dev });
+  t('unpairing: the list is empty, the token stops working', un.body.devices.length === 0 && (await app('/steps', { days: [{ day: today, steps: 5000 }] }, p1.body.token)).status === 401);
+  const toks = [];
+  for (let i = 0; i < 4; i++) { const cc = (await post('/forma', USER_B, { action: 'stepcode' })).body.code; toks.push((await app('/steps/pair', { code: cc, device: 'Phone ' + i })).body.token); }
+  const after = (await post('/forma', USER_B, { action: 'stepdevices' })).body.devices.map((d) => d.name);
+  t('at most three phones: the oldest is unpaired', after.join() === 'Phone 1,Phone 2,Phone 3' && (await app('/steps', { days: [] }, toks[0])).status === 401 && (await app('/steps', { days: [] }, toks[3])).status === 200, after.join());
+  t('cleanDays: sorted, one per day', JSON.stringify(cleanDays([{ day: today, steps: 2 }, { day: dayAt(-1), steps: 1 }], today)) === JSON.stringify([{ day: dayAt(-1), steps: 1 }, { day: today, steps: 2 }]));
+}
+
 console.log(fails ? `${fails} FAILED` : 'all passed');
 process.exit(fails ? 1 : 0);

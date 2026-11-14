@@ -263,3 +263,11 @@ h3.group{margin:6px 2px -4px}
 .shop b{font-weight:500;flex:1}
 .shop small{color:var(--muted)}
 .pday .hrow h2 span.over{color:var(--over)}
+
+/* the phone's step counter */
+.field .from{font-weight:500;color:var(--on);font-size:12.5px}
+.steps{margin:0;padding-left:22px;display:grid;gap:12px}
+.steps li{padding-left:2px;line-height:1.4}
+.steps .btn{display:flex;align-items:center;justify-content:center;text-decoration:none}
+.buddies{list-style:none;margin:0;padding:0}
+.buddies .buddy:first-child{border-top:0}

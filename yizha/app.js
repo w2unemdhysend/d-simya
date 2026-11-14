@@ -230,8 +230,9 @@ function renderDay() {
         <h2 id="h-rest"><span aria-hidden="true">😴</span> Сон і кроки</h2>
         <div class="grid2" style="margin-top:10px">
           <div class="field"><span>Сон, годин</span><div class="stepper sm"><button type="button" data-sleep="-1" aria-label="Менше на пів години">−</button><input id="sleep" inputmode="decimal" aria-label="Сон, годин" value="${dv.sleep ? fmt1(dv.sleep) : ''}" placeholder="—"><button type="button" data-sleep="1" aria-label="Більше на пів години">+</button></div></div>
-          <label class="field"><span>Кроки</span><input id="steps" inputmode="numeric" maxlength="6" value="${dv.steps || ''}" placeholder="з телефона"></label>
+          <label class="field"><span>Кроки${dv.stepsSrc === 'phone' ? ' <small class="from">📱 з телефона</small>' : ''}</span><input id="steps" inputmode="numeric" maxlength="6" value="${dv.steps || ''}" placeholder="з телефона"></label>
         </div>
+        <button class="linkbtn" type="button" data-kroky>📱 ${dv.stepsSrc === 'phone' ? 'Крокомір телефона підключено' : 'Кроки самі з телефона: крокомір'}</button>
       </section>`;
     })()}`;
   paintSync();
@@ -572,11 +573,47 @@ function renderSheet() {
   const { view, data } = top(), body = $('#sheet-body');
   $('#sheet-back').hidden = sheet.stack.length < 2;
   const T = { add: data.pick ? 'Додати інгредієнт' : `Додати: ${(MEALS.find((m) => m.id === data.meal) || MEALS[0]).uk.toLowerCase()}`, portion: data.entry ? 'Змінити' : data.pick ? 'Скільки в страві' : 'Скільки',
-    scan: 'Штрихкод', custom: data.food ? 'Свій продукт' : 'Новий продукт', dish: data.draft && data.draft.id ? 'Своя страва' : 'Нова страва', shop: 'Список покупок з плану' };
+    scan: 'Штрихкод', custom: data.food ? 'Свій продукт' : 'Новий продукт', dish: data.draft && data.draft.id ? 'Своя страва' : 'Нова страва', shop: 'Список покупок з плану', kroky: 'Крокомір телефона' };
   if (data.plan && view === 'add') T.add = `План: ${(MEALS.find((m) => m.id === data.meal) || MEALS[0]).uk.toLowerCase()}, ${dayLabel(data.day).toLowerCase()}`;
   $('#sheet-title').textContent = T[view];
   body.scrollTop = 0;
-  ({ add: viewAdd, portion: viewPortion, scan: viewScan, custom: viewCustom, dish: viewDish, shop: viewShop })[view](body, data);
+  ({ add: viewAdd, portion: viewPortion, scan: viewScan, custom: viewCustom, dish: viewDish, shop: viewShop, kroky: viewKroky })[view](body, data);
+}
+/* the phone's step counter: the «Кроки D-SIM’YA» app (android/kroky) sends the steps from Health Connect */
+const APK = new URL('../kroky/dsimya-kroky.apk', location.href).href;
+const ago = (t) => { if (!t) return 'ще не надсилав'; const m = Math.round((Date.now() - t) / 60000); return m < 2 ? 'надіслав щойно' : m < 60 ? `надіслав ${m} хв тому` : m < 1440 ? `надіслав о ${new Date(t).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}` : `надіслав ${new Date(t).toLocaleDateString('uk-UA', { day: 'numeric', month: 'long' })}`; };
+function viewKroky(body, d) {
+  const can = !!(tg && tg.initData);
+  if (can && !d.loaded) { d.loaded = true; d.devices = null; db.call('stepdevices').then((r) => { d.devices = r.devices || []; if (top() && top().view === 'kroky') renderSheet(); }).catch(() => { d.devices = []; d.err = 'Не вдалося дізнатися, які телефони підключено.'; if (top() && top().view === 'kroky') renderSheet(); }); }
+  const devs = d.devices || [];
+  body.innerHTML = `<p class="note">Кроки можуть приходити самі: застосунок «Кроки D-SIM’YA» бере їх з Health Connect (лічильник телефона, Samsung Health, годинник) і щогодини надсилає сюди. Вводити руками більше не треба.</p>
+    ${!can ? '<p class="note">Підключення працює через бота: відкрий «Харчування» в Telegram.</p>' : ''}
+    ${d.devices == null && can ? '<p class="note">Перевіряю підключені телефони…</p>' : ''}
+    ${devs.length ? `<section class="card"><h3 class="group" style="margin:0 0 6px">Підключені телефони</h3><ul class="buddies">${devs.map((x) => `<li class="buddy"><span class="av" aria-hidden="true">📱</span><span class="t"><b>${esc(x.name)}</b><small>${esc(ago(x.last))}${x.today != null && x.last ? ` · сьогодні ${fmt(x.today)} кроків` : ''}</small></span><button class="iconbtn" type="button" data-kunlink="${esc(x.dev)}" aria-label="Відключити ${esc(x.name)}">${I.x}</button></li>`).join('')}</ul></section>` : ''}
+    <section class="card"><h3 class="group" style="margin:0 0 8px">${devs.length ? 'Підключити ще один телефон' : 'Як підключити (один раз)'}</h3>
+      <ol class="steps">
+        <li><b>Завантаж застосунок</b> на телефон з Android і встанови. Android спитає дозвіл на встановлення з браузера: так буває з усіма застосунками не з Play Market.
+          <a class="btn" style="margin-top:8px" id="k-dl" href="${esc(APK)}" target="_blank" rel="noopener">Завантажити «Кроки D-SIM’YA» (1 МБ)</a></li>
+        <li><b>Відкрий його</b> й натисни «Дозволити доступ до кроків»: увімкни і кроки, і доступ у фоні.</li>
+        <li><b>Візьми код</b> тут і введи його в застосунку.
+          ${can ? (d.code ? `<div class="code"><div class="big" aria-label="Код ${esc(d.code.split('').join(' '))}">${esc(d.code.slice(0, 4) + ' ' + d.code.slice(4))}</div><p>Дійсний 15 хвилин, підходить один раз. Щойно телефон підключиться, він з’явиться вище.</p></div>`
+            : '<button class="btn primary" type="button" id="k-code" style="margin-top:8px">Отримати код</button>') : ''}</li>
+      </ol>
+      <p class="note small"><b>Samsung:</b> у Samsung Health → Налаштування → Health Connect дозволь передавати кроки. <b>Інші телефони</b> (наприклад, Nothing): кроки в Health Connect записує сам телефон; якщо застосунок показує 0, хоча ти ходив(ла), відкрий у ньому «Відкрити Health Connect» і перевір, що кроки туди потрапляють.</p>
+    </section>
+    ${d.err ? `<p class="state err">${esc(d.err)}</p>` : ''}
+    <p class="note small">Застосунок читає лише кількість кроків за день і надсилає їх тільки сюди, у твій щоденник. Партнери в «Разом» кроків не бачать.</p>`;
+}
+let krokyPoll = null;
+function waitForPhone(d, before) {   // while a code is shown: look every 5 s whether the phone has paired (up to 15 min)
+  clearInterval(krokyPoll);
+  const until = Date.now() + 15 * 60000;
+  krokyPoll = setInterval(() => {
+    if (Date.now() > until || !top() || top().view !== 'kroky' || $('#sheet').hidden) { clearInterval(krokyPoll); return; }
+    db.call('stepdevices').then((r) => {
+      if ((r.devices || []).length > before) { clearInterval(krokyPoll); d.devices = r.devices; d.code = ''; renderSheet(); haptic('success'); toast('Телефон підключено: кроки приходитимуть самі'); }
+    }).catch(() => { /* try again in 5 s */ });
+  }, 5000);
 }
 const defaultMeal = () => { const h = new Date().getHours(); return h < 11 ? 'b' : h < 16 ? 'l' : h < 21 ? 'd' : 's'; };
 
@@ -856,6 +893,23 @@ function renderAll() {
 /* ---------- events ---------- */
 document.addEventListener('click', (e) => {
   const t = e.target;
+  // the phone's step counter
+  if (t.closest('[data-kroky]')) { openSheet('kroky', {}); return; }
+  if (t.closest('#k-code')) {
+    const d = top().data, before = (d.devices || []).length;
+    d.err = ''; t.closest('#k-code').disabled = true;
+    db.call('stepcode').then((r) => { d.code = r.code; renderSheet(); haptic('success'); waitForPhone(d, before); })
+      .catch((er) => { d.err = er.offline ? 'Немає зв’язку. Спробуй, коли буде інтернет.' : 'Не вдалося отримати код. Спробуй ще раз.'; renderSheet(); });
+    return;
+  }
+  const kl = t.closest('[data-kunlink]');
+  if (kl) {
+    if (!kl.dataset.armed) { kl.dataset.armed = '1'; kl.style.color = 'var(--danger)'; kl.setAttribute('aria-label', 'Натисни ще раз, щоб відключити'); setTimeout(() => { delete kl.dataset.armed; kl.style.color = ''; }, 3500); haptic(); return; }
+    const d = top().data;
+    db.call('stepunlink', { dev: kl.dataset.kunlink }).then((r) => { d.devices = r.devices || []; renderSheet(); toast('Телефон відключено'); }).catch(() => { d.err = 'Не вдалося відключити. Спробуй ще раз.'; renderSheet(); });
+    return;
+  }
+  if (t.closest('#k-dl') && tg && tg.openLink) { e.preventDefault(); try { tg.openLink(APK); } catch (er) { location.href = APK; } return; }
   // setup
   const seg = t.closest('[data-seg] [data-v]');
   if (seg && draft) { const name = seg.closest('[data-seg]').dataset.seg, val = seg.dataset.v; readSetup(); draft[name] = name === 'pace' ? Number(val) : val; $$(`[data-seg="${name}"] [data-v]`).forEach((b) => b.setAttribute('aria-checked', String(b === seg))); previewSetup(); haptic(); return; }

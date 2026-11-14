@@ -53,7 +53,12 @@ def multipart(body, ctype):
 
 class Server:
     """worker/forma.js in a few lines: each person's records (the newer change wins), partners by code"""
-    def __init__(self): self.recs, self.seq, self.buddies, self.codes, self.names, self.down, self.reminders = {}, {}, {}, {}, {}, set(), []
+    def __init__(self): self.recs, self.seq, self.buddies, self.codes, self.names, self.down, self.reminders, self.devices = {}, {}, {}, {}, {}, set(), [], {}
+    def phone_sends(self, uid, day, steps, u):
+        """the paired phone's steps written into the day record, as the Durable Object does"""
+        recs = self.recs.setdefault(uid, {}); seq = self.seq.get(uid, 0) + 1; self.seq[uid] = seq
+        old = (recs.get('d|' + day) or {}).get('v') or {}
+        recs['d|' + day] = {'k': 'd', 'id': day, 'u': u, 's': seq, 'v': {**old, 'steps': steps, 'stepsSrc': 'phone'}}
     def summary(self, uid):
         recs = self.recs.get(uid, {})
         live = {k: r for k, r in recs.items() if not r.get('d')}
@@ -96,6 +101,15 @@ class Server:
             return await route.fulfill(json={'ok': True, 'records': len(self.recs.get(uid, {}))})
         if action == 'buddies':
             return await route.fulfill(json={'ok': True, 'buddies': [self.summary(b) for b in self.buddies.get(uid, ())]})
+        # the step counter app (worker/steps.js): a code; the phones; unpairing
+        if action == 'stepcode':
+            self.stepcode = ''.join(random.choices('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', k=8))
+            return await route.fulfill(json={'ok': True, 'code': self.stepcode, 'ttl': 900})
+        if action == 'stepdevices':
+            return await route.fulfill(json={'ok': True, 'devices': self.devices.get(uid, [])})
+        if action == 'stepunlink':
+            self.devices[uid] = [d for d in self.devices.get(uid, []) if d['dev'] != f.get('dev')]
+            return await route.fulfill(json={'ok': True, 'devices': self.devices[uid]})
         return await route.fulfill(status=400, json={'ok': False})
     async def remind(self, route):
         f = multipart(route.request.post_data or '', route.request.headers.get('content-type', ''))
@@ -388,6 +402,25 @@ async def main():
         await a.select_option('#r-vaga-wd', '6'); await a.click('#r-vaga'); await a.wait_for_timeout(300)
         r = server.reminders[-1]
         check('weighing reminder on: Sunday at 07:30', r.get('kind') == 'vaga' and r.get('wd') == '6' and r.get('time') == '07:30', str(r))
+        # the phone's step counter
+        await a.click('#tab-day'); await a.wait_for_timeout(300)
+        await a.click('[data-kroky]'); await a.wait_for_timeout(400)
+        sh = await a.text_content('#sheet-body')
+        check('step counter: the sheet explains the app, links the download, no phone yet', await a.text_content('#sheet-title') == 'Крокомір телефона' and 'Health Connect' in sh and 'Samsung Health' in sh and 'Підключені телефони' not in sh, sh[:200])
+        await a.click('#k-dl'); await a.wait_for_timeout(100)
+        check('…the download opens outside Telegram, the app from the site', any(u.endswith('/kroky/dsimya-kroky.apk') for u in await a.evaluate('window.__links')), str(await a.evaluate('window.__links')))
+        await a.click('#k-code'); await a.wait_for_timeout(300)
+        shown = (await a.text_content('#sheet-body .code .big')).replace(' ', '')
+        check('…«Отримати код»: eight letters, shown in two groups, valid 15 minutes', shown == server.stepcode and '15 хвилин' in await a.text_content('#sheet-body .code'), shown)
+        server.devices[5151] = [{'dev': 'd1', 'name': 'Nothing A142', 'at': 1, 'last': None, 'today': None}]
+        await a.clock.run_for(5200); await a.wait_for_timeout(400)
+        check('…when the phone pairs, the sheet shows it by itself', 'Nothing A142' in await a.text_content('#sheet-body') and await a.locator('#sheet-body .code').count() == 0, await a.text_content('#sheet-body'))
+        await a.click('[data-kunlink="d1"]'); await a.click('[data-kunlink="d1"]'); await a.wait_for_timeout(300)
+        check('…unpairing takes two taps', 'Nothing A142' not in await a.text_content('#sheet-body') and server.devices[5151] == [])
+        await a.keyboard.press('Escape'); await a.wait_for_timeout(200)
+        server.phone_sends(5151, '2026-11-14', 7342, 4102444800000)
+        await a.evaluate("() => window.__yizha.db.sync()"); await a.wait_for_timeout(600)
+        check('the phone\'s steps arrive in the day, marked «з телефона»', await a.input_value('#steps') == '7342' and 'з телефона' in await a.text_content('#h-rest + .grid2, .card:has(#h-rest)'), await a.input_value('#steps'))
         await a_ctx.close(); await s_ctx.close()
 
         # ---------- narrow, dark ----------
