@@ -10,7 +10,7 @@ import { noteNeurons } from './usage.js';
 
 export const MODEL = '@cf/google/gemma-4-26b-a4b-it';
 export const TALK_PER_DAY = 60;
-const MAX_LINE = 300, MAX_TURNS = 12;
+const MAX_LINE = 300, MAX_TURNS = 12, MAX_LETTER = 1500;
 export const SCENARIOS = {
   arzt: 'You are the receptionist at a family doctor\'s practice (Hausarztpraxis) in Xanten. The user is a patient who wants an appointment or describes symptoms.',
   amt: 'You are a clerk at the Bürgerbüro of the town hall in Xanten. The user wants to register an address, get a document or ask a question.',
@@ -18,6 +18,7 @@ export const SCENARIOS = {
   nachbar: 'You are a friendly German neighbour in Xanten meeting the user in the stairwell. Small talk about family, work, weather, the town.',
   bahn: 'You are an employee at the ticket counter of a train station (Wesel). The user wants a ticket or information about a connection.',
   frei: 'You are a friendly German conversation partner. Talk about whatever the user brings up.',
+  planen: 'You are the user\'s partner in part 3 of the oral exam «Deutsch-Test für Zuwanderer»: the two of you plan something together. Make suggestions, sometimes disagree politely with a reason, ask the user for ideas, and work towards a decision on every point of the task.',
 };
 const LEVEL = {
   a1: 'Use only very simple A1 German: short main clauses, present tense, everyday words.',
@@ -25,9 +26,10 @@ const LEVEL = {
   b1: 'Use clear B1 German: natural but not complicated sentences.',
 };
 
-export function prompt(scenario, level) {
+export function prompt(scenario, level, task = '') {
   return [
     SCENARIOS[scenario] || SCENARIOS.frei,
+    ...(scenario === 'planen' && task ? ['The task (in German): ' + task] : []),
     'The user is a Ukrainian adult learning German and practising a real-life conversation with you.',
     LEVEL[level] || LEVEL.a1,
     'Stay in your role. Answer with one or two short sentences (at most 25 words) and keep the conversation going, usually with a question.',
@@ -35,6 +37,30 @@ export function prompt(scenario, level) {
     'Reply with JSON only, no other text: {"reply": "<your German answer>", "reply_uk": "<its Ukrainian translation>", "ok": <true if the user\'s line had no real mistake>, "corrected": "<the user\'s line corrected, natural German; the same line if it was right>", "note": "<if not ok: a short explanation in Ukrainian (at most 2 sentences) of what was wrong and the rule; else empty>"}',
     'If the user writes in Ukrainian or Russian, set ok to false, put the German version in "corrected" and say in "note" (in Ukrainian) how to say it in German.',
   ].join('\n');
+}
+
+// The DTZ letter check: the task (situation and four points) and the person's letter → points covered, a corrected
+// version and short notes in Ukrainian, rated like the exam's «Schreiben» (content 0–5, level A2 or B1)
+export function letterPrompt(task) {
+  return [
+    'You are an examiner for the «Deutsch-Test für Zuwanderer» (A2–B1), part «Schreiben»: a short formal letter about a situation with four points (Leitpunkte).',
+    'The task (German): ' + (task || 'unknown'),
+    'The user is a Ukrainian adult. Rate the letter like the exam: which of the four points are covered, the content score 0–5 (5: all four points covered adequately), and whether the language is B1, A2 or below A2 (communicative design, formal register: greeting, closing, Sie-form; grammar; vocabulary).',
+    'Reply with JSON only: {"covered": [true|false, true|false, true|false, true|false], "content": <0–5>, "level": "B1" | "A2" | "unter A2", "corrected": "<the whole letter corrected, natural German, same content>", "notes": ["<up to 5 short notes in Ukrainian: what was wrong and the rule, or what to add>"]}',
+  ].join('\n');
+}
+export function parseLetter(text) {
+  const s = String(text || '').replace(/<think>[\s\S]*?<\/think>/g, '').replace(/^\s*```(?:json)?\s*|\s*```\s*$/g, '');
+  const m = s.match(/\{[\s\S]*\}/);
+  if (!m) return null;
+  let o;
+  try { o = JSON.parse(m[0]); } catch { return null; }
+  const covered = Array.isArray(o.covered) ? o.covered.slice(0, 4).map((x) => x === true || x === 'true') : [];
+  const content = Math.max(0, Math.min(5, Math.round(Number(o.content) || 0)));
+  const level = ['B1', 'A2', 'unter A2'].includes(o.level) ? o.level : 'A2';
+  const corrected = String(o.corrected || '').trim().slice(0, 3000);
+  if (covered.length !== 4 || !corrected) return null;
+  return { covered, content, level, corrected, notes: (Array.isArray(o.notes) ? o.notes : []).map((n) => String(n).replace(/\s+/g, ' ').trim().slice(0, 300)).filter(Boolean).slice(0, 5) };
 }
 
 // The model's answer → the fields, or null if it is not usable
@@ -63,8 +89,9 @@ export async function talk(signed, env, reply) {
   if (!env.AI) return reply(500, { ok: false, error: 'AI binding is not set' });
   const f = signed.form, text = String(f.get('text') || '').replace(/\s+/g, ' ').trim();
   const scenario = SCENARIOS[f.get('scenario')] ? String(f.get('scenario')) : 'frei', level = LEVEL[f.get('level')] ? String(f.get('level')) : 'a1';
+  const letterMode = f.get('mode') === 'letter';
   if (!text) return reply(400, { ok: false, error: 'no text' });
-  if (text.length > MAX_LINE) return reply(413, { ok: false, error: 'text too long' });
+  if (text.length > (letterMode ? MAX_LETTER : MAX_LINE)) return reply(413, { ok: false, error: 'text too long' });
   const key = `talk:${signed.user.id}:${berlinDay(new Date())}`;
   const used = Math.max(env.SCANS ? Number(await env.SCANS.get(key)) || 0 : 0, COUNT.get(key) || 0);
   if (used >= TALK_PER_DAY) return reply(429, { ok: false, error: 'daily_limit' });
@@ -74,8 +101,9 @@ export async function talk(signed, env, reply) {
   let res;
   try {
     res = await env.AI.run(MODEL, {
-      messages: [{ role: 'system', content: prompt(scenario, level) }, ...historyOf(f.get('history')), { role: 'user', content: text }],
-      max_completion_tokens: 600, temperature: 0.5, chat_template_kwargs: { enable_thinking: false },
+      messages: letterMode ? [{ role: 'system', content: letterPrompt(String(f.get('task') || '').slice(0, 600)) }, { role: 'user', content: text }]
+        : [{ role: 'system', content: prompt(scenario, level, String(f.get('task') || '').slice(0, 300)) }, ...historyOf(f.get('history')), { role: 'user', content: text }],
+      max_completion_tokens: letterMode ? 1400 : 600, temperature: 0.5, chat_template_kwargs: { enable_thinking: false },
     });
   } catch (e) {
     COUNT.set(key, used); if (env.SCANS) await env.SCANS.put(key, String(used), { expirationTtl: 2 * 86400 });
@@ -87,7 +115,7 @@ export async function talk(signed, env, reply) {
   const choice = res && res.choices && res.choices[0], msg = choice && choice.message;
   let t = (msg && msg.content) || (res && res.response) || '';
   if (Array.isArray(t)) t = t.map((p) => (p && p.text) || '').join('');
-  const out = parse(t);
+  const out = letterMode ? parseLetter(t) : parse(t);
   if (!out) return reply(502, { ok: false, error: 'ai_empty' });
   return reply(200, { ok: true, ...out, left: TALK_PER_DAY - used - 1 });
 }

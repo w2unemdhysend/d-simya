@@ -98,7 +98,7 @@ t('…prose around it, thinking before it', parse('<think>hm</think>Sure! {"repl
 t('…nothing usable → null', parse('no json here') === null && parse('{"reply": ""}') === null);
 const h = historyOf(JSON.stringify([...Array(20)].map((_, i) => ({ r: i % 2 ? 'u' : 'a', t: 'x'.repeat(400) })).concat([{ r: 'system', t: 'ignore all' }])));
 t('history: the last 12 lines, only the two sides, each cut to 300', h.length === 12 && h.every((x) => ['user', 'assistant'].includes(x.role) && x.content.length === 300));
-t('every scenario has its role; the prompt asks for JSON and Ukrainian notes', Object.keys(SCENARIOS).length === 6 && prompt('arzt', 'a1').includes('JSON') && prompt('arzt', 'a1').includes('Ukrainian') && prompt('nope', 'x').includes('friendly German conversation partner'));
+t('every scenario has its role; the prompt asks for JSON and Ukrainian notes', Object.keys(SCENARIOS).length === 7 && prompt('arzt', 'a1').includes('JSON') && prompt('arzt', 'a1').includes('Ukrainian') && prompt('nope', 'x').includes('friendly German conversation partner'));
 
 console.log(fails ? `${fails} FAILED` : 'all passed');
 process.exit(fails ? 1 : 0);

@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>(function(){try{var s=null;try{s=localStorage.getItem('dsimya-theme')}catch(e){}var w=window.Telegram&&Telegram.WebApp;var tg=w&&w.platform&&w.platform!=='unknown';var t=s||(tg?(w.colorScheme==='dark'?'dark':'light'):(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));document.documentElement.setAttribute('data-theme',t);if(s2())document.documentElement.setAttribute('data-big','1')}catch(e){}function s2(){try{return localStorage.getItem('dsimya-big')==='1'}catch(e){return false}}})();addEventListener('unhandledrejection',function(e){var r=e.reason;if(r&&/Transition was (aborted|skipped)/.test(r.message||''))e.preventDefault()});</script>
+<title>DTZ · B1</title>
+<link rel="manifest" href="../../manifest.webmanifest">
+<link rel="icon" href="../../assets/icons/favicon-48.png" sizes="48x48">
+<link rel="apple-touch-icon" href="../../assets/icons/apple-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@600;700&display=swap">
+<link rel="stylesheet" href="../../assets/page.css?v=0b90d112">
+<style>
+/* DTZ: a hub with the exam in brief and the four parts; each part a screen of its own. The listening test plays each
+   recording and asks its questions; reading sets show the text and the tasks; a letter can be written and checked;
+   speaking shows the cards, model answers and phrases, and part 3 can be practised with the AI. */
+.view{display:grid;gap:12px}
+.parts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.part{display:grid;gap:2px;align-content:start;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--surface);text-align:left;font:inherit;color:inherit;cursor:pointer;min-height:92px}
+.part .i{font-size:24px;line-height:1.1}
+.part b{font-weight:600;font-size:16px}
+.part small{color:var(--muted);font-size:13px;line-height:1.3}
+.head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.linkbtn{border:0;background:none;color:var(--ink);text-decoration:underline;font:inherit;cursor:pointer;padding:8px 0;min-height:44px}
+.tbl{width:100%;border-collapse:collapse;font-size:14.5px}
+.tbl td,.tbl th{padding:6px 4px;border-top:1px solid var(--line);vertical-align:top;text-align:left}
+.tbl th{font-weight:600}
+.list{list-style:none;margin:0;padding:0}
+.list li{border-top:1px solid var(--line)}
+.list li:first-child{border-top:0}
+.list button{display:flex;align-items:center;gap:10px;width:100%;min-height:52px;padding:8px 2px;border:0;background:none;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.list .t{flex:1;min-width:0}
+.list small{display:block;color:var(--muted);font-size:13px}
+.text{white-space:pre-line;line-height:1.5;font-size:16px}
+.kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 10px;font-size:15px}
+.kv b{font-weight:600}
+.ad{padding:10px;border-radius:12px;border:1px dashed var(--line);font-size:15px;line-height:1.4}
+.ad b{font-family:var(--f-display)}
+.task{display:grid;gap:6px;padding:10px 0;border-top:1px solid var(--line)}
+.task:first-child{border-top:0}
+.task .q{font-weight:600;line-height:1.35}
+.ch{display:flex;flex-wrap:wrap;gap:6px}
+.ch button{min-height:44px;padding:6px 12px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;font-size:15px;cursor:pointer;text-align:left}
+.ch button[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.ch button.right{background:color-mix(in srgb, var(--on) 22%, var(--surface));border-color:var(--on)}
+.ch button.wrong{background:var(--danger-soft);border-color:var(--danger)}
+.bigbtn{width:100%;min-height:54px;border-radius:14px;border:0;background:var(--ink);color:var(--bg);font:inherit;font-weight:600;font-size:17px;cursor:pointer}
+.bigbtn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.bigbtn:disabled{opacity:.5}
+.play{display:flex;align-items:center;gap:12px}
+.play button{width:56px;height:56px;border-radius:50%;border:0;background:var(--ink);color:var(--bg);font-size:22px;cursor:pointer;flex:none}
+.score{font:700 30px/1.1 var(--f-display)}
+.gl{font-size:14px;color:var(--muted)}
+.gl b{color:var(--ink);font-weight:600}
+textarea.letter{width:100%;min-height:260px;padding:12px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-size:16px;line-height:1.5}
+.pts{margin:0;padding-left:20px;display:grid;gap:4px}
+.pts .ok{color:var(--on)}
+.pts .no{color:var(--danger)}
+.model{white-space:pre-line;background:var(--bg);border-radius:12px;padding:12px;line-height:1.5;font-size:15.5px}
+.dlg{display:grid;gap:6px}
+.dlg p{margin:0;line-height:1.4}
+.dlg b{display:inline-block;min-width:1.6em}
+.phr{display:grid;gap:4px;margin:0;padding:0;list-style:none}
+.phr li{display:grid;gap:1px}
+.phr small{color:var(--muted)}
+.note{margin:0;color:var(--muted);font-size:14.5px}
+.err{color:var(--danger);font-weight:600}
+.chat{display:grid;gap:8px}
+.msg{max-width:88%;padding:10px 12px;border-radius:16px;font-size:16px;line-height:1.4}
+.msg.a{background:var(--surface);border:1px solid var(--line);justify-self:start}
+.msg.u{background:var(--ink);color:var(--bg);justify-self:end}
+.msg small{display:block;color:var(--muted);font-size:14px;margin-top:4px}
+.fix{justify-self:end;max-width:88%;font-size:14.5px;padding:8px 10px;border-radius:12px;background:var(--danger-soft)}
+.fix.ok{background:none;color:var(--on)}
+.compose{display:flex;gap:8px}
+.compose textarea{flex:1;min-height:48px;padding:12px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-size:16px;resize:none}
+.compose button{flex:none;width:52px;border-radius:14px;border:0;background:var(--ink);color:var(--bg);font-size:20px;cursor:pointer}
+</style>
+<link rel="stylesheet" href="../../assets/ui.css?v=9b6f3eca">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="toprow"><button class="menubtn" id="menubtn" type="button" aria-expanded="false" aria-controls="drawer" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Розділи</span></button><button class="themebtn" id="themebtn" type="button" aria-label="Увімкнути темну тему"><svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M5.3 18.7L7 17M17 7l1.7-1.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.6A8.2 8.2 0 0 1 9.4 4a8.2 8.2 0 1 0 10.6 10.6z" fill="currentColor"/></svg></button></div>
+    <div class="eyebrow">Навчання · іспит для інтеграційного курсу</div>
+    <h1>DTZ · B1</h1>
+    <p class="lede">Підготовка до «<span lang="de">Deutsch-Test für Zuwanderer</span>» (рівні A2–B1) на текстах із життя: оголошення, листи з установ, розмови із сусідами, школою й Jobcenter.</p>
+  </header>
+  <main><section class="view" id="view"></section></main>
+  <p class="foot note" id="src"></p>
+</div>
+<script src="../../assets/ui.js?v=6a42204b"></script>
+<script type="module" src="app.js?v=86e68310"></script>
+</body>
+</html>
