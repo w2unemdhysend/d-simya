@@ -1,0 +1,80 @@
+/* «Тренування». Buttons, fields, the sheet and the toast come from yizha/yizha.css. */
+/* the figure: round strokes; the near side in ink, the far side paler */
+.fig{display:block;width:100%;height:auto}
+.fig line{stroke-linecap:round}
+.fig .floor{stroke:var(--line);stroke-width:3}
+.fig .prop{stroke:var(--line);stroke-width:5;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.fig .mat{fill:var(--accent-soft)}
+.fig .b line{stroke:var(--ink);stroke-width:10}
+.fig .b .tr{stroke-width:13}
+.fig .b .sh{stroke-width:9}
+.fig .f line{stroke:var(--muted);stroke-width:10;opacity:.55}
+.fig .ft{stroke-width:7!important}
+.fig .hd{fill:var(--ink)}
+.player .fig .b line,.player .fig .hd{stroke:var(--p-ink)}
+.player .fig .hd{fill:var(--p-ink)}
+
+/* today */
+.hero{display:grid;gap:10px}
+.hero h2{font-size:21px}
+.meta{display:flex;flex-wrap:wrap;gap:6px}
+.strip{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -14px;padding:2px 14px}
+.strip::-webkit-scrollbar{display:none}
+.thumb{flex:none;width:92px;border:1px solid var(--line);border-radius:12px;background:var(--bg);padding:4px 4px 6px;text-align:center;cursor:pointer;font:inherit;color:inherit}
+.thumb small{display:block;font-size:11.5px;line-height:1.2;color:var(--muted);margin-top:2px}
+.btn.go{min-height:58px;font-size:18px}
+.btn.go svg{width:24px;height:24px}
+.week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-top:10px}
+.wd{display:grid;justify-items:center;gap:4px;font-size:12.5px;color:var(--muted)}
+.wd i{width:36px;height:36px;border-radius:50%;border:2px dashed transparent;display:grid;place-items:center;font-style:normal;font-weight:700;color:var(--bg);font-size:15px}
+.wd.plan i{border-color:var(--line)}
+.wd.done i{background:var(--ok);border:0}
+.wd.walk i{background:var(--accent-soft);border:0;color:var(--accent)}
+.wd.today b{color:var(--ink)}
+.wd b{font-weight:600}
+.hist{list-style:none;margin:6px 0 0;padding:0}
+.hist li{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+.hist li:first-child{border-top:0}
+.hist .t{flex:1;min-width:0}
+.hist .t b{display:block;font-weight:500;font-size:15.5px}
+.hist .t small{display:block;color:var(--muted);font-size:13px}
+
+/* exercises */
+.moves{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.mcard{display:grid;gap:2px;padding:6px 8px 10px;border:1px solid var(--line);border-radius:14px;background:var(--surface);text-align:left;font:inherit;color:inherit;cursor:pointer;min-width:0;touch-action:manipulation}
+.mcard b{font-weight:600;font-size:14.5px;line-height:1.25}
+.mcard small{font-size:12.5px;color:var(--muted);line-height:1.25}
+.mcard:active{transform:scale(.98)}
+.mbig{border-radius:16px;background:var(--surface);border:1px solid var(--line);padding:6px}
+.steps{margin:0;padding-left:22px;display:grid;gap:6px}
+.steps li{padding-left:2px}
+.warnlist{margin:0;padding-left:20px;color:var(--muted);display:grid;gap:4px}
+.dchips{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.dchips .chip{justify-content:center;padding:0;min-height:44px}
+
+/* the player: full screen, big and readable from two metres */
+.player{position:fixed;inset:0;z-index:70;background:var(--bg);display:flex;flex-direction:column;padding-top:var(--sat, 0px);padding-bottom:var(--sab, 0px);--p-ink:var(--ink)}
+.p-head{display:flex;align-items:center;gap:8px;padding:8px max(8px, env(safe-area-inset-right)) 4px max(8px, env(safe-area-inset-left))}
+.p-prog{flex:1;height:6px;border-radius:999px;background:var(--ring-bg);overflow:hidden}
+.p-prog i{display:block;height:100%;width:0;background:var(--ok);transition:width .4s linear}
+.p-body{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;padding:4px 16px 16px;max-width:560px;width:100%;margin:0 auto;overflow-y:auto}
+.p-phase{font-weight:600;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);text-align:center}
+.p-phase.rest{color:var(--accent)}
+.p-name{font:700 24px/1.15 var(--f-display);text-align:center;margin:0}
+.p-stage{width:min(100%, 46vh);max-width:380px}
+.p-timer{font:700 64px/1 var(--f-display);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.p-timer.low{color:var(--danger)}
+.p-tip{text-align:center;color:var(--muted);font-size:15.5px;max-width:40ch;margin:0;min-height:2.6em}
+.p-next{font-size:14.5px;color:var(--muted);text-align:center}
+.p-next b{color:var(--ink);font-weight:600}
+.p-ctrl{display:flex;align-items:center;justify-content:center;gap:18px;margin-top:6px}
+.p-ctrl button{width:60px;height:60px;border-radius:50%;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;cursor:pointer;color:var(--ink);touch-action:manipulation}
+.p-ctrl button svg{width:26px;height:26px}
+.p-ctrl .main{width:84px;height:84px;background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.p-ctrl .main svg{width:34px;height:34px}
+.p-ctrl button:active{transform:scale(.94)}
+.p-done{display:grid;gap:12px;justify-items:center;text-align:center;margin-top:8vh;width:100%}
+.p-done .big{font:700 30px/1.1 var(--f-display)}
+.p-done .stats{width:100%}
+body.playing{overflow:hidden}
+@media (max-height:640px){.p-timer{font-size:48px}.p-name{font-size:20px}.p-stage{width:min(100%, 38vh)}}

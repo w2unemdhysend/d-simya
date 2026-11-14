@@ -12,13 +12,14 @@
   "keep_vars": true,
   // Every deploy (wrangler deploy, also Cloudflare's own build on a push) first runs the server's tests, about 1 s:
   // if one fails, nothing is deployed and the Worker that runs now stays (the same list: npm run test:worker)
-  "build": { "command": "node tools/test.mjs access bot features transit worker", "watch_dir": "worker" },
+  "build": { "command": "node tools/test.mjs access bot features forma transit worker", "watch_dir": "worker" },
   "kv_namespaces": [{ "binding": "SCANS" }],
   // Workers AI translates scanned pages (free plan: 10 000 neurons a day)
   "ai": { "binding": "AI" },
-  // The family shopping list: one Durable Object per list (SQLite storage, available on the free plan)
-  "durable_objects": { "bindings": [{ "name": "LISTS", "class_name": "ShoppingList" }] },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ShoppingList"] }],
+  // The family shopping list: one Durable Object per list; «Харчування» and «Тренування»: one per person (worker/forma.js).
+  // SQLite storage, available on the free plan.
+  "durable_objects": { "bindings": [{ "name": "LISTS", "class_name": "ShoppingList" }, { "name": "FORMA", "class_name": "Forma" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ShoppingList"] }, { "tag": "v2", "new_sqlite_classes": ["Forma"] }],
   // The public endpoints that reach OSRM or VRR on every call (walking routes, stops near me): at most 30 a minute
   // per address across Cloudflare (worker/transit.js also keeps a cap per Worker instance, binding or not)
   "ratelimits": [{ "name": "LIMITER", "namespace_id": "1001", "simple": { "limit": 30, "period": 60 } }],

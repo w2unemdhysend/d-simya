@@ -1,0 +1,56 @@
+{
+ "hits": [
+  {
+   "code": "4337185761638",
+   "brands": [
+    "K-Classic"
+   ],
+   "quantity": "500 g",
+   "product_name": "Skyr natur",
+   "product_name_de": "Skyr natur",
+   "image_front_small_url": "https://images.openfoodfacts.org/images/products/433/718/576/1638/front_de.21.200.jpg",
+   "image_front_thumb_url": "https://images.openfoodfacts.org/images/products/433/718/576/1638/front_de.21.100.jpg",
+   "nutriments": {
+    "energy-kcal_100g": 64,
+    "proteins_100g": 11,
+    "fat_100g": 0.2,
+    "carbohydrates_100g": 4
+   }
+  },
+  {
+   "code": "25814866",
+   "brands": [
+    "Penny",
+    "Elite",
+    "Huber"
+   ],
+   "quantity": "500 g",
+   "product_name": "Skyr Erdbeere",
+   "product_name_de": "Skyr natur",
+   "image_front_small_url": "https://images.openfoodfacts.org/images/products/25814866/front_de.15.200.jpg",
+   "image_front_thumb_url": "https://images.openfoodfacts.org/images/products/25814866/front_de.15.100.jpg",
+   "nutriments": {
+    "energy-kcal_100g": 270,
+    "proteins_100g": 11,
+    "fat_100g": 0.2,
+    "carbohydrates_100g": 4
+   }
+  },
+  {
+   "code": "4337256379458",
+   "brands": [
+    "REWE Bio"
+   ],
+   "quantity": "400g",
+   "product_name": "Skyr Natur",
+   "product_name_de": "Skyr Natur",
+   "nutriments": {
+    "energy-kcal_100g": 60.7074569789675,
+    "proteins_100g": 11,
+    "fat_100g": 0.2,
+    "carbohydrates_100g": 3.5
+   }
+  }
+ ],
+ "count": 3
+}

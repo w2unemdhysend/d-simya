@@ -1,0 +1,21 @@
+{
+ "code": "4000417025005",
+ "status": 1,
+ "product": {
+  "brands": "Ritter Sport",
+  "code": "4000417025005",
+  "image_front_small_url": "https://images.openfoodfacts.org/images/products/400/041/702/5005/front_en.237.200.jpg",
+  "image_front_thumb_url": "https://images.openfoodfacts.org/images/products/400/041/702/5005/front_en.237.100.jpg",
+  "product_name": "RITTER SPORT marsepein",
+  "product_name_de": "Marzipan",
+  "quantity": "100g",
+  "serving_quantity": 6.52,
+  "serving_size": "1 Cube (6.52 g)",
+  "nutriments": {
+   "energy-kcal_100g": 496,
+   "proteins_100g": 7,
+   "fat_100g": 27,
+   "carbohydrates_100g": 52
+  }
+ }
+}

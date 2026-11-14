@@ -12,10 +12,12 @@
  *                            smittia (default, evening before a waste pickup; district, bins, rhythm; action=prefs updates them)
  *                            prospekty (Monday flyers) · wetter (DWD weather warnings; place, level 1–3) · wort (word of the day)
  *                            ranok (morning digest; time, place, waste choices, stops) · zboi (messages about failures)
+ *                            sport (workout days and time, the next workout) · yizha (meals, a time) · vaga (weighing, weekday and time)
  *   POST /stops            the stops pinned in «Транспорт» (stops=[{id, name}], up to four): /bus and the digest show them
  *   POST /commands         chat commands on|off|status: points the bot's webhook at this Worker (see brief.js)
  *   POST /tg               Telegram's webhook: /bus /wetter /muell /wort /help in a private chat
  *   POST /list             the family shopping list (Durable Object), see list.js
+ *   POST /forma            «Харчування» and «Тренування»: the person's records, partners and their progress (forma.js)
  *   POST /translate        text of one scanned page (recognised on the phone) → its translation,
  *                          by Gemma 4 on Workers AI (free daily allowance)
  *   GET  /translate/check  translates a fixed sentence (?page=1: a fixed letter): shows the model answers;
@@ -27,13 +29,15 @@
  *   cron, every 30 minutes, each job checks the time in Xanten and sends at most once:
  *                          18:00 daily: which bins go out tomorrow · Mondays 08:00: new flyers and closed days ·
  *                          09:00 daily: the word of the day · any time: new DWD warnings for subscribers' places ·
- *                          06:00–09:00: each person's morning digest · failures of services and jobs (health.js)
+ *                          06:00–09:00: each person's morning digest · failures of services and jobs (health.js) ·
+ *                          each person's own half hour: workout, meal and weighing reminders (forma.js)
  *
  * Settings (Cloudflare → Worker → Settings):
  *   BOT_TOKEN       secret, the token from @BotFather            (required)
  *   SCANS           KV namespace binding                          (required for /handoff and reminders)
  *   AI              Workers AI binding                            (required for /translate)
  *   LISTS           Durable Object binding (class ShoppingList)   (required for /list)
+ *   FORMA           Durable Object binding (class Forma)          (required for /forma)
  *   ALLOWED_ORIGIN  text, defaults to the origin of SITE in config.js
  *   ALLOWED_USERS   text, optional: more Telegram usernames or ids, comma separated (the family is in config.js)
  *   LIMITER         rate limiting binding, optional (wrangler.jsonc): caps the public endpoints per address
@@ -60,7 +64,9 @@ import { listRoute } from './list.js';
 import { WORD_BUTTON, wordConfirmText, sendWordOfDay } from './word.js';
 import { HOME_BUTTON, profileOf, stopsOf, briefConfirmText, sendBriefs, webhook, commands } from './brief.js';
 import { ALERTS, runJobs, watch } from './health.js';
-export { ShoppingList } from './list.js';   // the Durable Object class must be exported by the main module
+import { formaRoute, HEALTH, healthPrefs, healthConfirm, sendHealth } from './forma.js';
+export { ShoppingList } from './list.js';   // the Durable Object classes must be exported by the main module
+export { Forma } from './forma.js';
 
 const MAX_BYTES = 45 * 1024 * 1024;        // Bot API upload limit is 50 MB
 const MAX_AGE_SECONDS = 24 * 60 * 60;      // initData older than a day is refused
@@ -109,6 +115,12 @@ export default {
       if (signed instanceof Response) return signed;
       return listRoute(env, signed, reply);
     }
+    if (path === '/forma') {
+      if (request.method !== 'POST') return reply(405, { ok: false, error: 'POST only' });
+      const signed = await readSigned(request, env, reply);
+      if (signed instanceof Response) return signed;
+      return formaRoute(env, signed, reply);
+    }
     if (path === '/translate' || path === '/translate/check') return translate(request, env, reply, path);
     if (path !== '/') return reply(404, { ok: false, error: 'not found' });
     if (request.method !== 'POST') return reply(405, { ok: false, error: 'POST only' });
@@ -148,7 +160,7 @@ export default {
       const failed = await runJobs([
         ['нагадування про сміття', () => sendReminders(env, now, out)], ['проспекти', () => sendFlyerReminders(env, now, out)],
         ['попередження DWD', () => sendWarnings(env, now, out, WEATHER_BUTTON)], ['слово дня', () => sendWordOfDay(env, now, out)],
-        ['ранкове зведення', () => sendBriefs(env, now, out)],
+        ['ранкове зведення', () => sendBriefs(env, now, out)], ['здоров’я', () => sendHealth(env, now, out)],
       ]);
       try { await watch(env, now, failed, (text) => broadcast(env, out, ALERTS, text, HOME_BUTTON)); } catch (e) { console.log('watch failed', String(e && e.stack || e)); }
     })());
@@ -162,7 +174,8 @@ const FLYERS = { prefix: 'fsub:', button: button('Проспекти', 'prospekt
 const WEATHER_BUTTON = button('Погода', 'pogoda/');
 // how long after its hour a job may still send to whoever was missed (Telegram busy, the run's budget used up)
 const WINDOW_HOURS = 3;
-const KINDS = { smittia: 'sub:', prospekty: FLYERS.prefix, wetter: 'wsub:', wort: 'dsub:', ranok: 'bsub:', zboi: ALERTS };
+const KINDS = { smittia: 'sub:', prospekty: FLYERS.prefix, wetter: 'wsub:', wort: 'dsub:', ranok: 'bsub:', zboi: ALERTS,
+  sport: HEALTH.sport.prefix, yizha: HEALTH.yizha.prefix, vaga: HEALTH.vaga.prefix };
 
 // The stops pinned in «Транспорт»: kept in the person's profile (for /bus) and in a running digest. Only the stops
 // change; the place and waste choices stay as the «Бот» page sent them.
@@ -194,6 +207,7 @@ async function reminders(request, env, reply) {
   const prefs = waste ? prefsOf(cal, { district: f.get('district'), rhythm: f.get('rhythm'), bins: f.has('bins') ? String(f.get('bins')).split(',') : undefined })
     : kind === 'wetter' ? { place: PLACES[f.get('place')] ? String(f.get('place')) : 'Xanten', level: [1, 2, 3].includes(Number(f.get('level'))) ? Number(f.get('level')) : 2 }
     : kind === 'ranok' ? profileOf(f)   // also kept as the person's profile: the chat commands answer for the same place, bins and stop
+    : HEALTH[kind] ? healthPrefs(kind, f)
     : null;
   if (kind === 'ranok' && (action === 'on' || action === 'prefs') && !('stops' in prefs)) {
     // the page did not send pinned stops (it does not know them on this phone): the ones pinned before stay
@@ -221,6 +235,7 @@ async function reminders(request, env, reply) {
     if (flyers) { text = flyerConfirmText(new Date()); button = FLYERS.button; }
     else if (kind === 'wort') { text = wordConfirmText(new Date()); button = WORD_BUTTON; }
     else if (kind === 'ranok') { text = briefConfirmText(prefs); button = HOME_BUTTON; }
+    else if (HEALTH[kind]) { text = healthConfirm(kind, prefs); button = HEALTH[kind].button; }
     else if (kind === 'zboi') { text = 'Сповіщення про збої увімкнено. Я напишу, якщо розклад VRR, погода чи попередження DWD перестануть відповідати, якщо зламається одне з моїх завдань або закінчуватиметься календар сміття.'; button = HOME_BUTTON; }
     else if (kind === 'wetter') {
       let list = [];
@@ -245,6 +260,7 @@ async function reminders(request, env, reply) {
   let saved = null;
   if (rec && kind === 'wetter') { try { const r = JSON.parse(rec); saved = { place: r.place, level: r.level }; } catch { /* old record */ } }
   if (rec && kind === 'ranok') { try { saved = { time: JSON.parse(rec).time }; } catch { /* broken record */ } }
+  if (rec && HEALTH[kind]) { try { const r = JSON.parse(rec); saved = { time: r.time, days: r.days, wd: r.wd }; } catch { /* broken record */ } }
   return reply(200, { ok: true, on: rec !== null, ...(saved || {}) });
 }
 

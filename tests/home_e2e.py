@@ -5,7 +5,8 @@
 Covers: greeting by Xanten time, today's date; weather for the household's place; the next waste pickup (tomorrow:
 highlighted, "put the bins out tonight"; later: weekday and date; no district yet: asks to choose); three departures
 from the chosen stop with live marks; this week's flyers with seen count and holidays; the D-Ticket tile per platform
-(through Telegram openLink); every card and tile leads to its section; instructions and the bot last; 340 px and dark theme.
+(through Telegram openLink); food left today and the next workout from the records kept on the phone; every card and tile
+leads to its section; instructions and the bot last; 340 px and dark theme.
 Exits 1 if a check fails.
 """
 import asyncio, functools, http.server, json, os, sys, threading, datetime, urllib.parse
@@ -93,8 +94,8 @@ async def main():
         fly = await pg.evaluate(TEXT, '#c-fly')
         check('flyers: KW 46, until Saturday 14 November, 2 seen', 'KW 46' in fly and 'Акції до суботи, 14 листопада' in fly and 'Переглянуто 2 проспекти' in fly, fly)
         links = await pg.evaluate("() => [...document.querySelectorAll('main a')].map(a => a.getAttribute('href'))")
-        check('cards and tiles lead to every section; help, then instructions, the bot last', links[:5] == ['pogoda/', 'smittia/', 'transport/', 'prospekty/', 'spysok/'] and links[6:] == ['mapa/', 'scan/', 'ekstreno/', 'rozmovnyk/', 'a1/', 'pralka/', 'sushka/', 'bot/'], str(links))
-        check('D-Ticket on a computer: Google Play in a new tab', links[5].startswith('https://play.google.com/store/apps/details?id=mentz.com.vrr_cibo_app') and await pg.get_attribute('#t-dticket', 'target') == '_blank')
+        check('cards and tiles lead to every section; help, then instructions, the bot last', links[:6] == ['pogoda/', 'smittia/', 'transport/', 'prospekty/', 'spysok/', 'yizha/'] and links[7:] == ['sport/', 'mapa/', 'scan/', 'ekstreno/', 'rozmovnyk/', 'a1/', 'pralka/', 'sushka/', 'bot/'], str(links))
+        check('D-Ticket on a computer: Google Play in a new tab', links[6].startswith('https://play.google.com/store/apps/details?id=mentz.com.vrr_cibo_app') and await pg.get_attribute('#t-dticket', 'target') == '_blank')
         check('shopping list outside Telegram: says it works through the bot', 'через бота' in await pg.evaluate(TEXT, '#c-list'))
         check('no DWD warning: no warning line', await pg.locator('.dwd').count() == 0)
         groups = await pg.evaluate("[...document.querySelectorAll('main .group')].map(g => g.textContent)")
@@ -125,6 +126,20 @@ async def main():
         waste = await pg.evaluate(TEXT, '#c-waste')
         check('waste later: "У вівторок", 17 листопада, grey (2 тижні), not highlighted', 'У вівторок' in waste and '17 листопада' in waste and 'Сірий (2 тижні)' in waste and 'soon' not in await pg.get_attribute('#c-waste', 'class'), waste)
         check('morning greeting at 10:00', await pg.evaluate(TEXT, '#hello') == 'Доброго ранку')
+        check('food card without a goal yet: what it is for', 'Калорії, вага й мета' in await pg.evaluate(TEXT, '#c-food'))
+        await ctx.close()
+
+        # food and workouts from the records «Харчування» and «Тренування» keep on the phone
+        u = 1763000000000
+        recs = {'p|me': {'k': 'p', 'id': 'me', 'u': u, 'v': {'sex': 'f', 'born': 1968, 'cm': 163, 'start': {'kg': 84, 'day': '2026-11-01'}, 'goal': 70, 'act': 2, 'pace': 0.5, 'kcal': None}},
+                'w|2026-11-12': {'k': 'w', 'id': '2026-11-12', 'u': u, 'v': {'kg': 83.4}},
+                'e|2026-11-13~a': {'k': 'e', 'id': '2026-11-13~a', 'u': u, 'v': {'n': 'Гречка', 'kcal': 89, 'g': 200, 'p': 3.6, 'f': 0.4, 'c': 17}},
+                's|sport': {'k': 's', 'id': 'sport', 'u': u, 'v': {'plan': 'soft', 'start': '2026-11-09', 'days': [0, 2, 4], 'time': '18:00'}},
+                'x|2026-11-11~b': {'k': 'x', 'id': '2026-11-11~b', 'u': u, 'v': {'kind': 'w', 'plan': 'soft', 'wk': 'A', 'min': 15, 'kcal': 40}}}
+        ctx, pg, w = await page(browser, url, when='2026-11-13T09:00:00Z', store={'forma-db': {'seq': 0, 'recs': recs, 'dirty': []}})
+        food = await pg.evaluate(TEXT, '#c-food')
+        check('food card: what is left of the target today, eaten, the last weight', 'Ще 1' in food and 'З’їдено 178' in food and '83,4 кг' in food, food)
+        check('workouts tile: the next workout', await pg.text_content('#sport-sub') == 'Далі: B, спина й прес', await pg.text_content('#sport-sub'))
         await ctx.close()
 
         # Christmas week: closed days on the flyers card
