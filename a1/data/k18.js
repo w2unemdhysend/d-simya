@@ -104,5 +104,10 @@ export default {
     { t: "mc", q: "Яке речення правильне?", o: ["Ich habe Hunger, deshalb ich esse.", "Ich habe Hunger, deshalb esse ich.", "Ich habe Hunger, deshalb ich essen."], a: 1 },
     { t: "mc", q: "«Повна ставка» німецькою:", o: ["Vollzeit", "Teilzeit", "Überstunden"], a: 0 },
     { t: "mc", q: "Як правильно?", o: ["Kennst du den Student?", "Kennst du den Studenten?", "Kennst du dem Studenten?"], a: 1 },
+    { t: "mc", life: true, q: "Потяг запізнюється. Що написати керівникові?", o: ["Ich komme 20 Minuten später, weil der Zug Verspätung hat.", "Ich komme später, weil der Zug hat Verspätung.", "Zug kaputt. Später."], a: 0, why: "Після `weil` дієслово в кінці." },
+    { t: "mc", life: true, q: "Оголошення: `Wir suchen eine Küchenhilfe (m/w/d), Teilzeit, ab sofort.`", o: ["помічник на кухню, неповний день, з цього моменту", "кухар на повний день", "продають кухню"], a: 0 },
+    { t: "mc", life: true, q: "Лист: `Leider müssen wir Ihnen absagen.`", o: ["на жаль, відмова", "Вас запрошують на співбесіду", "Вас прийняли"], a: 0 },
+    { t: "gap", life: true, q: "`Warum lernst du Deutsch?` — `___ ich hier arbeiten möchte.`", a: ["Weil", "weil"] },
+    { t: "mc", life: true, q: "Колега: `Kannst du am Samstag arbeiten?` Ти не можеш. Що відповісти?", o: ["Leider nicht, am Samstag habe ich einen Termin.", "Nein, Samstag ist doof.", "Ja, nein."], a: 0 },
   ],
 };

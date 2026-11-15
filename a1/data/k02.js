@@ -114,5 +114,10 @@ export default {
     { t: "mc", q: "Як сказати «@» при диктуванні e-mail?", o: ["Punkt", "ät", "Strich"], a: 1 },
     { t: "mc", q: "Що означає «Was sind Sie von Beruf?»", o: ["Звідки Ви?", "Ким Ви працюєте?", "Що Ви вчите?"], a: 1 },
     { t: "gap", q: "Ich ___ als Programmierer. (arbeiten)", a: ["arbeite"], why: "ich → -e." },
+    { t: "mc", life: true, q: "Формуляр: `PLZ / Wohnort`. Що вписати?", o: ["поштовий індекс і місто", "номер телефону", "дату народження"], a: 0, why: "`PLZ` — Postleitzahl, поштовий індекс." },
+    { t: "mc", life: true, q: "Ти диктуєш e-mail. Як сказати знак @?", o: ["„at“ або розмовно „Klammeraffe“", "„Punkt“", "„Strich“"], a: 0, why: "`.` — `Punkt`, `-` — `Bindestrich`, `_` — `Unterstrich`." },
+    { t: "mc", life: true, q: "Тобі диктують номер: `null-eins-sieben-sechs …`. Які перші цифри?", o: ["0176", "1076", "0167"], a: 0 },
+    { t: "gap", life: true, q: "Адреса anna.koch@… уголос: `anna ___ koch`", a: ["Punkt"] },
+    { t: "mc", life: true, q: "По телефону ти не розчув номер. Що сказати?", o: ["Können Sie das bitte wiederholen?", "Ja, bitte.", "Ich habe keine Nummer."], a: 0 },
   ],
 };

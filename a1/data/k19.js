@@ -98,5 +98,10 @@ export default {
     { t: "mc", q: "Яке непряме питання правильне?", o: ["Weißt du, wo ist die Post?", "Weißt du, wo die Post ist?", "Weißt du, die Post wo ist?"], a: 1 },
     { t: "mc", q: "Як ввічливо не погодитися?", o: ["Das sehe ich anders.", "Das ist Quatsch.", "Du hast keine Ahnung."], a: 0 },
     { t: "mc", q: "«Я так думаю» німецькою:", o: ["Ich denke so.", "Ich glaube schon.", "Ich meine so."], a: 1 },
+    { t: "mc", life: true, q: "На пошті ти хочеш знати, коли прийде посилка. Як спитати ввічливо?", o: ["Können Sie mir sagen, wann das Paket kommt?", "Wann kommt das Paket, sagen Sie?", "Paket wann?"], a: 0 },
+    { t: "mc", life: true, q: "Радіо: `Wegen eines Unfalls ist die A57 gesperrt.`", o: ["через аварію автобан A57 перекрито", "на A57 ремонт", "A57 відкрили після аварії"], a: 0 },
+    { t: "gap", life: true, q: "`Weißt du, ___ der Supermarkt heute offen ist?` (чи)", a: ["ob"] },
+    { t: "mc", life: true, q: "Лист: `Wir teilen Ihnen mit, dass Ihr Antrag bewilligt wurde.`", o: ["Вашу заяву схвалено", "Вашу заяву відхилено", "Вам треба подати заяву"], a: 0, why: "`bewilligt` — схвалено, `abgelehnt` — відхилено." },
+    { t: "mc", life: true, q: "Сусід питає твою думку про новий парк. Як почати?", o: ["Ich finde, dass der Park sehr schön ist.", "Ich finde, der Park ist sehr schön ist.", "Park schön finde."], a: 0 },
   ],
 };

@@ -114,5 +114,10 @@ export default {
     { t: "mc", q: "Наказ від fahren на «ти»:", o: ["Fähr!", "Fahr!", "Fahrst!"], a: 1 },
     { t: "mc", q: "Наказ від sein на «ти»:", o: ["Bist pünktlich!", "Sei pünktlich!", "Sein pünktlich!"], a: 1 },
     { t: "mc", q: "Ich spiele mit ___ Kindern.", o: ["die", "den", "der"], a: 1, why: "Множина в Dativ: den + -n." },
+    { t: "mc", life: true, q: "Перехожий: `Gehen Sie geradeaus und dann die zweite Straße links.`", o: ["прямо, потім друга вулиця ліворуч", "праворуч, потім прямо", "друга вулиця праворуч"], a: 0 },
+    { t: "mc", life: true, q: "На зупинці: `Ersatzhaltestelle gegenüber`", o: ["тимчасова зупинка навпроти", "зупинку скасовано", "зупинка лише в неділю"], a: 0 },
+    { t: "mc", life: true, q: "Ти шукаєш аптеку. Як спитати?", o: ["Entschuldigung, wo ist hier eine Apotheke?", "Apotheke, wo du?", "Ich bin eine Apotheke."], a: 0 },
+    { t: "gap", life: true, q: "`Wie komme ich ___ Bahnhof?` (до)", a: ["zum"], why: "`zu + dem = zum`." },
+    { t: "mc", life: true, q: "Навігація в телефоні: `Nach 200 Metern rechts abbiegen.`", o: ["через 200 метрів повернути праворуч", "200 метрів стояти праворуч", "повернути ліворуч за 200 метрів"], a: 0 },
   ],
 };

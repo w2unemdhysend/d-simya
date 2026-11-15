@@ -145,7 +145,7 @@ async def main():
 
         # ---------------- exercises ----------------
         await pg.click('#tab-tasks'); await pg.wait_for_timeout(500)
-        check('exercises tab: nothing solved yet', (await text(pg, '#thead b')).startswith('Розв’язано 0 з 13'))
+        check('exercises tab: nothing solved yet', (await text(pg, '#thead b')).startswith('Розв’язано 0 з 18'))
         k3 = await pg.evaluate("window.__a1.CHAPTERS[2].tasks.map((t, i) => [t.t, i, t.a])")
         mc = next(t for t in k3 if t[0] == 'mc'); gap = next(t for t in k3 if t[0] == 'gap')
         wrong = (mc[2] + 1) % 3
@@ -161,7 +161,7 @@ async def main():
         await pg.fill(sel + ' .gapin', '  ' + gap[2][0].upper() + '. '); await pg.click(sel + ' [data-check]'); await pg.wait_for_timeout(200)
         check('a typed answer counts whatever its case, spaces and final full stop, and is then shown as written', await pg.evaluate(f"document.querySelector('{sel}').classList.contains('ok') && document.querySelector('{sel} .gapin').disabled")
               and await pg.input_value(sel + ' .gapin') == gap[2][0])
-        check('progress: 2 of 13, on the phone', (await text(pg, '#thead b')) == 'Розв’язано 2 з 13'
+        check('progress: 2 of 18, on the phone', (await text(pg, '#thead b')) == 'Розв’язано 2 з 18'
               and sorted((await pg.evaluate("JSON.parse(localStorage.getItem('a1-progress'))"))['done']) == sorted([f'3:{mc[1]}', f'3:{gap[1]}']))
         await pg.wait_for_timeout(1700)
         cloud = await pg.evaluate("JSON.parse(window.__cloud.a1 || 'null')")
@@ -182,9 +182,10 @@ async def main():
         check("Telegram's Back returns to the course", await visible(pg, '#view-hub') and pg.url.endswith('/a1/'))
 
         # ---------------- every exercise of the course ----------------
-        unsolved, wide = {}, []
+        unsolved, wide, lifeless = {}, [], []
         for n in range(1, N + 1):
             await pg.goto(f'{base}a1/?ch={n}&tab=tasks'); await pg.wait_for_timeout(350)
+            if await pg.evaluate("document.querySelectorAll('#p-tasks .task.life .lifetag').length") < 5: lifeless.append(n)
             left = await pg.evaluate(SOLVE)
             if left or not (await text(pg, '#thead b')).startswith('Усі вправи'): unsolved[n] = left
             for tab in ['tasks', 'gram', 'words', 'phr']:
@@ -192,6 +193,7 @@ async def main():
                 if not await fits(pg): wide.append(f'{n}:{tab}')
         check(f'every exercise of all {N} chapters is solved by its own answer', not unsolved, str(unsolved))
         check('every chapter and every tab fits 340 px', not wide, ', '.join(wide))
+        check('every chapter shows at least five tasks marked «У житті»', not lifeless, str(lifeless))
         await pg.goto(base + 'a1/'); await pg.wait_for_timeout(500)
         check('the course marks all chapters as done', await pg.evaluate("[...document.querySelectorAll('#view-hub .chrow')].every(r => r.classList.contains('full'))"))
 
@@ -274,7 +276,7 @@ async def main():
         # ---------------- another phone: progress from Telegram ----------------
         ctx, pg = await context(browser, cloud={'a1': json.dumps({'d': '6:0,6:1,6:2', 'l': 6})})
         await pg.goto(base + 'a1/'); await pg.wait_for_timeout(700)
-        check('progress solved on another phone arrives from Telegram', await text(pg, '.chrow[data-ch="6"] .pr') == '3/12' and '6. Продукти' in await text(pg, '.hcard.cont'))
+        check('progress solved on another phone arrives from Telegram', await text(pg, '.chrow[data-ch="6"] .pr') == '3/17' and '6. Продукти' in await text(pg, '.hcard.cont'))
         await ctx.close()
 
         # ---------------- who speaks: Тарас or Леся, switched in the menu's settings ----------------

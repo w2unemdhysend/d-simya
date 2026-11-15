@@ -116,5 +116,10 @@ export default {
     { t: "mc", q: "«Viertel vor neun» — це:", o: ["8:45", "9:15", "9:45"], a: 0 },
     { t: "mc", q: "Яке дієслово НЕ відокремлюється?", o: ["einkaufen", "bezahlen", "anrufen"], a: 1, why: "be- — невідокремлювана приставка." },
     { t: "mc", q: "Wie lange dauert der Kurs?", o: ["Am Montag.", "Drei Stunden.", "Um neun."], a: 1, why: "Wie lange? — як довго." },
+    { t: "mc", life: true, q: "Табличка: `Öffnungszeiten: Mo–Fr 8–12 Uhr`. Чи можна прийти в середу о 14:00?", o: ["ні, лише до 12:00", "так", "лише в суботу"], a: 0 },
+    { t: "mc", life: true, q: "У практиці: `Kommen Sie am Dienstag um Viertel nach zehn.` Коли?", o: ["вівторок, 10:15", "вівторок, 9:45", "четвер, 10:15"], a: 0, why: "`Viertel nach zehn` — 10:15, `Viertel vor zehn` — 9:45." },
+    { t: "mc", life: true, q: "`Der Bus fährt um halb acht.` Коли автобус?", o: ["7:30", "8:30", "8:00"], a: 0, why: "`halb acht` — пів на восьму, тобто 7:30." },
+    { t: "gap", life: true, q: "`Wann fängt der Kurs an?` — `Er fängt um neun Uhr ___.`", a: ["an"], why: "`anfangen` — відокремлюване: `an` іде в кінець." },
+    { t: "mc", life: true, q: "Знайома пише: `Treffen wir uns am Wochenende?` Коли?", o: ["у суботу чи неділю", "у понеділок", "увечері після роботи"], a: 0 },
   ],
 };

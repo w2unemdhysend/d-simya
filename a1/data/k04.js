@@ -122,5 +122,10 @@ export default {
     { t: "mc", q: "Який рід у слова Apfelsaft?", o: ["der", "die", "das"], a: 0, why: "Рід дає остання частина: der Saft." },
     { t: "mc", q: "Як прочитати 3,40 €?", o: ["drei Komma vierzig Euro", "drei Euro vierzig", "drei Euros vierzig Cents"], a: 1 },
     { t: "mc", q: "Що відповісти на «Zusammen oder getrennt?», якщо платиш лише за себе?", o: ["Zusammen, bitte.", "Getrennt, bitte.", "Stimmt so."], a: 1 },
+    { t: "mc", life: true, q: "Офіціант: `Was möchten Sie trinken?`", o: ["Einen Tee, bitte.", "Die Rechnung, bitte.", "Guten Appetit!"], a: 0 },
+    { t: "mc", life: true, q: "Ти хочеш заплатити в кафе. Що сказати?", o: ["Zahlen, bitte!", "Essen, bitte!", "Noch einmal, bitte!"], a: 0, why: "Або: `Die Rechnung, bitte.`" },
+    { t: "mc", life: true, q: "Офіціант питає: `Zusammen oder getrennt?`", o: ["платите разом чи окремо?", "ви прийшли разом?", "сядете разом чи окремо?"], a: 0 },
+    { t: "mc", life: true, q: "Рахунок 8,60 €. Ти даєш 10 € і кажеш `Stimmt so.` Що це означає?", o: ["решту залиште собі", "порахуйте ще раз", "дайте решту"], a: 0, why: "Чайові в кафе — зазвичай 5–10 %." },
+    { t: "mc", life: true, q: "У меню: `Tagesgericht 9,50 €` — це…", o: ["страва дня", "сніданок", "ціна напою"], a: 0 },
   ],
 };

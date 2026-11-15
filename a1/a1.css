@@ -146,6 +146,8 @@ td{min-width:4.5em}
 .tn{flex:none;width:26px;height:26px;border-radius:8px;display:inline-grid;place-items:center;background:var(--bg);border:1px solid var(--line);font-size:13px;font-weight:700;
   font-variant-numeric:tabular-nums;transform:translateY(-2px)}
 .task.ok .tn{background:var(--ok);border-color:var(--ok);color:var(--bg)}
+/* a task from real life: a sign, a letter, a form, what to say */
+.lifetag{display:inline-block;margin:0 8px 0 0;padding:1px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:700;line-height:1.6;vertical-align:2px;white-space:nowrap}
 .opts{display:grid;gap:8px;margin-top:12px}
 .opt{min-height:48px;border-radius:12px;border:1px solid var(--line);background:var(--bg);font-weight:500;font-size:16px;line-height:1.3;text-align:left;padding:10px 14px;cursor:pointer;
   touch-action:manipulation;transition:transform .1s ease, background-color .2s ease}

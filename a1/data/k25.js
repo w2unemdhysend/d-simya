@@ -97,5 +97,10 @@ export default {
     { t: "mc", q: "Як правильно?", o: ["Ich schenke ein Buch ihr.", "Ich schenke ihr ein Buch.", "Ich ihr schenke ein Buch."], a: 1 },
     { t: "mc", q: "Коли в Німеччині вітають з днем народження?", o: ["за тиждень до нього", "у сам день або пізніше", "лише листівкою"], a: 1 },
     { t: "mc", q: "«Alles Gute!» означає…", o: ["Усього найкращого!", "Усе гаразд.", "Добраніч!"], a: 0 },
+    { t: "mc", life: true, q: "Листівка колезі на день народження. Що написати?", o: ["Alles Gute zum Geburtstag!", "Gute Besserung!", "Herzliches Beileid!"], a: 0 },
+    { t: "mc", life: true, q: "Тобі дарують подарунок. Що сказати?", o: ["Vielen Dank, das ist aber nett!", "Was kostet das?", "Das brauche ich nicht."], a: 0 },
+    { t: "gap", life: true, q: "`Ich schenke ___ Mutter Blumen.` (моїй)", a: ["meiner"] },
+    { t: "mc", life: true, q: "Колеги збирають на подарунок: `Wir sammeln 5 € pro Person.`", o: ["по 5 € з людини", "5 € на всіх", "подарунок за 5 €"], a: 0 },
+    { t: "mc", life: true, q: "Подарунок не підійшов. Що запитати в магазині?", o: ["Kann ich das umtauschen?", "Kann ich das essen?", "Ist das schön?"], a: 0 },
   ],
 };

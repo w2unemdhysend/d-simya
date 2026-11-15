@@ -102,5 +102,10 @@ export default {
     { t: "mc", q: "Mit ___ Bus fährst du? (welch-)", o: ["welcher", "welchem", "welchen"], a: 1, why: "mit + Dativ: welchem." },
     { t: "mc", q: "Яке речення правильне?", o: ["Ich fahre mit den Bus.", "Ich fahre mit dem Bus.", "Ich fahre mit der Bus."], a: 1 },
     { t: "mc", q: "Die Jacke ist ___ eng (затісна).", o: ["sehr", "zu", "zum"], a: 1 },
+    { t: "mc", life: true, q: "Продавець: `Welche Größe haben Sie?`", o: ["який у Вас розмір?", "який колір?", "скільки коштує?"], a: 0 },
+    { t: "mc", life: true, q: "Табличка: `Umtausch nur mit Kassenbon`", o: ["обмін лише з чеком", "обмін без чека", "обміну немає"], a: 0 },
+    { t: "mc", life: true, q: "Штани замалі. Що попросити?", o: ["Haben Sie die Hose eine Nummer größer?", "Haben Sie die Hose kleiner?", "Die Hose ist schön, danke."], a: 0 },
+    { t: "mc", life: true, q: "Цінник: `Sale −30 %: 49,90 € → 34,93 €`", o: ["знижка 30 %, тепер 34,93 €", "ціна зросла на 30 %", "треба купити 30 штук"], a: 0 },
+    { t: "gap", life: true, q: "`Ich suche eine Jacke ___ meinen Sohn.` (для)", a: ["für"] },
   ],
 };

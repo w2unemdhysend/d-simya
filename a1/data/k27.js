@@ -90,5 +90,10 @@ export default {
     { t: "mc", q: "Як почати офіційний лист, якщо не знаєш імені?", o: ["Liebe Damen und Herren,", "Sehr geehrte Damen und Herren,", "Hallo zusammen,"], a: 1 },
     { t: "mc", q: "Як закінчити офіційний лист?", o: ["Mit freundlichen Grüßen", "Bis bald!", "Liebe Grüße"], a: 0 },
     { t: "mc", q: "«das Handy» — це…", o: ["мобільний телефон", "рукавичка", "ноутбук"], a: 0 },
+    { t: "mc", life: true, q: "Офіційний лист починається `Sehr geehrte Damen und Herren,`. Як закінчити?", o: ["Mit freundlichen Grüßen", "Tschüss!", "Liebe Grüße, dein …"], a: 0 },
+    { t: "mc", life: true, q: "E-mail від Jobcenter: `Bitte antworten Sie bis zum 10.06.`", o: ["відповісти до 10 червня", "прийти 10 червня", "лист надіслано 10 червня"], a: 0 },
+    { t: "gap", life: true, q: "`Ich warte ___ Ihre Antwort.`", a: ["auf"] },
+    { t: "mc", life: true, q: "SMS: `Bitte rufen Sie uns zurück.`", o: ["передзвоніть нам", "не дзвоніть нам", "ми передзвонимо"], a: 0 },
+    { t: "mc", life: true, q: "Лист починається `Liebe Anna,`. Кому так пишуть?", o: ["знайомій, з якою на «ти»", "невідомій установі", "незнайомому начальникові"], a: 0 },
   ],
 };

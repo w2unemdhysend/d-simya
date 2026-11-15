@@ -105,5 +105,10 @@ export default {
     { t: "mc", q: "Як правильно?", o: ["Ich wohne in die Stadt.", "Ich wohne in der Stadt.", "Ich wohne in den Stadt."], a: 1 },
     { t: "mc", q: "За скільки часу після переїзду треба перереєструвати адресу?", o: ["за два тижні", "за два місяці", "за рік"], a: 0 },
     { t: "mc", q: "Що таке Ruhezeit?", o: ["час тиші", "обідня перерва", "відпустка"], a: 0 },
+    { t: "mc", life: true, q: "Правила будинку: `Ruhezeiten: 22–6 Uhr`", o: ["з 22:00 до 6:00 — тиша", "з 22:00 до 6:00 вивозять сміття", "двері відчинені з 22 до 6"], a: 0 },
+    { t: "mc", life: true, q: "Після переїзду скільки часу є на перереєстрацію (`ummelden`)?", o: ["два тижні", "пів року", "не треба"], a: 0 },
+    { t: "gap", life: true, q: "Вантажникам: `Stellen Sie den Schrank bitte ___ die Wand.` (до стіни)", a: ["an"], why: "Куди? → Akkusativ: `an die Wand`." },
+    { t: "mc", life: true, q: "Записка в під’їзді: `Bitte keine Fahrräder im Treppenhaus abstellen.`", o: ["не залишайте велосипеди на сходах", "ставте велосипеди на сходах", "велосипеди заборонені в місті"], a: 0 },
+    { t: "mc", life: true, q: "Сусід допоміг занести шафу. Що сказати?", o: ["Vielen Dank für Ihre Hilfe!", "Das war schlecht.", "Bitte schön!"], a: 0 },
   ],
 };

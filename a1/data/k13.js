@@ -87,5 +87,10 @@ export default {
     { t: "mc", q: "Що писати в полі «Staatsangehörigkeit»?", o: ["громадянство", "місце народження", "сімейний стан"], a: 0 },
     { t: "mc", q: "Що означає «Teilzeit»?", o: ["повна зайнятість", "неповна зайнятість", "нічна зміна"], a: 1 },
     { t: "gap", q: "Die Arbeit ist interessant, ___ der Lohn ist nicht hoch.", a: ["aber"] },
+    { t: "mc", life: true, q: "Лист: `Bitte bringen Sie Ihren Pass und die Meldebescheinigung mit.`", o: ["взяти з собою паспорт і довідку про реєстрацію", "надіслати паспорт поштою", "прийти без документів"], a: 0 },
+    { t: "mc", life: true, q: "Формуляр: `Unterschrift`", o: ["підпис", "адреса", "дата"], a: 0 },
+    { t: "mc", life: true, q: "Формуляр: `Zutreffendes bitte ankreuzen`", o: ["позначте хрестиком потрібне", "закресліть усе", "напишіть друкованими літерами"], a: 0 },
+    { t: "mc", life: true, q: "Формуляр: `bitte in Druckbuchstaben ausfüllen`", o: ["заповнювати друкованими літерами", "заповнювати ручкою з чорнилом", "заповнювати олівцем"], a: 0 },
+    { t: "gap", life: true, q: "Керівниця: `Sie ___ morgen um acht kommen.` (маєте)", a: ["sollen"] },
   ],
 };

@@ -105,5 +105,10 @@ export default {
     { t: "mc", q: "Найкраща оцінка в німецькій школі —", o: ["1", "5", "12"], a: 0 },
     { t: "mc", q: "Що таке «die Ausbildung»?", o: ["професійне навчання на підприємстві й у школі", "навчання в університеті", "початкова школа"], a: 0 },
     { t: "mc", q: "Präteritum від «gehen»:", o: ["gehte", "ging", "gegangen"], a: 1 },
+    { t: "mc", life: true, q: "Записка вчителю: дитина вчора хворіла. Як почати?", o: ["Mein Sohn konnte gestern nicht zur Schule kommen, weil er krank war.", "Mein Sohn krank gestern.", "Ich bin gestern krank."], a: 0 },
+    { t: "mc", life: true, q: "Програма народного університету: `Kursgebühr: 85 €, ermäßigt 45 €`", o: ["85 €, зі знижкою 45 €", "45 € за урок", "85 € за два курси"], a: 0 },
+    { t: "gap", life: true, q: "`___ ich zehn war, sind wir umgezogen.` (коли — один раз у минулому)", a: ["Als"] },
+    { t: "mc", life: true, q: "Шкільний застосунок: `Am Montag fällt die erste Stunde aus.`", o: ["у понеділок першого уроку не буде", "у понеділок перший урок довший", "у понеділок контрольна"], a: 0 },
+    { t: "mc", life: true, q: "`Anmeldeschluss: 15. August`", o: ["останній день запису — 15 серпня", "курс починається 15 серпня", "курс закінчується 15 серпня"], a: 0 },
   ],
 };

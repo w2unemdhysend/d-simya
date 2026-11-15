@@ -102,5 +102,10 @@ export default {
     { t: "mc", q: "«Du musst nicht kommen» означає:", o: ["Тобі не можна приходити.", "Тобі не обов’язково приходити.", "Ти не можеш прийти."], a: 1 },
     { t: "mc", q: "Жінка з Польщі — це …", o: ["Polnisch", "Polin", "Polerin"], a: 1 },
     { t: "mc", q: "Множина без однини:", o: ["die Eltern", "die Brüder", "die Tanten"], a: 0, why: "«Батьки» — лише множина." },
+    { t: "mc", life: true, q: "Формуляр: `Familienstand: ledig / verheiratet / geschieden`. Ти в шлюбі. Що позначити?", o: ["verheiratet", "ledig", "geschieden"], a: 0, why: "`ledig` — не в шлюбі, `geschieden` — розлучений, `verwitwet` — вдівець або вдова." },
+    { t: "mc", life: true, q: "Формуляр: `Staatsangehörigkeit`. Що вписати?", o: ["ukrainisch", "Xanten", "Deutsch"], a: 0, why: "`Staatsangehörigkeit` — громадянство." },
+    { t: "mc", life: true, q: "У садку питають: `Wie alt ist Ihr Kind?`", o: ["Er ist vier Jahre alt.", "Er ist vier Uhr.", "Er hat vier."], a: 0 },
+    { t: "mc", life: true, q: "`Haben Sie Kinder?` У тебе двоє дітей. Відповідь:", o: ["Ja, ich habe zwei Kinder.", "Ja, ich bin zwei Kinder.", "Ja, zwei Kind."], a: 0 },
+    { t: "mc", life: true, q: "Формуляр: `Geburtsort`", o: ["місце народження", "дата народження", "адреса"], a: 0, why: "`Geburtsdatum` — дата народження." },
   ],
 };

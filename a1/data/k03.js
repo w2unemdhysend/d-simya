@@ -122,5 +122,10 @@ export default {
     { t: "mc", q: "Die Tür? ___ ist dort.", o: ["Er", "Sie", "Es"], a: 1 },
     { t: "mc", q: "Множина від der Tisch:", o: ["der Tische", "die Tische", "das Tische"], a: 1, why: "Множина завжди die." },
     { t: "mc", q: "Як ввічливо попросити повторити?", o: ["Wiederholen Sie das bitte.", "Sie wiederholen bitte?", "Wiederholen bitte Sie."], a: 0 },
+    { t: "mc", life: true, q: "На дверях практики: `Bitte klingeln!` Що зробити?", o: ["подзвонити в дзвінок", "постукати", "чекати мовчки"], a: 0 },
+    { t: "mc", life: true, q: "У магазині треба знайти туалет. Як спитати?", o: ["Wo ist hier die Toilette?", "Wer ist die Toilette?", "Was ist die Toilette?"], a: 0 },
+    { t: "mc", life: true, q: "Табличка `Kein Zutritt` означає…", o: ["вхід заборонено", "вхід безкоштовний", "виходу немає"], a: 0, why: "Ще: `Zutritt nur für Personal` — лише для персоналу." },
+    { t: "mc", life: true, q: "Продавець показує телефон: `Ist das Ihr Handy?` Телефон твій. Що сказати?", o: ["Ja, das ist mein Handy. Danke!", "Nein, das ist kein Handy.", "Ja, das ist dein Handy."], a: 0 },
+    { t: "mc", life: true, q: "Табличка в приймальні: `Bitte hier warten.`", o: ["чекати тут", "заходити без черги", "тут не можна стояти"], a: 0 },
   ],
 };

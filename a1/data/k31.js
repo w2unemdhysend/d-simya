@@ -96,5 +96,10 @@ export default {
     { t: "mc", q: "Яке слово? Es regnet, ___ bleiben wir zu Hause.", o: ["deshalb", "trotzdem", "sondern"], a: 0 },
     { t: "mc", q: "Яке слово? Ich bin müde, ___ gehe ich joggen.", o: ["deshalb", "trotzdem", "sondern"], a: 1 },
     { t: "mc", q: "«nächstes Jahr» означає…", o: ["наступного року", "минулого року", "щороку"], a: 0 },
+    { t: "mc", life: true, q: "Консультантка: `Was werden Sie nach dem Kurs machen?`", o: ["Ich werde eine Ausbildung machen.", "Ich habe gestern eine Ausbildung gemacht.", "Ich werde gemacht."], a: 0 },
+    { t: "gap", life: true, q: "`Ich möchte nicht im Lager arbeiten, ___ im Büro.`", a: ["sondern"] },
+    { t: "mc", life: true, q: "Знайома: `Der Kurs ist teuer.` Ти: «Все одно я його пройду».", o: ["Trotzdem mache ich ihn.", "Deshalb mache ich ihn.", "Sondern mache ich ihn."], a: 0 },
+    { t: "mc", life: true, q: "Лист: `Entweder Sie kommen am Montag, oder Sie rufen uns vorher an.`", o: ["прийти в понеділок або заздалегідь подзвонити", "прийти й подзвонити", "не приходити й не дзвонити"], a: 0 },
+    { t: "mc", life: true, q: "`die Ausbildung` у Німеччині — це…", o: ["професійне навчання з практикою на підприємстві", "навчання в університеті", "мовний курс"], a: 0 },
   ],
 };

@@ -226,7 +226,7 @@ function taskHTML(n, t, i) {
   const q = t.t === 'gap'
     ? md(t.q).replace('___', `<input class="gapin" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" lang="de" enterkeyhint="done" aria-label="Пропуск" size="${Math.max(4, ...t.a.map((a) => a.length)) + 1}"${done ? ` value="${esc(t.a[0])}" disabled` : ''}>`)
     : md(t.q);
-  return `<div class="card task${done ? ' ok' : ''}" data-task="${i}"><p class="tq"><span class="tn">${i + 1}</span><span>${q}</span></p>` +
+  return `<div class="card task${done ? ' ok' : ''}${t.life ? ' life' : ''}" data-task="${i}"><p class="tq"><span class="tn">${i + 1}</span><span>${t.life ? '<b class="lifetag">У житті</b>' : ''}${q}</span></p>` +
     (t.t === 'mc' ? `<div class="opts">${order(n, i, t.o, t.a).map((j) => `<button class="opt${done && j === t.a ? ' right' : ''}" type="button" data-o="${j}"${done ? ' disabled' : ''}>${md(t.o[j])}</button>`).join('')}</div>`
       : `<button class="btn check" type="button" data-check${done ? ' hidden' : ''}>Перевірити</button>`) +
     `<p class="fb" aria-live="polite">${done ? `<b class="okt">Правильно.</b> ${t.why ? md(t.why) : ''}` : ''}</p></div>`;

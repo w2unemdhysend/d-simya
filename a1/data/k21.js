@@ -107,5 +107,10 @@ export default {
     { t: "mc", q: "Яке закінчення? mit einer klein__ Tasche", o: ["-e", "-en", "-er"], a: 1 },
     { t: "mc", q: "Що означає «umtauschen»?", o: ["обміняти", "приміряти", "замовити"], a: 0 },
     { t: "mc", q: "Скільки днів є, щоб повернути покупку з інтернету?", o: ["3", "14", "60"], a: 1 },
+    { t: "mc", life: true, q: "Поліція питає про злодія: `Wie sah der Mann aus?`", o: ["Er war groß und trug eine schwarze Jacke.", "Er war sehr nett.", "Er ist um zehn gekommen."], a: 0 },
+    { t: "mc", life: true, q: "У торговому центрі загубилася дитина. Як її описати?", o: ["Mein Sohn ist fünf, er hat blonde Haare und trägt eine rote Mütze.", "Mein Sohn ist weg, tschüss.", "Er ist ein Kind."], a: 0 },
+    { t: "gap", life: true, q: "`Ich suche einen ___ Mantel.` (warm)", a: ["warmen"] },
+    { t: "mc", life: true, q: "Інтернет-магазин: `Kostenloser Rückversand innerhalb von 30 Tagen`", o: ["безкоштовне повернення протягом 30 днів", "доставка 30 днів", "знижка 30 %"], a: 0 },
+    { t: "mc", life: true, q: "На етикетці одягу: `Nicht im Trockner trocknen`", o: ["не сушити в сушарці", "сушити лише в сушарці", "не прати"], a: 0 },
   ],
 };

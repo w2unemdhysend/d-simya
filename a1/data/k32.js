@@ -103,5 +103,10 @@ export default {
     { t: "mc", q: "Як проходить усна частина іспиту A2?", o: ["у парі з іншим учасником", "письмово", "телефоном"], a: 0 },
     { t: "mc", q: "Як правильно?", o: ["Ich warte für dich.", "Ich warte auf dich.", "Ich warte dich."], a: 1 },
     { t: "mc", q: "Яке речення в пасиві?", o: ["Hier wird Deutsch gesprochen.", "Ich werde Deutsch sprechen.", "Er wird Lehrer."], a: 0 },
+    { t: "mc", life: true, q: "Іспит A2, лист: друг запрошує на день народження, а ти не можеш. Що обов’язково написати?", o: ["подякувати, відмовити й пояснити причину", "лише «Nein»", "нічого не відповідати"], a: 0 },
+    { t: "mc", life: true, q: "Загубився гаманець. Куди звернутися?", o: ["у бюро знахідок (Fundbüro) або в поліцію", "у Jobcenter", "в аптеку"], a: 0 },
+    { t: "mc", life: true, q: "Оголошення в супермаркеті: `Kasse 3 öffnet für Sie.`", o: ["відкривається каса 3", "каса 3 зачиняється", "на касі 3 знижки"], a: 0 },
+    { t: "gap", life: true, q: "`Wenn ich Zeit ___, würde ich mehr lesen.`", a: ["hätte"] },
+    { t: "mc", life: true, q: "На іспиті A2 питання незрозуміле. Що сказати?", o: ["Entschuldigung, können Sie die Frage wiederholen?", "Ich weiß nicht.", "Nächste Frage!"], a: 0 },
   ],
 };

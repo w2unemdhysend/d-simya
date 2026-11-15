@@ -87,5 +87,10 @@ export default {
     { t: "mc", q: "«Morgen soll es regnen» означає:", o: ["Завтра має піти дощ (кажуть прогнози).", "Завтра мусить іти дощ.", "Завтра йшов дощ."], a: 0 },
     { t: "mc", q: "Wie findest du den Film? – Ich finde ___ gut.", o: ["er", "ihn", "ihm"], a: 1, why: "finden + Akkusativ: der Film → ihn." },
     { t: "mc", q: "Seit wann bist du hier? – ___ September.", o: ["Vor", "Seit", "Am"], a: 1 },
+    { t: "mc", life: true, q: "Прогноз: `Morgen Glatteis, bitte vorsichtig fahren.`", o: ["завтра ожеледиця", "завтра спека", "завтра туман"], a: 0 },
+    { t: "mc", life: true, q: "Попередження: `Unwetterwarnung: Sturm ab 18 Uhr`", o: ["з 18:00 буря — краще лишитися вдома", "після 18:00 гарна погода", "буря скінчиться о 18:00"], a: 0 },
+    { t: "mc", life: true, q: "`Seit wann wohnen Sie hier?`", o: ["Seit zwei Jahren.", "Vor zwei Jahren.", "In zwei Jahren."], a: 0, why: "`seit` — відтоді й досі; `vor` — колись у минулому; `in` — у майбутньому." },
+    { t: "gap", life: true, q: "Прогноз: `Heute ist es sonnig, ___ morgen regnet es.` (а)", a: ["aber"] },
+    { t: "mc", life: true, q: "Термометр: `−3 °C`. Як сказати?", o: ["minus drei Grad", "drei Grad warm", "drei Uhr unter null"], a: 0 },
   ],
 };

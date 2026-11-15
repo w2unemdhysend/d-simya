@@ -109,6 +109,8 @@ for (const c of CH) c.tasks.forEach((x, i) => {
   if (!x.q) xbad.push(`${w}: no question`);
 });
 t('every exercise can be solved: one gap and answers, or 2–4 different options with the right one among them', !xbad.length, xbad.join('\n'));
+t('every chapter has at least five tasks from real life (signs, letters, forms, what to say), marked life',
+  CH.every((c) => c.tasks.filter((x) => x.life).length >= 5), CH.map((c) => c.tasks.filter((x) => x.life).length).join(' '));
 t('both kinds of exercise in every chapter', CH.every((c) => c.tasks.some((x) => x.t === 'mc') && c.tasks.some((x) => x.t === 'gap')));
 const shown = CH.flatMap((c) => c.tasks.map((x, i) => [c, x, i]).filter(([, x]) => x.t === 'mc').map(([c, x, i]) => [x, order(c.n, i, x.o, x.a), order(c.n, i, x.o, x.a)]));
 t('options are shown in a fixed order that holds every option once', shown.every(([x, o, again]) => o.slice().sort().join() === x.o.map((_, j) => j).join() && o.join() === again.join()));

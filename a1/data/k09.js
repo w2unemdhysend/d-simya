@@ -100,5 +100,10 @@ export default {
     { t: "mc", q: "Яке речення правильне?", o: ["Ich habe gestern gelernt.", "Ich habe gelernt gestern.", "Ich gestern habe gelernt."], a: 0 },
     { t: "mc", q: "Partizip II від trinken:", o: ["getrinkt", "getrunken", "getrank"], a: 1 },
     { t: "mc", q: "Ich besuche ___ Bruder.", o: ["mein", "meinen", "meine"], a: 1, why: "der Bruder, Akkusativ → meinen." },
+    { t: "mc", life: true, q: "Колега в понеділок: `Wie war dein Wochenende?`", o: ["Schön! Ich habe Freunde besucht.", "Ich besuche Freunde.", "Am Wochenende."], a: 0 },
+    { t: "mc", life: true, q: "Афіша: `Eintritt frei`", o: ["вхід безкоштовний", "вхід лише для вільних", "вхід заборонено"], a: 0 },
+    { t: "mc", life: true, q: "Афіша: `Einlass ab 19 Uhr, Beginn 20 Uhr`", o: ["впускають з 19:00, початок о 20:00", "початок о 19:00, кінець о 20:00", "квитки з 19:00 до 20:00"], a: 0 },
+    { t: "gap", life: true, q: "`Hast du den Film gesehen?` — `Ja, ich habe ___ gestern gesehen.` (його)", a: ["ihn"] },
+    { t: "mc", life: true, q: "Знайома кличе в кіно, а ти не можеш. Що сказати?", o: ["Schade, heute kann ich nicht. Vielleicht am Samstag?", "Nein.", "Ich mag dich nicht."], a: 0 },
   ],
 };

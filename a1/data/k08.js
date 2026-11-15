@@ -99,5 +99,10 @@ export default {
     { t: "mc", q: "Що таке «Warmmiete»?", o: ["оренда влітку", "оренда разом з опаленням і комунальними", "оренда без комунальних"], a: 1 },
     { t: "mc", q: "Квартира «im ersten Stock» — це за українським рахунком:", o: ["перший поверх", "другий поверх", "підвал"], a: 1 },
     { t: "mc", q: "Die Küche ist ___.", o: ["kleine", "klein", "kleiner"], a: 1, why: "Після sein прикметник без закінчення." },
+    { t: "mc", life: true, q: "Оголошення: `2-Zi.-Whg., 55 m², 480 € kalt`. Що це?", o: ["двокімнатна квартира, 55 м², 480 € без комунальних", "дві квартири по 55 м²", "кімната за 480 € з усім"], a: 0, why: "`kalt` — без комунальних платежів (розділ 38)." },
+    { t: "mc", life: true, q: "Орендодавиця: `Haustiere sind nicht erlaubt.`", o: ["тварин тримати не можна", "тварини дозволені", "тварини мають бути в клітці"], a: 0 },
+    { t: "mc", life: true, q: "Табличка в під’їзді: `Bitte Haustür abschließen!`", o: ["будь ласка, замикайте вхідні двері", "не зачиняйте двері", "двері зламані"], a: 0 },
+    { t: "mc", life: true, q: "Ти хочеш подивитися квартиру. Що написати?", o: ["Ich interessiere mich für die Wohnung. Wann kann ich sie besichtigen?", "Ich will die Wohnung jetzt.", "Wohnung gut. Ich komme."], a: 0 },
+    { t: "gap", life: true, q: "`Darf ich hier rauchen?` — `Nein, hier ___ man nicht rauchen.`", a: ["darf"] },
   ],
 };

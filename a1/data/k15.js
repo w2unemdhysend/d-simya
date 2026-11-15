@@ -96,5 +96,10 @@ export default {
     { t: "mc", q: "Що кажуть 30 грудня?", o: ["Frohes neues Jahr!", "Guten Rutsch!", "Frohe Ostern!"], a: 1, why: "До Нового року — Guten Rutsch!" },
     { t: "mc", q: "Коли починається карнавальний сезон у Рейнланді?", o: ["1 січня", "11.11 об 11:11", "у Великдень"], a: 1 },
     { t: "mc", q: "Як ввічливо відмовитися?", o: ["Nein.", "Leider kann ich nicht kommen, denn ich muss arbeiten.", "Ich will nicht."], a: 1 },
+    { t: "mc", life: true, q: "Запрошення: `Wir feiern am Samstag ab 19 Uhr. Gebt bitte bis Mittwoch Bescheid.`", o: ["відповісти до середи, чи прийдеш", "прийти в середу", "свято в середу о 19:00"], a: 0 },
+    { t: "mc", life: true, q: "У гостях: `Möchtest du noch Kuchen?` Ти більше не хочеш.", o: ["Nein danke, ich bin satt.", "Nein, der Kuchen ist schlecht.", "Doch!"], a: 0 },
+    { t: "mc", life: true, q: "Тебе запросили в гості. Що прийнято принести?", o: ["невеликий подарунок: квіти, солодощі чи напій", "нічого: це неввічливо", "гроші"], a: 0 },
+    { t: "gap", life: true, q: "`Kommst du nicht?` — `___, ich komme!`", a: ["Doch", "doch"], why: "На заперечне питання «так» — це `doch`." },
+    { t: "mc", life: true, q: "Прийшли гості. Що сказати?", o: ["Herzlich willkommen! Kommt rein!", "Auf Wiedersehen!", "Guten Appetit!"], a: 0 },
   ],
 };

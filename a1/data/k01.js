@@ -175,5 +175,10 @@ export default {
     { t: "mc", q: "Як вимовляється ei в слові mein?", o: ["[ей]", "[ай]", "[і:]"], a: 1, why: "ei = [ай]: mein «майн»." },
     { t: "mc", q: "Що відповісти на «Wie geht’s?»", o: ["Danke, gut. Und dir?", "Ich heiße Max.", "Aus Polen."], a: 0 },
     { t: "mc", q: "Яке речення правильне?", o: ["Ich {Student|Studentin}.", "Ich bin {Student|Studentin}.", "Ich bin {ein Student|eine Studentin} aus."], a: 1, why: "Дієслово обов’язкове, професія без артикля." },
+    { t: "mc", life: true, q: "На курсі викладачка питає: `Woher kommen Sie?` Що відповісти?", o: ["Ich komme aus der Ukraine.", "Ich wohne in Xanten.", "Mir geht es gut."], a: 0, why: "`Woher?` — «звідки?». Де живеш — це `Wo wohnen Sie?`" },
+    { t: "mc", life: true, q: "О дев’ятій ранку ти заходиш до практики лікаря. Як привітатися?", o: ["Guten Morgen!", "Gute Nacht!", "Tschüss!"], a: 0, why: "`Gute Nacht` кажуть перед сном, `Tschüss` — прощаючись." },
+    { t: "mc", life: true, q: "У бюро громадян: `Wie ist Ihr Familienname?` Що назвати?", o: ["прізвище", "ім’я", "країну"], a: 0, why: "`der Familienname` / `der Nachname` — прізвище, `der Vorname` — ім’я." },
+    { t: "gap", life: true, q: "Сусід: `Guten Tag! Ich bin Peter.` Ти: `Freut ___!`", a: ["mich"], why: "`Freut mich!` — «Приємно познайомитися»." },
+    { t: "mc", life: true, q: "Працівник говорить дуже швидко. Що сказати?", o: ["Langsamer, bitte!", "Danke, gut!", "Auf Wiedersehen!"], a: 0, why: "Ще ввічливіше: `Können Sie bitte langsamer sprechen?`" },
   ],
 };

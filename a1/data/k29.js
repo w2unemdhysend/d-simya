@@ -100,5 +100,10 @@ export default {
     { t: "mc", q: "Питання про вид: «Що за книжка?»", o: ["Welches Buch?", "Was für ein Buch?", "Wie Buch?"], a: 1 },
     { t: "mc", q: "Що таке «die Ermäßigung»?", o: ["знижка", "вистава", "вхід"], a: 0 },
     { t: "mc", q: "{Коли вийшов «Кобзар»?|Коли Леся Українка написала «Лісову пісню»?}", o: ["{1840|1911}", "{1814|1871}", "{1861|1913}"], a: 0 },
+    { t: "mc", life: true, q: "У музеї: `Fotografieren ohne Blitz erlaubt`", o: ["фотографувати можна, але без спалаху", "фотографувати заборонено", "фото лише зі спалахом"], a: 0 },
+    { t: "mc", life: true, q: "Квитки: `Ermäßigung für Schüler, Studenten und Inhaber des Sozialpasses`", o: ["знижка школярам, студентам і власникам соціальної картки", "лише для студентів", "безкоштовно для всіх"], a: 0 },
+    { t: "gap", life: true, q: "`Das ist der Film, ___ ich dir empfohlen habe.` (який, Akkusativ)", a: ["den"] },
+    { t: "mc", life: true, q: "`Was für eine Ausstellung ist das?`", o: ["що це за виставка?", "скільки коштує виставка?", "де виставка?"], a: 0 },
+    { t: "mc", life: true, q: "Каса театру: `Ausverkauft`", o: ["квитки розпродано", "розпродаж квитків", "вистава безкоштовна"], a: 0 },
   ],
 };

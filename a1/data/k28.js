@@ -88,5 +88,10 @@ export default {
     { t: "mc", q: "Як правильно?", o: ["Ich lasse das zu reparieren.", "Ich lasse das reparieren.", "Ich lasse reparieren das."], a: 1 },
     { t: "mc", q: "Що таке «der Termin»?", o: ["запис, призначена зустріч", "термін придатності", "заява"], a: 0 },
     { t: "mc", q: "Що таке «die Frist»?", o: ["крайній термін", "черга", "підпис"], a: 0 },
+    { t: "mc", life: true, q: "У бюро громадян: `Ziehen Sie bitte eine Nummer.`", o: ["візьміть, будь ласка, талон із номером", "наберіть номер", "назвіть номер телефону"], a: 0 },
+    { t: "mc", life: true, q: "Табличка: `Termine nur nach Vereinbarung`", o: ["прийом лише за записом", "прийом без запису", "прийому немає"], a: 0 },
+    { t: "mc", life: true, q: "Незрозумілий формуляр. Як попросити допомоги?", o: ["Könnten Sie mir bitte beim Ausfüllen helfen?", "Machen Sie das!", "Ich verstehe nichts, Sie machen."], a: 0 },
+    { t: "gap", life: true, q: "`Ich lasse meinen Pass ___.` (продовжити — verlängern)", a: ["verlängern"] },
+    { t: "mc", life: true, q: "Лист: `Bitte reichen Sie die fehlenden Unterlagen nach.`", o: ["донесіть документи, яких бракує", "документи не потрібні", "ми надішлемо документи"], a: 0 },
   ],
 };

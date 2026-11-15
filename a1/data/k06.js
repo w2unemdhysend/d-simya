@@ -111,5 +111,10 @@ export default {
     { t: "mc", q: "Продавець: «Sonst noch etwas?» Ти більше нічого не хочеш:", o: ["Ja, gern.", "Nein, danke. Das ist alles.", "Das schmeckt gut."], a: 1 },
     { t: "mc", q: "Ich trinke gern Tee, ___ Kaffee und am liebsten Kakao.", o: ["gerner", "lieber", "mehr gern"], a: 1, why: "gern → lieber → am liebsten." },
     { t: "mc", q: "Den Kuchen ___ ich.", o: ["nehme", "ich nehme", "nehmen"], a: 0, why: "Додаток на першому місці, дієслово друге, підмет після нього." },
+    { t: "mc", life: true, q: "Продавчиня на ринку: `Was darf’s sein?`", o: ["Ein Kilo Tomaten, bitte.", "Ich komme aus der Ukraine.", "Nein, danke, ich darf nicht."], a: 0, why: "`Was darf’s sein?` — «Чого бажаєте?»." },
+    { t: "mc", life: true, q: "На касі: `Brauchen Sie eine Tüte?`", o: ["Вам потрібен пакет?", "Вам потрібен чек?", "У Вас є картка?"], a: 0 },
+    { t: "mc", life: true, q: "На пляшці: `Pfand 0,25 €`. Що це?", o: ["застава 25 центів: повернуть за порожню пляшку", "знижка 25 центів", "податок на пляшку"], a: 0, why: "Порожню пляшку здають в автомат у супермаркеті й отримують чек (розділ 30)." },
+    { t: "mc", life: true, q: "Касирка: `Mit Karte oder bar?`", o: ["Карткою чи готівкою?", "З пакетом чи без?", "З чеком чи без?"], a: 0 },
+    { t: "gap", life: true, q: "На ринку: `Ich nehme 500 ___ Käse.` (грамів)", a: ["Gramm", "g"] },
   ],
 };

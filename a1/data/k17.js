@@ -107,5 +107,10 @@ export default {
     { t: "mc", q: "mögen у Präteritum:", o: ["mochte", "mögte", "möchte"], a: 0 },
     { t: "mc", q: "«Двадцять років тому» німецькою:", o: ["vor zwanzig Jahren", "zwanzig Jahre zurück", "seit zwanzig Jahren"], a: 0 },
     { t: "mc", q: "«Тоді» про конкретний час у минулому:", o: ["damals", "dann", "denn"], a: 0 },
+    { t: "mc", life: true, q: "На курсі: «Розкажи про своє дитинство». Як почати?", o: ["Als Kind habe ich in einem Dorf gewohnt.", "Als Kind wohne ich in einem Dorf.", "Kind Dorf wohnen."], a: 0 },
+    { t: "mc", life: true, q: "Лист зі школи: `Am Freitag war Ihr Sohn nicht im Unterricht.`", o: ["у п’ятницю Вашого сина не було на уроках", "у п’ятницю уроків не буде", "син буде на уроках у п’ятницю"], a: 0 },
+    { t: "gap", life: true, q: "`Früher ___ ich keine Zeit, heute habe ich mehr.` (haben)", a: ["hatte"] },
+    { t: "mc", life: true, q: "Літня сусідка: `Früher gab es hier keinen Supermarkt.`", o: ["раніше тут не було супермаркету", "тут скоро буде супермаркет", "супермаркет тепер зачинений"], a: 0 },
+    { t: "mc", life: true, q: "На співбесіді: `Was haben Sie in der Ukraine gemacht?`", o: ["Ich habe zehn Jahre in einer Bank gearbeitet.", "Ich arbeite gestern in einer Bank.", "Ich bin in einer Bank."], a: 0 },
   ],
 };

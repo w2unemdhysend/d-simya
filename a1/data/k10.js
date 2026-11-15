@@ -97,5 +97,10 @@ export default {
     { t: "mc", q: "Як прочитати рік 1998?", o: ["eintausendneunhundertachtundneunzig", "neunzehnhundertachtundneunzig", "neunzehnachtundneunzig"], a: 1 },
     { t: "mc", q: "Як правильно сказати рік?", o: ["In 2022 bin ich umgezogen.", "2022 bin ich umgezogen.", "Am 2022 bin ich umgezogen."], a: 1 },
     { t: "mc", q: "Яке дієслово утворює Perfekt з sein?", o: ["kaufen", "bleiben", "lernen"], a: 1 },
+    { t: "mc", life: true, q: "На вокзалі: `Der Zug nach Duisburg fährt heute von Gleis 3.`", o: ["потяг до Дуйсбурга сьогодні від колії 3", "потяг о 3:00", "три потяги до Дуйсбурга"], a: 0 },
+    { t: "mc", life: true, q: "У бюро: `Seit wann sind Sie in Deutschland?`", o: ["Seit März 2022.", "Nach Deutschland.", "Ja, gern."], a: 0 },
+    { t: "mc", life: true, q: "У потязі: `Wir erreichen in Kürze Wesel. Ausstieg in Fahrtrichtung rechts.`", o: ["скоро Везель, вихід праворуч за ходом руху", "потяг затримується у Везелі", "пересадка у Везелі ліворуч"], a: 0 },
+    { t: "gap", life: true, q: "`Wann sind Sie angekommen?` — `Ich bin gestern ___.` (ankommen)", a: ["angekommen"] },
+    { t: "mc", life: true, q: "У резюме `Schulbildung` — це…", o: ["шкільна освіта", "робота в школі", "мовні курси"], a: 0 },
   ],
 };
