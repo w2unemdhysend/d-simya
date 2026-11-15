@@ -234,10 +234,12 @@ for (let i = 0; i < 7; i++) await rep({ p: 'sport/', m: 'Error number ' + 'abcde
 const errKeys = [...kv.keys()].filter((k) => k.startsWith('cerr:'));
 t('each error kept once, numbers and addresses blanked', errKeys.length === 8 && [...kv.entries()].filter(([k]) => k.startsWith('cerr:')).every(([, v]) => !/4242424242|me@example/.test(v)), String(errKeys.length));
 kv.set('asub:5151', JSON.stringify({ id: 5151 }));
-let got2 = await cron('2026-11-14T10:00:00Z');
+// reports are kept under the real day (Berlin), so the cron runs on today
+const TODAY = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Berlin' }).format(new Date());
+let got2 = await cron(`${TODAY}T10:00:00Z`);
 const bugs = got2.filter((m) => m.text.startsWith('🐞'));
 t('the cron tells about new errors, at most five a day', bugs.length === 5 && bugs[0].text.includes('«yizha/»') && bugs[0].text.includes('Telegram android'), JSON.stringify(bugs.map((b) => b.text.slice(0, 60))));
-got2 = await cron('2026-11-14T10:30:00Z');
+got2 = await cron(`${TODAY}T10:30:00Z`);
 t('…and not again', !got2.some((m) => m.text.startsWith('🐞')));
 
 /* ---------- the free plan ---------- */
