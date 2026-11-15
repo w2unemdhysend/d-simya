@@ -105,7 +105,7 @@ async def main():
               and all(near[i][2] <= near[i + 1][2] for i in range(len(near) - 1)) and near[0][0] == 'Dom', str(near))
         check('near: title and the place known', await text(pg, '#stitle') == 'Зупинки поруч' and 'Біля тебе' in await text(pg, '#ssub') and not await pg.is_visible('#askloc'))
         check('near: stops are asked by grid cells of the map', any(c[0] == '/transit/area' and re.fullmatch(r'\d+\.\d\d', c[1]['lat'][0]) for c in w.calls))
-        check('Telegram: vertical swipes off (the map moves instead), no Back on the first view', await pg.evaluate('!!window.__noswipe') and not await pg.evaluate('Telegram.WebApp.BackButton.shown'))
+        check('Telegram: vertical swipes off (the map moves instead), on the first view Back leads out of the map', await pg.evaluate('!!window.__noswipe') and not await pg.evaluate('UI.inner()') and await pg.evaluate('Telegram.WebApp.BackButton.shown'))
         if gl:
             check('map: every stop of the area on the stop layer, the phone\'s place marked', await src(pg, 'stops') == len(FX['area']['stops']) and await pg.evaluate("!!document.querySelector('.me')"), await src(pg, 'stops'))
         await pg.screenshot(path=os.path.join(os.environ.get('SHOTS', '/tmp'), 'map-near.png'))
@@ -159,7 +159,7 @@ async def main():
         await pg.go_back(); await settle(pg, 600)
         check("phone's Back: from the course to the stop", await text(pg, '#stitle') == 'Xanten Dom' and await pg.evaluate("!document.querySelector('.busmk')") and len(await pg.query_selector_all('#deps .dep')) >= 3)
         await pg.evaluate('window.__back()'); await settle(pg, 600)
-        check("Telegram's Back: to the stops around, Back hidden again", await text(pg, '#stitle') == 'Зупинки поруч' and not await pg.evaluate('Telegram.WebApp.BackButton.shown') and await pg.is_hidden('#sback'))
+        check("Telegram's Back: to the stops around, the map's first view again", await text(pg, '#stitle') == 'Зупинки поруч' and not await pg.evaluate('UI.inner()') and await pg.evaluate('Telegram.WebApp.BackButton.shown') and await pg.is_hidden('#sback'))
 
         # ---------------- search: an address ----------------
         await pg.click('#q'); await pg.fill('#q', 'Xanten Marsstraße 5'); await settle(pg, 900)

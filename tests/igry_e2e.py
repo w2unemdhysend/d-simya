@@ -173,7 +173,7 @@ async def main():
         check('the note says progress follows across devices', 'Telegram' in await text(pg, '#foot'))
 
         # sorting, opened from the menu
-        await pg.click('#backbtn'); await pg.clock.run_for(400)
+        await pg.click('#navback'); await pg.clock.run_for(400)
         check('"Усі ігри" leads to the menu', await pg.is_visible('#view-hub') and await text(pg, 'h1') == 'Мініігри')
         await pg.click('[data-game="sort"]'); await pg.clock.run_for(600)
         items = await pg.evaluate("() => ({items: __games.ITEMS, bins: Object.keys(__games.BINS)})")
@@ -218,7 +218,7 @@ async def main():
         check('reopens on the sorting game with the record', await pg.is_visible('#view-sort') and '7 балів' in await text(pg, '#s-best'))
         await pg.screenshot(path=os.path.join(os.environ.get('SHOTS', '/tmp'), 'igry-sort.png'))
         await pg.evaluate('window.__back()'); await pg.clock.run_for(400)
-        check("Telegram's Back on a game's first screen goes to the menu, then hides", await pg.is_visible('#view-hub') and not await pg.evaluate('Telegram.WebApp.BackButton.shown') and '?tab' not in pg.url)
+        check("Telegram's Back on a game's first screen goes to the menu; there it leads out of the games", await pg.is_visible('#view-hub') and not await pg.evaluate('UI.inner()') and await pg.evaluate('Telegram.WebApp.BackButton.shown') and '?tab' not in pg.url)
         check('the menu shows the sorting record', 'Рекорд: 7 балів' in await text(pg, '[data-status="sort"]'), await text(pg, '[data-status="sort"]'))
         await ctx.close()
 
@@ -301,8 +301,8 @@ async def main():
         await pg.evaluate('window.__back()'); await pg.clock.run_for(100)
         check("Telegram's Back button leaves the round", await pg.is_visible('#a-start') and await pg.is_hidden('#a-play') and await pg.evaluate('window.__vs') is True)
         await pg.click('#a-go'); await pg.clock.run_for(200)
-        check('during a round "Усі ігри" stays on screen', await pg.is_visible('#backbtn'))
-        await pg.click('#backbtn'); await pg.clock.run_for(600)
+        check('during a round Back stays on screen', await pg.is_visible('#navback'))
+        await pg.click('#navback'); await pg.clock.run_for(600)
         check('"Усі ігри" ends the round', await pg.evaluate('__games.artRound()') is None and not await pg.evaluate("document.body.classList.contains('playing')") and await pg.is_visible('#view-hub'))
         await pg.click('[data-game="art"]'); await pg.clock.run_for(600)
         check('outside a signed Telegram session the word-of-the-day switch explains itself', await pg.is_disabled('#d-sw') and 'через бота' in await text(pg, '#d-state'))

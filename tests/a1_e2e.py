@@ -80,15 +80,15 @@ async def main():
         check(f'course: a start card for chapter 1, the trainers and four tiles, {N} chapters grouped A1.1, A1.2, A2.1 … with 0/N exercises',
               'Почати' in hub['card'] and 'Знайомство' in hub['card'] and hub['tiles'] == ['Тренажери', 'Leben in Deutschland', 'DTZ · B1', 'Словник', 'Граматика', 'Вимова', 'Сад слів']
               and N >= 17 and hub['groups'] == want and hub['rows'] == N and all(c.startswith('0/') for c in hub['counts']), str(hub))
-        check('course: title, no Back, the dictionary tile counts every entry', await text(pg, 'h1') == 'Німецька A1–B1' and await pg.is_hidden('#backbtn')
-              and not await pg.evaluate('Telegram.WebApp.BackButton.shown') and str(hub['words']) in await text(pg, '[data-view="dict"] small'))
+        check('course: title, no Back, the dictionary tile counts every entry', await text(pg, 'h1') == 'Німецька A1–B1' and await pg.is_visible('#navback')
+              and not await pg.evaluate('UI.inner()') and await pg.evaluate('Telegram.WebApp.BackButton.shown') and str(hub['words']) in await text(pg, '[data-view="dict"] small'))
         check('course: fits 340 px', await fits(pg))
         await shot(pg, 'a1-course.png')
 
         # ---------------- a chapter: grammar ----------------
         await pg.click('.chrow[data-ch="3"]'); await pg.wait_for_timeout(600)
         check('chapter 3 opens as its own screen: title, eyebrow, Back, Telegram Back, ?ch=3',
-              await text(pg, 'h1') == 'Речі й місця' and await text(pg, '#eyebrow') == 'Розділ 3 · A1.1' and await pg.is_visible('#backbtn')
+              await text(pg, 'h1') == 'Речі й місця' and await text(pg, '#eyebrow') == 'Розділ 3 · A1.1' and await pg.is_visible('#navback') and await pg.evaluate('UI.inner()')
               and await pg.evaluate('Telegram.WebApp.BackButton.shown') and pg.url.endswith('/a1/?ch=3'))
         g = await pg.evaluate("""() => ({topics: document.querySelectorAll('#p-gram .topic').length, tables: document.querySelectorAll('#p-gram table').length,
           ex: document.querySelectorAll('#p-gram .ex li').length, warn: document.querySelectorAll('#p-gram .warn').length, de: document.querySelectorAll('#p-gram i[lang=de]').length,
@@ -176,7 +176,7 @@ async def main():
         # ---------------- Back ----------------
         await pg.go_back(); await pg.wait_for_timeout(500)
         check("the phone's Back returns to the course, which offers to continue chapter 3", await visible(pg, '#view-hub') and 'Продовжити' in await text(pg, '.hcard.cont')
-              and '3. Речі й місця' in await text(pg, '.hcard.cont') and not await pg.evaluate('Telegram.WebApp.BackButton.shown'))
+              and '3. Речі й місця' in await text(pg, '.hcard.cont') and not await pg.evaluate('UI.inner()') and await pg.evaluate('Telegram.WebApp.BackButton.shown'))
         await pg.click('.chrow[data-ch="5"]'); await pg.wait_for_timeout(500)
         await pg.evaluate('window.__back()'); await pg.wait_for_timeout(500)
         check("Telegram's Back returns to the course", await visible(pg, '#view-hub') and pg.url.endswith('/a1/'))
@@ -209,7 +209,7 @@ async def main():
         check('an unknown chapter shows the course', await visible(pg, '#view-hub'))
         await pg.goto(base + 'a1/?ch=7&tab=phr'); await pg.wait_for_timeout(400)
         check('a link to a chapter and a tab opens them', await text(pg, 'h1') == 'Родина' and await visible(pg, '#p-phr'))
-        await pg.click('#backbtn'); await pg.wait_for_timeout(500)
+        await pg.click('#navback'); await pg.wait_for_timeout(500)
         check('«Назад» on an opened link goes to the course', await visible(pg, '#view-hub') and pg.url.endswith('/a1/'))
 
         # ---------------- A2: a chapter, its chat and the end of the course so far ----------------

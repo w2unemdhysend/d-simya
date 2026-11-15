@@ -39,6 +39,7 @@
     gym: '<path d="M3.500 9.500v5M6.500 7v10M17.500 7v10M20.500 9.500v5M6.500 12h11"/>',
     close: '<path d="M6 6l12 12M18 6L6 18"/>',
     dl: '<path d="M12 4v10M7.5 9.5L12 14l4.5-4.5M5 19.5h14"/>',
+    back: '<path d="M15 5.5L8.5 12l6.5 6.5"/>',
     full: '<path d="M4 9.5V4h5.5"/><path d="M14.5 4H20v5.5"/><path d="M20 14.5V20h-5.5"/><path d="M9.5 20H4v-5.5"/>',
     game: '<path d="M7.5 7.5h9a4.5 4.5 0 0 1 4.4 5.4l-.8 3.8a2.4 2.4 0 0 1-4.2 1L14.6 16H9.4l-1.3 1.7a2.4 2.4 0 0 1-4.2-1l-.8-3.8a4.5 4.5 0 0 1 4.4-5.4z"/><path d="M8.5 10.5v3M7 12h3"/><circle cx="15.5" cy="11.2" r=".6"/><circle cx="17" cy="12.8" r=".6"/>',
   };
@@ -48,6 +49,53 @@
   var reduce = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
   var tgApp = window.Telegram && window.Telegram.WebApp;
   var tg = (tgApp && tgApp.platform && tgApp.platform !== 'unknown') ? tgApp : null;
+
+  /* Back, the same on every page but the home page: the arrow before «Розділи» and Telegram's own Back (also the
+     phone's Back button inside Telegram). One step back each time: out of a screen inside the section first (a
+     chapter, a game, a tab, a dialog: the section says so by showing Telegram's Back), then to the page before, or to
+     the home page when this one was opened straight from the bot. A section keeps calling show/hide/onClick as before;
+     hide() now only means "back at the section's first screen", so the button stays and leads out. */
+  var HOME = (function(){ try { return new URL(SITE).pathname; } catch(e){ return '/'; } })();
+  var atHome = location.pathname === HOME || location.pathname === HOME + 'index.html';
+  var nav = { inner: false, fns: [] };
+  var BB = tgApp && tgApp.BackButton;
+  if (BB && !atHome) {
+    var bbShow = BB.show && BB.show.bind(BB), bbOn = BB.onClick && BB.onClick.bind(BB);
+    BB.show = function(){ nav.inner = true; try { bbShow(); } catch(e){} return BB; };
+    BB.hide = function(){ nav.inner = false; try { bbShow(); } catch(e){} return BB; };
+    BB.onClick = function(fn){ if (typeof fn === 'function') nav.fns.push(fn); return BB; };
+    BB.offClick = function(fn){ nav.fns = nav.fns.filter(function(f){ return f !== fn; }); return BB; };
+    try { if (bbOn) bbOn(goBack); if (bbShow) bbShow(); } catch(e){}
+  }
+  // came here from another page of this app (so the browser's history knows the way back)
+  function fromApp(){
+    try {
+      if (!document.referrer) return false;
+      var r = new URL(document.referrer);
+      return r.origin === location.origin && r.href.indexOf(SITE) === 0 && r.pathname.replace(/index\.html$/, '') !== location.pathname.replace(/index\.html$/, '');
+    } catch(e){ return false; }
+  }
+  function leave(){ if (fromApp() && history.length > 1) history.back(); else location.href = SITE; }
+  function innerNow(){ var own = document.getElementById('backbtn'); return nav.inner || !!(own && !own.hidden); }
+  function goBack(){
+    if (menu && menu.isOpen()){ menu.close(); return; }
+    if (innerNow()){
+      if (nav.fns.length){ nav.fns.slice().forEach(function(f){ try { f(); } catch(e){} }); return; }
+      var own = document.getElementById('backbtn'); if (own){ own.click(); return; }
+    }
+    leave();
+  }
+  function initBack(){
+    if (atHome) return;
+    var mb = document.getElementById('menubtn'); if (!mb || document.getElementById('navback')) return;
+    var b = document.createElement('button');
+    b.type = 'button'; b.id = 'navback'; b.className = 'navback';
+    b.setAttribute('aria-label', 'Назад'); b.title = 'Назад';
+    b.innerHTML = svg('back');
+    mb.parentNode.insertBefore(b, mb);
+    root.classList.add('has-navback');
+    b.addEventListener('click', function(){ try { if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light'); } catch(e){} goBack(); });
+  }
 
   function saved(){ try { return localStorage.getItem(KEY); } catch(e){ return null; } }
   function systemTheme(){ return (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light'; }
@@ -434,6 +482,7 @@
     window.addEventListener('resize', function(){ tabsThumb(true); });
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ tabsThumb(true); });
     initMenu();
+    initBack();
     initExplain();
     initSwipes();
     initOffline();
@@ -594,7 +643,7 @@
 
   // full screen for a page's own button (the platformer's pause): can it, is it on, switch it
   function toggleFull(){ try { if (tg.isFullscreen) tg.exitFullscreen(); else tg.requestFullscreen(); } catch(e){ noFull(); } }
-  window.UI = { setTheme: setTheme, sync: sync, tabsThumb: tabsThumb, switchView: switchView, reserve: reserve, reduce: reduce, morph: morph,
+  window.UI = { back: goBack, inner: innerNow, setTheme: setTheme, sync: sync, tabsThumb: tabsThumb, switchView: switchView, reserve: reserve, reduce: reduce, morph: morph,
     canFull: canFull, isFull: function(){ return !!(tg && tg.isFullscreen); }, toggleFull: toggleFull, gender: gender, setGender: setGender };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

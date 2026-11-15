@@ -61,7 +61,7 @@ async def main():
         check('menu: the garden card, five German games, the 2.5D game\'s card and two more for a break, each with a status line', [t[0] for t in tiles] == ['garten', 'art', 'memory', 'satz', 'zahlen', 'dialog', 'hop', 'click', 'sort'] and all(t[1] for t in tiles[1:]), str(tiles))
         check('menu: an empty garden invites to plant', await text(pg, '#h-g-big') == 'Посади перші слова' and await pg.evaluate("document.querySelectorAll('#h-g-bed svg').length") == 5)
         check('menu: groups «Німецька» and «Для перерви», title «Мініігри», no Back', await pg.evaluate("[...document.querySelectorAll('#view-hub .group')].map(g => g.textContent).join('|')") == 'Німецька|Для перерви'
-              and await text(pg, 'h1') == 'Мініігри' and not await pg.evaluate('Telegram.WebApp.BackButton.shown') and await pg.is_hidden('#backbtn'))
+              and await text(pg, 'h1') == 'Мініігри' and not await pg.evaluate('UI.inner()') and await pg.evaluate('Telegram.WebApp.BackButton.shown') and await pg.is_visible('#navback'))
         check('menu: fits 340 px', await fits(pg))
         await shot(pg, 'games-menu.png')
         await pg.goto(base + 'igry/?tab=nonsense'); await pg.wait_for_timeout(500)
@@ -69,7 +69,7 @@ async def main():
 
         # ---------------- the word garden ----------------
         await pg.click('#h-g'); await pg.wait_for_timeout(500)
-        check('a game opens as its own screen: title, «Усі ігри», Telegram Back, ?tab= in the address', await text(pg, 'h1') == 'Сад слів' and await pg.is_visible('#backbtn')
+        check('a game opens as its own screen: title, «Усі ігри», Telegram Back, ?tab= in the address', await text(pg, 'h1') == 'Сад слів' and await pg.is_visible('#navback') and await pg.evaluate('UI.inner()')
               and await pg.evaluate('Telegram.WebApp.BackButton.shown') and pg.url.endswith('?tab=garten'))
         await pg.go_back(); await pg.wait_for_timeout(500)
         check("the phone's Back returns to the menu", await pg.is_visible('#view-hub') and await text(pg, 'h1') == 'Мініігри')
@@ -92,7 +92,7 @@ async def main():
         check('garden: a plant opens its card with the word and when to water', await pg.is_visible('#g-sheet') and await text(pg, '#g-sheet-w') and 'Поливати' in await text(pg, '#g-sheet-when'))
         await pg.click('#g-sheet-close'); await pg.wait_for_timeout(100)
         check('garden: the card closes; fits 340 px', await pg.is_hidden('#g-sheet') and await fits(pg))
-        await pg.click('#backbtn'); await pg.wait_for_timeout(500)
+        await pg.click('#navback'); await pg.wait_for_timeout(500)
         check('menu: the garden card shows the watered garden', await text(pg, '#h-g-big') == 'Сад полито' and 'garten' not in pg.url, await text(pg, '#h-g-big'))
 
         # ---------------- sentences ----------------
@@ -126,7 +126,7 @@ async def main():
         await shot(pg, 'games-satz.png')
 
         # ---------------- numbers by ear ----------------
-        await pg.click('#backbtn'); await pg.wait_for_timeout(400)
+        await pg.click('#navback'); await pg.wait_for_timeout(400)
         await pg.click('[data-game="zahlen"]'); await pg.wait_for_timeout(400)
         Z = G + ".game('zahlen').peek()"
         await pg.click('[data-kind="preis"]'); await pg.click('#n-go'); await pg.wait_for_timeout(200)
@@ -155,7 +155,7 @@ async def main():
         check('numbers: fits 340 px', await fits(pg))
 
         # ---------------- conversations ----------------
-        await pg.click('#backbtn'); await pg.wait_for_timeout(400)
+        await pg.click('#navback'); await pg.wait_for_timeout(400)
         await pg.click('[data-game="dialog"]'); await pg.wait_for_timeout(400)
         D = G + ".game('dialog').peek()"
         await pg.click('[data-scene="baeckerei"]'); await pg.wait_for_timeout(300)
@@ -186,7 +186,7 @@ async def main():
         check('conversation: the scene list shows the star', await text(pg, '[data-scene="baeckerei"] .dst') == '⭐')
 
         # ---------------- memory ----------------
-        await pg.click('#backbtn'); await pg.wait_for_timeout(400)
+        await pg.click('#navback'); await pg.wait_for_timeout(400)
         await pg.click('[data-game="memory"]'); await pg.wait_for_timeout(400)
         M = G + ".game('memory').peek()"
         planted0 = await pg.evaluate(G + '.garden.counts().planted')
@@ -216,7 +216,7 @@ async def main():
         check('memory: the theme chip shows the record', '8 ходів' in await text(pg, '[data-mtheme="kueche"]'))
 
         # ---------------- skins ----------------
-        await pg.click('#backbtn'); await pg.wait_for_timeout(400)
+        await pg.click('#navback'); await pg.wait_for_timeout(400)
         await pg.evaluate(G + ".progress.max('artStreak', 11)"); await pg.wait_for_timeout(100)
         check('skins: reaching a goal in another game says so', 'Карнавал' in await text(pg, '#toast'), await text(pg, '#toast'))
         st = pg.locator('[data-status="click"]')
@@ -241,7 +241,7 @@ async def main():
         check('skins: bought for 5 000 socks and worn', s['skins']['bought'] == ['nacht'] and s['skins']['on'] == 'nacht' and 1000 <= s['n'] < 1100 and await text(pg, '#skin-count') == '3 з 14', str(s)[:200])
         check('skins: fit 340 px', await fits(pg))
         await shot(pg, 'games-skins.png')
-        await pg.click('#backbtn'); await pg.wait_for_timeout(400)
+        await pg.click('#navback'); await pg.wait_for_timeout(400)
         check('skins: after a visit the tile no longer says "new"', 'Новий' not in await text(pg, '[data-status="click"]'))
         await pg.wait_for_timeout(1700)
         cloud = await pg.evaluate('window.__cloud')

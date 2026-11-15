@@ -15,13 +15,13 @@
    a hash of everything in CORE, so the phones refresh their copy after any change of the site. A new page or shared
    file must be added to CORE by hand (tests/offline_e2e.py checks the pages). */
 
-const VERSION = '0626eae018';
+const VERSION = 'd909112e35';
 const CORE_CACHE = 'dsimya-core-' + VERSION, DATA_CACHE = 'dsimya-data', STATIC_CACHE = 'dsimya-static', AUDIO_CACHE = 'dsimya-audio';
 const CITY_CACHE = 'dsimya-city', TILE_CACHE = 'dsimya-tiles', MAX_TILES = 600;
 const CORE = [
   'manifest.webmanifest', 'assets/icons/icon-192.png', 'assets/icons/icon-512.png', 'assets/icons/maskable-512.png', 'assets/icons/favicon-48.png', 'assets/icons/apple-180.png',
   './', 'pralka/', 'sushka/', 'scan/', 'smittia/', 'prospekty/', 'spysok/', 'transport/', 'pogoda/', 'igry/', 'bot/', 'ekstreno/', 'rozmovnyk/', 'marshrut/', 'a1/', 'mapa/', 'yizha/', 'sport/', 'misto/', 'a1/trener/', 'a1/lid/', 'a1/dtz/',
-  'assets/ui.css?v=9b6f3eca', 'assets/ui.js?v=06f89557', 'assets/page.css?v=5c607465', 'assets/site.js', 'scan/scan.js?v=d1048c25', 'rozmovnyk/phrases.js', 'audio/index.js', 'audio/say.js', 'assets/fonts/noto-sans.ttf',
+  'assets/ui.css?v=07f3ff28', 'assets/ui.js?v=1a627530', 'assets/page.css?v=5c607465', 'assets/site.js', 'scan/scan.js?v=d1048c25', 'rozmovnyk/phrases.js', 'audio/index.js', 'audio/say.js', 'assets/fonts/noto-sans.ttf',
   'smittia/kalender.json', 'smittia/due.js', 'smittia/wohin.js', 'prospekty/week.js', 'pogoda/wx.js', 'igry/words.js', 'igry/games.css?v=4b1eb845',
   'igry/kit.js', 'igry/progress.js', 'igry/garten.js', 'igry/satz.js', 'igry/zahlen.js', 'igry/dialog.js', 'igry/memory.js', 'igry/skins.js',
   'igry/data/garten.js', 'igry/data/satz.js', 'igry/data/zahlen.js', 'igry/data/dialog.js', 'igry/data/memory.js',

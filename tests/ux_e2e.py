@@ -2,9 +2,11 @@
 
   python3 tests/ux_e2e.py     (CHROME=/path/to/chrome to use a system browser)
 
-Per page: the heading says what the menu calls the section (the home page and the map excepted); nothing scrolls
-sideways at 360 px; zoom is not blocked; no control is smaller than 24 px (links inside a sentence and file inputs
-behind their buttons excepted); every button and link has a name; switches and the map's sheet handle answer a tap
+Back: every page but the home page has the arrow before «Розділи» and Telegram's own Back; both go one step back —
+out of a screen inside the section first, then to the page before, or home when the page was opened straight from the
+bot. Per page: the heading says what the menu calls the section (the home page and the map excepted); nothing scrolls
+sideways at 360 px; zoom is not blocked; no control is smaller than 24 px (links inside a sentence, file inputs
+behind their buttons, text in folded «more» blocks and the map's sheet handle, tested by touch below, excepted); every button and link has a name; switches and the map's sheet handle answer a tap
 just outside their drawn edge (their touch area is larger than they look); keyboard focus is visible on the controls
 reached first with Tab. External requests are blocked, so pages show their no-data state. Exits 1 if a check fails.
 """
@@ -27,7 +29,7 @@ def serve():
 
 TG = """window.Telegram = {WebApp: {platform: 'android', colorScheme: 'light', initData: 'user=%7B%22id%22%3A1%7D&hash=x', initDataUnsafe: {user: {id: 1}},
   ready() {}, expand() {}, onEvent() {}, offEvent() {}, isVersionAtLeast() { return true; }, setHeaderColor() {}, setBackgroundColor() {}, openLink() {},
-  HapticFeedback: {selectionChanged() {}, impactOccurred() {}, notificationOccurred() {}}, BackButton: {show() {}, hide() {}, onClick() {}, offClick() {}},
+  HapticFeedback: {selectionChanged() {}, impactOccurred() {}, notificationOccurred() {}}, BackButton: {shown: false, show() { this.shown = true; }, hide() { this.shown = false; }, onClick(f) { window.__back = f; }, offClick() {}},
   CloudStorage: {getItem(k, cb) { cb && cb(null, ''); }, setItem(k, v, cb) { cb && cb(null, true); }, getItems(k, cb) { cb && cb(null, {}); }}}};"""
 
 # the menu (assets/ui.js): path → name
@@ -35,10 +37,11 @@ UI = open(os.path.join(ROOT, 'assets', 'ui.js'), encoding='utf-8').read()
 MENU = dict(re.findall(r"\['([a-z0-9/]*)', '([^']+)', '[^']*', '[a-z]+'\]", UI))
 
 PROBE = r"""() => {
-  const vis = (el) => { const r = el.getBoundingClientRect(), s = getComputedStyle(el); return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && !el.closest('[hidden],[inert],[aria-hidden="true"]'); };
+  const BIGGER = '#grip';   // drawn thin, touched big: checked below with a tap just outside it
+  const vis = (el) => { const r = el.getBoundingClientRect(), s = getComputedStyle(el); return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && !el.closest('[hidden],[inert],[aria-hidden="true"]') && !(el.closest('details:not([open])') && !el.closest('summary')); };
   const inText = (el) => el.tagName === 'A' && getComputedStyle(el).display === 'inline';
   const ctrls = [...document.querySelectorAll('a[href],button,input:not([type=hidden]):not([type=file]),select,textarea,summary,[role=button],[role=switch],[role=tab]')].filter(vis);
-  const tiny = ctrls.filter((el) => !inText(el)).map((el) => [el, el.getBoundingClientRect()]).filter(([, r]) => r.width < 24 || r.height < 24)
+  const tiny = ctrls.filter((el) => !inText(el) && !el.matches(BIGGER)).map((el) => [el, el.getBoundingClientRect()]).filter(([, r]) => r.width < 24 || r.height < 24)
     .map(([el, r]) => `${el.tagName.toLowerCase()}${el.id ? '#' + el.id : ''} ${Math.round(r.width)}×${Math.round(r.height)}`);
   const nameOf = (el) => (el.getAttribute('aria-label') || el.innerText || el.value || el.title || el.getAttribute('placeholder') || '').trim()
     || (el.getAttribute('aria-labelledby') || '').split(' ').map((id) => (document.getElementById(id) || {}).textContent || '').join('').trim()
@@ -102,6 +105,40 @@ async def main():
         await pg.goto(base + 'misto/'); await pg.wait_for_timeout(800)
         rows = await pg.evaluate("[...document.querySelectorAll('.contact a')].slice(0, 6).map(a => Math.round(a.getBoundingClientRect().height))")
         check('addresses, phones and mail of the offices are rows of finger size (44 px)', rows and min(rows) >= 44, str(rows))
+        await ctx.close()
+
+        # ---------------- Back ----------------
+        ctx = await browser.new_context(viewport={'width': 360, 'height': 780}, service_workers='block')
+        await ctx.route('**/*', route2)
+        pg = await ctx.new_page()
+        await pg.goto(base); await pg.wait_for_timeout(700)
+        check('home: no Back arrow, Telegram Back hidden (the top of the app)', await pg.locator('#navback').count() == 0 and not await pg.evaluate('Telegram.WebApp.BackButton.shown'))
+        await pg.click('a[href="pogoda/"]'); await pg.wait_for_timeout(900)
+        check('a section opened from home: the arrow before «Розділи», Telegram Back shown',
+              await pg.is_visible('.toprow #navback') and await pg.evaluate('Telegram.WebApp.BackButton.shown') and pg.url.endswith('/pogoda/'))
+        box = await pg.evaluate("[document.querySelector('#navback').getBoundingClientRect(), document.querySelector('#menubtn').getBoundingClientRect()].map(r => [Math.round(r.left), Math.round(r.width), Math.round(r.height)])")
+        check('the arrow is a 44 px button left of «Розділи»', box[0][1] >= 44 and box[0][2] >= 44 and box[0][0] < box[1][0], str(box))
+        await pg.click('#navback'); await pg.wait_for_timeout(900)
+        check('the arrow returns to the page before (home)', pg.url == base and await pg.locator('#navback').count() == 0)
+        await pg.click('a[href="ekstreno/"]'); await pg.wait_for_timeout(900)
+        await pg.evaluate('window.__back()'); await pg.wait_for_timeout(900)
+        check("Telegram's Back (the phone's Back) on a section's first screen returns to the page before", pg.url == base)
+        await pg.goto(base + 'pralka/'); await pg.wait_for_timeout(800)
+        await pg.click('#navback'); await pg.wait_for_timeout(900)
+        check('a page opened straight from the bot: the arrow leads home', pg.url == base)
+        # a section with screens inside: one step at a time
+        await pg.click('a[href="a1/"]'); await pg.wait_for_timeout(900)
+        await pg.click('.chrow[data-ch="3"]'); await pg.wait_for_timeout(700)
+        inner = await pg.evaluate('UI.inner()')
+        await pg.click('#navback'); await pg.wait_for_timeout(700)
+        hub = pg.url.endswith('/a1/') and await pg.is_visible('#view-hub')
+        await pg.click('#navback'); await pg.wait_for_timeout(900)
+        check('course: chapter → the arrow → the course → the arrow → home', inner and hub and pg.url == base, pg.url)
+        await pg.goto(base + 'pralka/'); await pg.wait_for_timeout(800)
+        await pg.click('#tab-choose'); await pg.wait_for_timeout(400)
+        tabbed = await pg.evaluate('UI.inner()')
+        await pg.click('#navback'); await pg.wait_for_timeout(500)
+        check('washing machine: on another tab the arrow returns to the panel first, the page stays', tabbed and not await pg.evaluate('UI.inner()') and pg.url.endswith('/pralka/'))
         await ctx.close()
         await browser.close()
     print('\n' + (f'{len(fails)} FAILED' if fails else 'all passed'))

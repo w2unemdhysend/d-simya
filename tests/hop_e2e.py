@@ -100,7 +100,7 @@ async def main():
         await pg.wait_for_timeout(1200)
         st = await pg.evaluate("""() => ({stage: !document.querySelector('#hop-stage').hidden, cls: document.documentElement.classList.contains('hop-on'), vs: window.__vs,
           art: document.querySelector('#hp-word .art').textContent, slots: document.querySelectorAll('#hp-word i').length, hint: !document.querySelector('#hp-hint').hidden,
-          touch: document.querySelector('#hop-stage').classList.contains('touch'), back: window.Telegram.WebApp.BackButton.shown, hist: history.state && history.state.hopLevel})""")
+          touch: document.querySelector('#hop-stage').classList.contains('touch'), back: window.UI.inner(), hist: history.state && history.state.hopLevel})""")
         check('level 1: the game covers the page, Telegram\'s swipe-to-close is off', st['stage'] and st['cls'] and st['vs'] is False and st['back'], str(st))
         check('level 1: the word to collect is shown: die and five empty letters; the hint for the first time', st['art'] == 'die' and st['slots'] == 5 and st['hint'] and st['touch'] and st['hist'] == 0, str(st))
         colours = await painted(pg)
@@ -176,7 +176,7 @@ async def main():
         lst = await pg.evaluate("""() => ({open: [...document.querySelectorAll('.hop-lv')].map(b => !b.disabled), small: document.querySelector('.hop-lv small').textContent,
           stars: document.querySelectorAll('.hop-lv')[0].querySelectorAll('.stars svg.on').length, go: document.querySelector('#hp-go').textContent})""")
         check('the list: the first level shows its word, time and stars; the second is open now', lst['open'][:3] == [True, True, False] and lst['small'].startswith('die Socke · 0:') and lst['stars'] == 3 and lst['go'] == 'Далі: Двір', str(lst))
-        await pg.click('#backbtn'); await pg.wait_for_timeout(500)
+        await pg.click('#navback'); await pg.wait_for_timeout(500)
         check('the menu card counts the stars', await pg.text_content('[data-status="hop"]') == 'Пройдено 1 з 6 · ★ 3 з 18')
         await ctx.close()
 

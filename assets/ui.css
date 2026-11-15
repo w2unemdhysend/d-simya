@@ -200,3 +200,14 @@ html.rv-on .wrap{animation:none}
 :root[data-big="1"]{--muted:#3F4B53;--line:#9AA7AF}
 :root[data-big="1"][data-theme="dark"]{--muted:#C4CFD5;--line:#4A5861}
 @media (prefers-color-scheme: dark){:root[data-big="1"]:not([data-theme="light"]){--muted:#C4CFD5;--line:#4A5861}}
+/* Back: a round arrow before «Розділи» on every page but the home page (assets/ui.js, initBack). A section's own
+   «Назад» under the header goes: the arrow does the same step. */
+.navback{flex:none;width:44px;height:44px;padding:0;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--ink);
+  display:grid;place-items:center;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:transform .15s ease}
+.navback svg{width:22px;height:22px}
+.navback:active{transform:scale(.94)}
+.navback:focus-visible{outline:2.5px solid var(--accent, var(--ink));outline-offset:2px}
+.toprow .navback + .menubtn{margin-right:auto}
+.toprow .navback{margin-right:-4px}
+.has-navback #backbtn{display:none!important}
+
