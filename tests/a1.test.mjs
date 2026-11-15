@@ -58,9 +58,9 @@ const speakers = [...new Set(CH.flatMap((c) => c.dialog.lines.map((l) => l[0]).f
 t('every speaker in the dialogues has an avatar and a name (a1/people.js)', speakers.every((k) => KEYS.includes(k)), speakers.filter((k) => !KEYS.includes(k)).join(', '));
 
 /* ---------- chapters ---------- */
-const PART = (i) => (i < 8 ? 'A1.1' : i < 16 ? 'A1.2' : i < 24 ? 'A2.1' : 'A2.2');
-t(`${CH.length} chapters in order: A1.1 1–8 (with the book chapter title), A1.2 9–16, A2.1 17–24, A2.2 25–32`,
-  CH.length >= 16 && CH.length <= 32 && CH.every((c, i) => c.n === i + 1 && c.part === PART(i) && (i < 8 ? typeof c.book === 'string' && c.book.length > 3 : c.book === null) && c.title),
+const PART = (i) => (i < 8 ? 'A1.1' : i < 16 ? 'A1.2' : i < 24 ? 'A2.1' : i < 32 ? 'A2.2' : i < 40 ? 'B1.1' : 'B1.2');
+t(`${CH.length} chapters in order: A1.1 1–8 (with the book chapter title), A1.2 9–16, A2.1 17–24, A2.2 25–32, B1.1 33–40, B1.2 41–48`,
+  CH.length >= 16 && CH.length <= 48 && CH.every((c, i) => c.n === i + 1 && c.part === PART(i) && (i < 8 ? typeof c.book === 'string' && c.book.length > 3 : c.book === null) && c.title),
   CH.map((c) => `${c.n}:${c.part}`).join(' '));
 t('the chapter files hold plain text only (no code left in a string)', RAW.every((c, i) => !/\.replace\(|\.length \?/.test(String(readFileSync(new URL(`../a1/data/k${String(i + 1).padStart(2, '0')}.js`, import.meta.url))))));
 t('every chapter has goals, 4–6 grammar topics, phrases, a dialogue and at least 10 exercises',

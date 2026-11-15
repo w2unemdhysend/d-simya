@@ -9,7 +9,7 @@ import * as sound from '../../audio/say.js';
 const SKEY = 'a1-trener', N = 10, GOAL = 10;
 // today in Xanten, 'YYYY-MM-DD'
 const today = (now = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
-const LEVELS = { a1: ['A1', [1, 16]], a2: ['A2', [17, 32]], all: ['A1–A2', [1, 32]] };
+const LEVELS = { a1: ['A1', [1, 16]], a2: ['A2', [17, 32]], b1: ['B1', [33, 48]], all: ['A1–B1', [1, 48]] };
 let state = Object.assign(srs.empty(), load(SKEY) || {});
 let level = LEVELS[load('a1-trener-level')] ? load('a1-trener-level') : 'a1';
 const save = () => { srs.tidy(state, today()); store(SKEY, state); cloudSet(SKEY, { items: state.items }); };

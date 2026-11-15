@@ -1,5 +1,5 @@
-// «Німецька A1–A2»: the A1 chapters in the order of Die neue Linie 1 (A1.1, A1.2), then A2 (A2.1, A2.2) by the A2
-// standard (a1/data/index.js). Our own explanations in Ukrainian,
+// «Німецька A1–B1»: the A1 chapters in the order of Die neue Linie 1 (A1.1, A1.2), then A2 (A2.1, A2.2) by the A2
+// standard and B1 (B1.1, B1.2) by the B1 standard and the DTZ (a1/data/index.js). Our own explanations in Ukrainian,
 // examples, phrases, a dialogue and exercises per chapter; a dictionary of every word with its article, plural or
 // verb forms and a recorded clip; a grammar index. Progress (solved exercises, the last chapter) stays on the phone
 // and in Telegram's cloud. Screens: the course, a chapter (4 tabs), the dictionary, the grammar index.
@@ -45,9 +45,9 @@ let current = null, chapter = 0, tab = 'gram';
 function header() {
   const c = CHAPTERS[chapter - 1];
   $('#backbtn').hidden = current === 'hub'; $('#lede').hidden = current !== 'hub';
-  $('#eyebrow').textContent = current === 'hub' ? 'Навчання · рівні A1 і A2' : current === 'ch' ? `Розділ ${c.n} · ${c.part}` : 'Німецька A1–A2';
-  $('#title').textContent = current === 'hub' ? 'Німецька A1–A2' : current === 'ch' ? c.title : current === 'dict' ? 'Словник' : 'Граматика';
-  document.title = current === 'hub' ? 'Німецька A1–A2' : $('#title').textContent + ' · Німецька A1–A2';
+  $('#eyebrow').textContent = current === 'hub' ? 'Навчання · рівні A1, A2 і B1' : current === 'ch' ? `Розділ ${c.n} · ${c.part}` : 'Німецька A1–B1';
+  $('#title').textContent = current === 'hub' ? 'Німецька A1–B1' : current === 'ch' ? c.title : current === 'dict' ? 'Словник' : 'Граматика';
+  document.title = current === 'hub' ? 'Німецька A1–B1' : $('#title').textContent + ' · Німецька A1–B1';
 }
 function show(view, o = {}) {
   const prev = current, prevCh = chapter;
@@ -122,7 +122,7 @@ function renderHub() {
     `</div>` +
     [...new Set(CHAPTERS.map((c) => c.part))].map((part) => { const list = CHAPTERS.filter((c) => c.part === part);
       return `<h3 class="group">${part} · розділи ${list[0].n}–${list[list.length - 1].n}</h3><div class="card list">${list.map(row).join('')}</div>`; }).join('') +
-    `<p class="note small">Розділи A1 і їхня граматика йдуть у тому ж порядку, що й у підручнику Die neue Linie 1 (Klett), тож цю частину можна проходити разом із книжкою; назви розділів 9–16 наші. Розділи A2 охоплюють граматику й теми рівня A2 (як для іспиту Goethe-Zertifikat A2). Пояснення, приклади, діалоги й вправи всюди власні.</p>`;
+    `<p class="note small">Розділи A1 і їхня граматика йдуть у тому ж порядку, що й у підручнику Die neue Linie 1 (Klett), тож цю частину можна проходити разом із книжкою; назви розділів 9–16 наші. Розділи A2 охоплюють граматику й теми рівня A2 (як для іспиту Goethe-Zertifikat A2), розділи B1 — рівня B1 (Goethe-Zertifikat B1 і DTZ) на ситуаціях із життя: робота, лікарня, оренда, школа, банк, установи. Пояснення, приклади, діалоги й вправи всюди власні.</p>`;
 }
 $('#view-hub').addEventListener('click', (e) => {
   const a = e.target.closest('[data-ch], [data-view]'); if (!a || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
@@ -171,8 +171,8 @@ function renderChapter() {
     `<div class="view panel" id="p-tasks" role="tabpanel" aria-labelledby="tab-tasks"${tab === 'tasks' ? '' : ' hidden'}>` +
       `<div class="card thead" id="thead"></div>` + c.tasks.map((t, i) => taskHTML(c.n, t, i)).join('') +
       (c.n < CHAPTERS.length ? `<button class="btn primary" type="button" data-next="${c.n + 1}">Розділ ${c.n + 1}: ${esc(CHAPTERS[c.n].title)}</button>`
-        : CHAPTERS.length < 32 ? `<p class="note center">Розділи ${CHAPTERS.length + 1}–32 рівня A2 з’являться згодом.</p>`
-        : `<p class="note center">Це останній розділ курсу. Далі — рівень B1.</p>`) +
+        : CHAPTERS.length < 48 ? `<p class="note center">Розділи ${CHAPTERS.length + 1}–48 рівня B1 з’являться згодом.</p>`
+        : `<p class="note center">Це останній розділ курсу. Далі — рівень B2: курс професійної німецької й тренування в «DTZ · B1».</p>`) +
     `</div>`;
   renderTasksHead();
   sound.prefetch(words.slice(0, 6).map(sayOf));

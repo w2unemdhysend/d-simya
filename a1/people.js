@@ -83,6 +83,24 @@ const PEOPLE = {
     collar: '<path d="M14.2 30.2c3.6 2.6 8 2.6 11.6 0" fill="none" stroke="#E8DCC4" stroke-width="1.6"/>' } },
   Prüferin: { uk: 'Екзаменаторка', de: 'Prüferin', role: 'усний іспит A2', av: { bg: '#E4E2F2', skin: 'tan', hair: '#2A1E18', hairTop: H.bob, top: '#3A3F6E', glasses: true,
     collar: '<path d="M16.4 29.6l3.6 3.4 3.6-3.4" fill="#F4F4F2"/>', extra: '<rect x="24.2" y="32.4" width="4.6" height="3" rx=".5" fill="#F4F4F2"/>' } },   // a name badge
+  // B1
+  Beraterin: { uk: 'Пані Нойман', de: 'Frau Neumann', role: 'Jobcenter', av: { bg: '#E3ECF4', skin: 'light', hair: '#7A4A2A', hairTop: H.bob, top: '#3C6E8F',
+    collar: '<path d="M16.4 29.4l3.6 3.6 3.6-3.6" fill="#F4F4F2"/>' } },
+  Personalleiter: { uk: 'Пан Ваґнер', de: 'Herr Wagner', role: 'співбесіда', av: { bg: '#E8E6E0', skin: 'light', hair: '#8A847C', hairTop: H.side, top: '#2E3440', glasses: true,
+    collar: '<path d="M16.2 29.4l3.8 3.8 3.8-3.8" fill="#F4F4F2"/><path d="M19.2 32.6h1.6l.6 6.4-1.4 1-1.4-1z" fill="#2F5DB3"/>' } },
+  Kollege: { uk: 'Йонас', de: 'Jonas', role: 'колега', av: { bg: '#E2F0EA', skin: 'warm', hair: '#3A2A20', hairTop: H.curly, top: '#4E7A5A', beard: '#3A2A20' } },
+  Pfleger: { uk: 'Медбрат Ердем', de: 'Pfleger Erdem', role: 'лікарня', av: { bg: '#E0F0F2', skin: 'tan', hair: '#1E1A18', hairTop: H.short, top: '#3FA0A8',
+    collar: '<path d="M16.4 29.4l3.6 3.4 3.6-3.4" fill="none" stroke="#2A7F86" stroke-width="1"/>' } },
+  Hausverwaltung: { uk: 'Пані Рот', de: 'Hausverwaltung Roth', role: 'дзвінок до управителя будинку', av: { bg: '#F2E8DE', skin: 'light', hair: '#B04A2A', hairTop: H.pony, top: '#5A4E7A',
+    extra: '<path d="M27 21.5c1.8.6 2.6 2 2.4 3.6" fill="none" stroke="#2A2A30" stroke-width="1"/><circle cx="29.4" cy="25.6" r=".9" fill="#2A2A30"/>' } },   // a headset
+  Lehrer: { uk: 'Пан Гофман', de: 'Herr Hoffmann', role: 'класний керівник', av: { bg: '#E6EEF8', skin: 'light', hair: '#4A3A2E', hairTop: H.short, top: '#7A5A3A', glasses: true, beard: '#4A3A2E' } },
+  Bankberater: { uk: 'Пан Шульц', de: 'Herr Schulz', role: 'банк', av: { bg: '#E4E8EE', skin: 'deep', hair: '#1A1412', hairTop: H.short, top: '#1F2A44',
+    collar: '<path d="M16.2 29.4l3.8 3.8 3.8-3.8" fill="#F4F4F2"/><path d="M19.2 32.6h1.6l.6 6.4-1.4 1-1.4-1z" fill="#C0392B"/>' } },
+  Kundenservice: { uk: 'Служба підтримки', de: 'Kundenservice', role: 'гаряча лінія магазину', av: { bg: '#F0E6F4', skin: 'warm', hair: '#2A1E18', hairTop: H.bun, top: '#8A3FA0',
+    extra: '<path d="M12.6 17.5c0-5 3.2-8.6 7.4-8.6s7.4 3.6 7.4 8.6" fill="none" stroke="#2A2A30" stroke-width="1.1"/><rect x="11.4" y="16.4" width="2.4" height="3.8" rx="1" fill="#2A2A30"/><rect x="26.2" y="16.4" width="2.4" height="3.8" rx="1" fill="#2A2A30"/>' } },
+  Polizist: { uk: 'Поліцейський', de: 'Polizist', role: 'поліція', av: { bg: '#E0E8F4', skin: 'light', hair: '#5A4A3E', hairTop: H.short, top: '#1F3A6E',
+    hat: '<path d="M12.4 12.8c.6-4.4 3.6-6.8 7.6-6.8s7 2.4 7.6 6.8z" fill="#1F3A6E"/><path d="M11.2 12.4h17.6v1.8H11.2z" fill="#14264A"/><circle cx="20" cy="9.6" r="1.2" fill="#E8C64A"/>' } },
+  Vorsitzende: { uk: 'Пані Яніна', de: 'Janina', role: 'голова спортивного клубу', av: { bg: '#F4EAD8', skin: 'tan', hair: '#2A1E18', hairTop: H.pony, top: '#C0563A' } },
 };
 
 // a person by the key a dialogue line uses ("" is a pause in the story)

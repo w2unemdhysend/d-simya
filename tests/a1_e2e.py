@@ -1,4 +1,4 @@
-"""The German course A1–A2 (a1/) in headless Chrome.
+"""The German course A1–B1 (a1/) in headless Chrome.
 
   python3 tests/a1_e2e.py            (CHROME=/path/to/chrome to use a system browser)
 
@@ -76,11 +76,11 @@ async def main():
           groups: [...document.querySelectorAll('#view-hub .group')].map(g => g.textContent), rows: document.querySelectorAll('#view-hub .chrow').length,
           counts: [...document.querySelectorAll('#view-hub .chrow .pr')].map(x => x.textContent), words: window.__a1.WORDS.length, n: window.__a1.CHAPTERS.length})""")
         N = hub['n']
-        want = [f'{p} · розділи {a}–{min(b, N)}' for p, a, b in [('A1.1', 1, 8), ('A1.2', 9, 16), ('A2.1', 17, 24), ('A2.2', 25, 32)] if a <= N]
+        want = [f'{p} · розділи {a}–{min(b, N)}' for p, a, b in [('A1.1', 1, 8), ('A1.2', 9, 16), ('A2.1', 17, 24), ('A2.2', 25, 32), ('B1.1', 33, 40), ('B1.2', 41, 48)] if a <= N]
         check(f'course: a start card for chapter 1, the trainers and four tiles, {N} chapters grouped A1.1, A1.2, A2.1 … with 0/N exercises',
               'Почати' in hub['card'] and 'Знайомство' in hub['card'] and hub['tiles'] == ['Тренажери', 'Leben in Deutschland', 'DTZ · B1', 'Словник', 'Граматика', 'Вимова', 'Сад слів']
               and N >= 17 and hub['groups'] == want and hub['rows'] == N and all(c.startswith('0/') for c in hub['counts']), str(hub))
-        check('course: title, no Back, the dictionary tile counts every entry', await text(pg, 'h1') == 'Німецька A1–A2' and await pg.is_hidden('#backbtn')
+        check('course: title, no Back, the dictionary tile counts every entry', await text(pg, 'h1') == 'Німецька A1–B1' and await pg.is_hidden('#backbtn')
               and not await pg.evaluate('Telegram.WebApp.BackButton.shown') and str(hub['words']) in await text(pg, '[data-view="dict"] small'))
         check('course: fits 340 px', await fits(pg))
         await shot(pg, 'a1-course.png')
@@ -223,7 +223,7 @@ async def main():
         await shot(pg, 'a1-a2-chat.png', False)
         await pg.goto(f'{base}a1/?ch={N}&tab=tasks'); await pg.wait_for_timeout(400)
         end = await pg.evaluate("[!!document.querySelector('[data-next]'), (document.querySelector('#p-tasks .note.center') || {}).textContent || '']")
-        check('the last chapter offers no next one and says what comes', not end[0] and (('з’являться згодом' in end[1]) if N < 32 else ('рівень B1' in end[1])), str(end))
+        check('the last chapter offers no next one and says what comes', not end[0] and (('з’являться згодом' in end[1]) if N < 48 else ('рівень B2' in end[1])), str(end))
         await pg.goto(base + 'a1/'); await pg.wait_for_timeout(500)
 
         # ---------------- the dictionary ----------------

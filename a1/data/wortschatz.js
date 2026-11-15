@@ -6,8 +6,10 @@
 //   w  woher | | звідки                                 a little word: pronoun, question word, preposition, number
 //   p  Wie geht's? | | Як справи?                       a phrase to learn whole
 //   name  die Ukraine | | Україна                       a country, language or holiday (not for the word garden)
-// A word is listed once, in the chapter where it first comes up. The A2 chapters (17–32) are in wortschatz2.js.
+// A word is listed once, in the chapter where it first comes up. The A2 chapters (17–32) are in wortschatz2.js, the B1
+// chapters (33–48) in wortschatz3.js.
 import { RAW2 } from './wortschatz2.js';
+import { RAW3 } from './wortschatz3.js';
 
 const RAW = {
 1: `
@@ -1042,7 +1044,7 @@ p Kann ich mit Karte zahlen? | | Можна заплатити карткою?
 
 export const KINDS = { n: 'іменник', v: 'дієслово', a: 'прикметник, прислівник', w: 'службове слово', p: 'фраза', name: 'назва' };
 export const WORDS = [];
-for (const [ch, text] of Object.entries({ ...RAW, ...RAW2 })) {   // A1 (1–16), then A2 (17–32)
+for (const [ch, text] of Object.entries({ ...RAW, ...RAW2, ...RAW3 })) {   // A1 (1–16), A2 (17–32), then B1 (33–48)
   for (const raw of text.trim().split('\n')) {
     const m = raw.match(/^(n|v|a|w|p|name) (.+?) \|\s*(.*?)\s*\| (.+)$/);
     if (!m) throw new Error('A1 dictionary: cannot read «' + raw + '»');

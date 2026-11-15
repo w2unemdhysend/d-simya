@@ -1,5 +1,5 @@
-// Every chapter of the course in order: A1 (1–16, in the order of Die neue Linie 1) and A2 (from 17, by the A2
-// standard: the grammar and topics of the Goethe-Zertifikat A2). The course page, the tests and the voice tools read it.
+// Every chapter of the course in order: A1 (1–16, in the order of Die neue Linie 1), A2 (17–32, by the A2 standard:
+// the grammar and topics of the Goethe-Zertifikat A2) and B1 (from 33: Goethe-Zertifikat B1 and the DTZ). The course page, the tests and the voice tools read it.
 import k01 from './k01.js';
 import k02 from './k02.js';
 import k03 from './k03.js';
@@ -32,5 +32,13 @@ import k29 from './k29.js';
 import k30 from './k30.js';
 import k31 from './k31.js';
 import k32 from './k32.js';
+import k33 from './k33.js';
+import k34 from './k34.js';
+import k35 from './k35.js';
+import k36 from './k36.js';
+import k37 from './k37.js';
+import k38 from './k38.js';
+import k39 from './k39.js';
+import k40 from './k40.js';
 
-export const CHAPTERS = [k01, k02, k03, k04, k05, k06, k07, k08, k09, k10, k11, k12, k13, k14, k15, k16, k17, k18, k19, k20, k21, k22, k23, k24, k25, k26, k27, k28, k29, k30, k31, k32];
+export const CHAPTERS = [k01, k02, k03, k04, k05, k06, k07, k08, k09, k10, k11, k12, k13, k14, k15, k16, k17, k18, k19, k20, k21, k22, k23, k24, k25, k26, k27, k28, k29, k30, k31, k32, k33, k34, k35, k36, k37, k38, k39, k40];

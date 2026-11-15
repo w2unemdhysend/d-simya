@@ -47,7 +47,7 @@ t(`pools: ${sizes.verbs} verbs, ${sizes.nouns} nouns, ${sizes.sentences} sentenc
 for (const tr of TRAINERS) {
   const r = rng(tr.id.length * 7919), bad = [];
   for (let i = 0; i < 1500; i++) {
-    const range = i % 2 ? [1, 16] : [1, 32];
+    const range = [[1, 16], [1, 32], [33, 48], [1, 48]][i % 4];
     const q = question(tr.id, range, r);
     const text = JSON.stringify(q);
     if (/undefined|null|NaN/.test(text)) bad.push('empty: ' + text.slice(0, 120));
@@ -61,7 +61,7 @@ for (const tr of TRAINERS) {
     if (q.kind === 'case' && /\b(in|an) (dem|das)\b/.test(q.explain)) bad.push('should merge: ' + q.explain);
     if (q.kind === 'adj' && /^(Das ist|Ich sehe|mit) [a-zäöüß]+___/.test(q.prompt) && !/\(множина\)/.test(q.hint)) bad.push('no article with a single thing: ' + q.prompt);
     // the question again from its key (spaced repetition) is the same item
-    if (q.kind !== 'order') { const again = question(tr.id, [1, 32], r, q.key); if (again.key.split('|')[0] !== q.key.split('|')[0]) bad.push('again: ' + q.key + ' → ' + again.key); }
+    if (q.kind !== 'order') { const again = question(tr.id, [1, 48], r, q.key); if (again.key.split('|')[0] !== q.key.split('|')[0]) bad.push('again: ' + q.key + ' → ' + again.key); }
   }
   t(`${tr.uk}: 1 500 questions, each complete, the answer among the choices, a key that brings it back`, !bad.length, bad.slice(0, 4).join(' || '));
 }
