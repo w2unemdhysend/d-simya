@@ -40,5 +40,13 @@ import k37 from './k37.js';
 import k38 from './k38.js';
 import k39 from './k39.js';
 import k40 from './k40.js';
+import k41 from './k41.js';
+import k42 from './k42.js';
+import k43 from './k43.js';
+import k44 from './k44.js';
+import k45 from './k45.js';
+import k46 from './k46.js';
+import k47 from './k47.js';
+import k48 from './k48.js';
 
-export const CHAPTERS = [k01, k02, k03, k04, k05, k06, k07, k08, k09, k10, k11, k12, k13, k14, k15, k16, k17, k18, k19, k20, k21, k22, k23, k24, k25, k26, k27, k28, k29, k30, k31, k32, k33, k34, k35, k36, k37, k38, k39, k40];
+export const CHAPTERS = [k01, k02, k03, k04, k05, k06, k07, k08, k09, k10, k11, k12, k13, k14, k15, k16, k17, k18, k19, k20, k21, k22, k23, k24, k25, k26, k27, k28, k29, k30, k31, k32, k33, k34, k35, k36, k37, k38, k39, k40, k41, k42, k43, k44, k45, k46, k47, k48];

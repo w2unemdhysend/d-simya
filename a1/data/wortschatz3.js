@@ -294,4 +294,300 @@ v prüfen | er prüft · hat geprüft | перевіряти
 p Ich möchte ein Konto eröffnen. | | Я хочу відкрити рахунок.
 p Hätte ich das nur früher gewusst! | | Якби ж знати це раніше!
 `,
+41: `
+n die Ware | die Waren | товар
+n die Lieferung | die Lieferungen | доставка
+n die Bestellung | die Bestellungen | замовлення
+n die Bestellnummer | die Bestellnummern | номер замовлення
+n die Reklamation | die Reklamationen | повернення бракованого товару, скарга
+n die Gewährleistung | die Gewährleistungen | гарантія продавця за законом
+n die Garantie | die Garantien | гарантія
+n der Ersatz | — | заміна
+n der Defekt | die Defekte | несправність, брак
+n das Gerät | die Geräte | прилад
+n der Staubsauger | die Staubsauger | пилосос
+n die Bedienungsanleitung | die Bedienungsanleitungen | інструкція з експлуатації
+n die Rücksendung | die Rücksendungen | повернення (посилки)
+n das Rücksendeetikett | die Rücksendeetiketten | етикетка для повернення
+n der Werktag | die Werktage | робочий день
+n die Verbraucherzentrale | die Verbraucherzentralen | центр захисту споживачів
+n der Kundenservice | — | служба підтримки
+n der Betrag | die Beträge | сума
+n die Anlage | die Anlagen | додаток (до листа)
+n der Vorgesetzte | die Vorgesetzten | керівник
+n die Bestätigung | die Bestätigungen | підтвердження
+n der Filter | die Filter | фільтр
+n die Schlange | die Schlangen | черга; змія
+n der Toaster | die Toaster | тостер
+a beschädigt | | пошкоджений
+a defekt | | несправний
+a steigend | | зростаючий
+a laufend | | поточний, чинний
+v reklamieren | er reklamiert · hat reklamiert | повертати як брак, скаржитися
+v liefern | er liefert · hat geliefert | доставляти
+v austauschen | er tauscht aus · hat ausgetauscht | замінювати
+v zurückschicken | er schickt zurück · hat zurückgeschickt | відсилати назад
+v beschädigen | er beschädigt · hat beschädigt | пошкоджувати
+v sich verspäten | er verspätet sich · hat sich verspätet | запізнюватися
+v akzeptieren | er akzeptiert · hat akzeptiert | приймати, погоджуватися
+v beiliegen | er liegt bei · hat beigelegen | додаватися (до листа)
+v nachsehen | er sieht nach · hat nachgesehen | перевіряти, дивитися
+v klopfen | er klopft · hat geklopft | стукати
+w sodass | | так що
+w so … dass | | такий …, що
+p Ich möchte mein Geld zurück. | | Я хочу повернути свої гроші.
+p Eine Kopie liegt bei. | | Копія додається.
+`,
+42: `
+n das Phishing | — | фішинг
+n der Betrug | — | шахрайство
+n der Betrüger | die Betrüger | шахрай
+n die Betrügerin | die Betrügerinnen | шахрайка
+n die Sicherheit | die Sicherheiten | безпека
+n die Freiheit | die Freiheiten | свобода
+n die Freundschaft | die Freundschaften | дружба
+n die Nachbarschaft | die Nachbarschaften | сусідство
+n der Vorteil | die Vorteile | перевага
+n der Nachteil | die Nachteile | недолік
+n die Daten (Pl.) | — | дані
+n die Zollgebühr | die Zollgebühren | митний збір
+n die Bezahlung | die Bezahlungen | оплата
+n die Medien (Pl.) | — | медіа, засоби інформації
+a vorsichtig | | обережний
+a unbekannt | | невідомий
+a erreichbar | | доступний, на зв’язку
+a klug | | розумний
+w einerseits … andererseits | | з одного боку …, з іншого
+w beim | | під час (bei dem)
+v sperren | er sperrt · hat gesperrt | блокувати
+v sich einloggen | er loggt sich ein · hat sich eingeloggt | входити (в акаунт)
+v klicken | er klickt · hat geklickt | клацати
+v abstürzen | er stürzt ab · ist abgestürzt | зависати (про програму)
+v raten | er rät · hat geraten | вгадувати; радити
+v auflegen | er legt auf · hat aufgelegt | класти слухавку
+v überwiegen | er überwiegt · hat überwogen | переважати
+p Nicht klicken! | | Не клацай!
+p Ich möchte eine Anzeige erstatten. | | Я хочу подати заяву в поліцію.
+n die Speicherung | — | збереження (даних)
+n die Pünktlichkeit | — | пунктуальність
+a kabellos | | бездротовий
+a passwortgeschützt | | захищений паролем
+`,
+43: `
+n die Führerscheinstelle | die Führerscheinstellen | відділ посвідчень водія
+n die Fahrschule | die Fahrschulen | автошкола
+n der Fahrzeugschein | die Fahrzeugscheine | техпаспорт авто
+n die Zulassung | die Zulassungen | реєстрація (авто)
+n die Kfz-Steuer | — | податок на авто
+n die Hauptuntersuchung | die Hauptuntersuchungen | техогляд
+n der Winterreifen | die Winterreifen | зимова шина
+n der Reifen | die Reifen | шина
+n die Warnweste | die Warnwesten | світловідбивний жилет
+n das Warndreieck | die Warndreiecke | знак аварійної зупинки
+n der Verbandskasten | die Verbandskästen | аптечка (автомобільна)
+n die Warnblinkanlage | die Warnblinkanlagen | аварійна сигналізація
+n der Zeuge | die Zeugen | свідок
+n die Zeugin | die Zeuginnen | свідок (жінка)
+n das Schuldanerkenntnis | die Schuldanerkenntnisse | визнання вини
+n die Fahrerflucht | — | втеча з місця аварії
+n der Unfallbericht | die Unfallberichte | протокол аварії
+n der Stau | die Staus | затор
+n die Glätte | — | ожеледиця
+n das Benzin | — | бензин
+n der Bremsweg | die Bremswege | гальмівний шлях
+n der Ersatzverkehr | — | замінний транспорт
+n der Schutzstatus | — | статус захисту
+n die Versicherungsdaten (Pl.) | — | дані страховки
+n die Fahrerin | die Fahrerinnen | водійка
+a verletzt | | поранений
+a plötzlich | | раптом, раптовий
+w falls | | якщо раптом
+w im Fall | | у разі
+v umschreiben | er schreibt um · hat umgeschrieben | обмінювати (посвідчення); переписувати
+v bremsen | er bremst · hat gebremst | гальмувати
+v tanken | er tankt · hat getankt | заправлятися
+v auffahren | er fährt auf · ist aufgefahren | в’їхати ззаду
+v einschalten | er schaltet ein · hat eingeschaltet | вмикати
+v klären | er klärt · hat geklärt | з’ясовувати, владнувати
+p Ist jemand verletzt? | | Хтось поранений?
+p Können wir unsere Daten austauschen? | | Можемо обмінятися даними?
+`,
+44: `
+n die Mitgliedschaft | die Mitgliedschaften | членство
+n der Mitgliedsbeitrag | die Mitgliedsbeiträge | членський внесок
+n der Mitgliedsantrag | die Mitgliedsanträge | заява про вступ
+n die Mitgliederversammlung | die Mitgliederversammlungen | збори членів
+n die Satzung | die Satzungen | статут
+n der Vorsitzende | die Vorsitzenden | голова (клубу)
+n die Vorsitzende | die Vorsitzenden | голова (жінка)
+n das Probetraining | die Probetrainings | пробне тренування
+n das Ehrenamt | die Ehrenämter | волонтерство, громадська робота
+n die Freiwilligenagentur | die Freiwilligenagenturen | агенція волонтерів
+n die Feuerwehr | die Feuerwehren | пожежна служба
+n der Helfer | die Helfer | помічник
+n die Helferin | die Helferinnen | помічниця
+n der Anfänger | die Anfänger | початківець
+n die Anfängerin | die Anfängerinnen | початківиця
+n der Profi | die Profis | професіонал
+n der Schläger | die Schläger | ракетка
+n das Tischtennis | — | настільний теніс
+n das Turnier | die Turniere | турнір
+n die Aktivität | die Aktivitäten | захід, заняття
+n die Angst | die Ängste | страх
+a ehrenamtlich | | волонтерський, безоплатний
+a freiwillig | | добровільний
+v sich engagieren | er engagiert sich · hat sich engagiert | присвячувати себе (громадській справі)
+v sich kümmern um | er kümmert sich · hat sich gekümmert | дбати про
+v teilnehmen | er nimmt teil · hat teilgenommen | брати участь
+v verteilen | er verteilt · hat verteilt | роздавати
+v mitspielen | er spielt mit · hat mitgespielt | грати разом
+v trainieren | er trainiert · hat trainiert | тренуватися
+v sich aufwärmen | er wärmt sich auf · hat sich aufgewärmt | розминатися
+p Da bin ich dabei! | | Я в ділі!
+p Ich freue mich darauf! | | Чекаю з нетерпінням!
+p Darf ich einfach mal mitspielen? | | Можна просто прийти пограти?
+`,
+45: `
+n der Adventskranz | die Adventskränze | адвентовий вінок
+n der Advent | — | адвент
+n der Heiligabend | die Heiligabende | Святвечір
+n das Plätzchen | die Plätzchen | печиво
+n der Glühwein | die Glühweine | глінтвейн
+n der Laternenumzug | die Laternenumzüge | хода з ліхтариками
+n die Laterne | die Laternen | ліхтарик
+n der Rosenmontag | die Rosenmontage | трояндовий понеділок
+n das Feuerwerk | die Feuerwerke | феєрверк
+n das Beileid | — | співчуття
+n die Trauer | — | жалоба, сум
+n die Geburt | die Geburten | народження
+n der Ruhetag | die Ruhetage | день тиші, вихідний
+n das Gericht | die Gerichte | страва; суд
+n die Tradition | die Traditionen | традиція
+n der Brauch | die Bräuche | звичай
+n der Kranz | die Kränze | вінок
+n der Rutsch | — | перехід (у Новий рік)
+a aufrichtig | | щирий
+a nötig | | потрібний
+w halt | | так уже (частка)
+w eben | | саме; так уже (частка)
+w eigentlich | | власне, взагалі-то
+v anzünden | er zündet an · hat angezündet | запалювати
+v sich lohnen | er lohnt sich · hat sich gelohnt | бути вартим
+v vorbeikommen | er kommt vorbei · ist vorbeigekommen | заходити (в гості)
+v sich handeln um | er handelt sich · hat sich gehandelt | ідеться про
+p Guten Rutsch! | | Щасливо зустріти Новий рік!
+p Herzliches Beileid. | | Щиро співчуваю.
+p Es kommt darauf an. | | Залежить від обставин.
+p Das ist halt so. | | Так уже є.
+`,
+46: `
+n die Wahl | die Wahlen | вибори; вибір
+n die Bundestagswahl | die Bundestagswahlen | вибори до Бундестагу
+n der Bundestag | — | Бундестаг
+n der Landtag | die Landtage | парламент землі
+n der Stadtrat | die Stadträte | міська рада
+n der Bürgermeister | die Bürgermeister | бургомістр
+n die Bürgermeisterin | die Bürgermeisterinnen | бургомістерка
+n der Bundeskanzler | die Bundeskanzler | федеральний канцлер
+n der Bundespräsident | die Bundespräsidenten | федеральний президент
+n die Partei | die Parteien | партія
+n der Integrationsrat | die Integrationsräte | рада інтеграції
+n die Petition | die Petitionen | петиція
+n die Demonstration | die Demonstrationen | демонстрація
+n das Grundgesetz | — | Основний закон (конституція)
+n die Würde | — | гідність
+n die Gleichberechtigung | — | рівноправність
+n die Politik | — | політика
+n das Argument | die Argumente | аргумент
+n die Altstadt | die Altstädte | старе місто
+n das Wahllokal | die Wahllokale | виборча дільниця
+n die Briefwahl | die Briefwahlen | голосування поштою
+n das Amtsblatt | die Amtsblätter | офіційний вісник
+n der Bürger | die Bürger | громадянин
+n die Bürgerin | die Bürgerinnen | громадянка
+n der Elektrobus | die Elektrobusse | електроавтобус
+n die Luft | — | повітря
+a autofrei | | без автомобілів
+a friedlich | | мирний
+a teilweise | | частково
+w niemand | | ніхто
+w nirgends | | ніде
+w gar nicht | | зовсім не
+w noch nicht | | ще не
+w nicht mehr | | більше не
+v sich einigen | er einigt sich · hat sich geeinigt | домовлятися
+v ausprobieren | er probiert aus · hat ausprobiert | випробовувати
+v abstimmen | er stimmt ab · hat abgestimmt | голосувати (за рішення)
+v wählen | er wählt · hat gewählt | обирати, голосувати
+p Da stimme ich dir zu. | | Тут я з тобою погоджуюся.
+p Ich bin da anderer Meinung. | | Я тут іншої думки.
+`,
+47: `
+n die Jahresabrechnung | die Jahresabrechnungen | річний розрахунок
+n der Abschlag | die Abschläge | аванс (щомісячний платіж)
+n der Zähler | die Zähler | лічильник
+n der Zählerstand | die Zählerstände | покази лічильника
+n die Zählernummer | die Zählernummern | номер лічильника
+n der Anbieter | die Anbieter | постачальник, провайдер
+n der Grundpreis | die Grundpreise | базова плата
+n die Grundversorgung | — | базове постачання
+n der Grundversorger | die Grundversorger | базовий постачальник
+n die Ratenzahlung | die Ratenzahlungen | розстрочка
+n die Kilowattstunde | die Kilowattstunden | кіловат-година
+n der Verbrauch | — | споживання
+n der Strompreis | die Strompreise | ціна на електроенергію
+n der Heizlüfter | die Heizlüfter | тепловентилятор
+n die Schlagzeile | die Schlagzeilen | заголовок
+n die Quelle | die Quellen | джерело
+n der Sprecher | die Sprecher | речник; диктор
+n die Sprecherin | die Sprecherinnen | речниця; дикторка
+n die Fake News (Pl.) | — | фейкові новини
+w außer | | крім
+w entlang | | уздовж
+w ab | | з (часу, місця)
+w pro | | за, на (кожен)
+w angeblich | | нібито
+a monatlich | | щомісячний
+v mitteilen | er teilt mit · hat mitgeteilt | повідомляти
+v anpassen | er passt an · hat angepasst | пристосовувати, змінювати
+v sinken | er sinkt · ist gesunken | знижуватися
+v steigen | er steigt · ist gestiegen | зростати; підніматися
+v schiefgehen | er geht schief · ist schiefgegangen | піти не так
+v verbrauchen | er verbraucht · hat verbraucht | споживати
+v streiken | er streikt · hat gestreikt | страйкувати
+p Was gibt es Neues? | | Що нового?
+p Gut zu wissen. | | Добре знати.
+`,
+48: `
+n der Kursraum | die Kursräume | навчальна кімната
+n das Abschiedsfest | die Abschiedsfeste | прощальне свято
+n die Abschiedsfeier | die Abschiedsfeiern | прощальна вечірка
+n der Berufssprachkurs | die Berufssprachkurse | курс професійної німецької
+n die Anpassungsqualifizierung | die Anpassungsqualifizierungen | доучування для визнання кваліфікації
+n die Niederlassungserlaubnis | die Niederlassungserlaubnisse | дозвіл на постійне проживання
+n die Einbürgerung | die Einbürgerungen | набуття громадянства
+n die Staatsangehörigkeit | die Staatsangehörigkeiten | громадянство
+n das Ding | die Dinge | річ, штука
+n der Wasserkocher | die Wasserkocher | електрочайник
+n die Teilnahme | die Teilnahmen | участь
+n der Kurstag | die Kurstage | день курсу
+a unpersönlich | | безособовий
+a gemeinsam | | спільний; разом
+a persönlich | | особистий
+w außerdem | | крім того
+w sonst | | інакше; а то
+w beides | | і те, і те
+v einfallen | er fällt ein · ist eingefallen | спадати на думку
+v grillen | er grillt · hat gegrillt | смажити на грилі
+v weitermachen | er macht weiter · hat weitergemacht | продовжувати
+p Wie geht es jetzt weiter? | | Що тепер далі?
+p Das Wort fällt mir nicht ein. | | Слово не спадає на думку.
+n die Vorbereitung | die Vorbereitungen | підготовка
+n der Prüfungsteil | die Prüfungsteile | частина іспиту
+n der Satzbau | — | будова речення
+n die Lernstrategie | die Lernstrategien | спосіб навчання
+a ausreichend | | достатній
+v sich konzentrieren | er konzentriert sich · hat sich konzentriert | зосереджуватися
+v zusammenfassen | er fasst zusammen · hat zusammengefasst | підсумовувати
+`,
 };

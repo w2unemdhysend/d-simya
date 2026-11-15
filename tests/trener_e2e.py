@@ -64,7 +64,7 @@ async def main():
     async with async_playwright() as p:
         browser = await p.chromium.launch(executable_path=os.environ.get('CHROME') or None, args=['--no-sandbox', '--autoplay-policy=no-user-gesture-required'])
         ctx, pg = await phone(browser, base)
-        check('hub: levels, eight trainers and the conversation', await pg.locator('[data-level]').count() == 3 and await pg.locator('[data-start]').count() == 8 and await pg.locator('[data-talk]').count() == 1)
+        check('hub: levels, eight trainers and the conversation', await pg.locator('[data-level]').count() == 4 and await pg.locator('[data-start]').count() == 8 and await pg.locator('[data-talk]').count() == 1)
         check('hub: today 0 answers, the daily goal', 'Сьогодні: 0 відповідей' in await pg.text_content('#view-hub'))
         await pg.click('[data-start="art"]'); await pg.wait_for_timeout(200)
         check('a session: «1 з 10», a noun with a gap, three articles', '1 з 10' in await pg.text_content('#view-run') and '___' in await pg.text_content('.q .task') and await pg.locator('.opt').count() == 3)
