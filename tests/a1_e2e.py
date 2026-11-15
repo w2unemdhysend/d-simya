@@ -235,7 +235,7 @@ async def main():
         await pg.click('#dmore'); await pg.wait_for_timeout(200)
         check('«Показати ще» adds rows', await pg.evaluate("document.querySelectorAll('#dlist .w').length") == 320)
         async def search(q):
-            await pg.fill('#dq', q); await pg.wait_for_timeout(150)
+            await pg.fill('#dq', q); await pg.wait_for_timeout(400)
             return await pg.evaluate("[...document.querySelectorAll('#dlist .w')].map(li => li.querySelector('.de').textContent.trim())")
         r = await search('Tisch')
         check('search in German: the word itself first', r and r[0] == 'der Tisch', str(r[:5]))

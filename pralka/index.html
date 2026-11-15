@@ -72,7 +72,7 @@ h2{font-family:var(--f-display);font-weight:600;font-size:17px;line-height:1.2;m
 
 /* zone map: the panel left to right */
 .zonemap{display:flex;gap:2px;background:var(--panel);border:1px solid var(--panel-edge);border-radius:12px;padding:4px;overflow:hidden}
-.zonemap button{flex:1 1 0;min-width:0;border:0;background:var(--panel-2);color:var(--panel-ink);font-size:11.5px;font-weight:600;padding:10px 2px;border-radius:7px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.zonemap button{flex:1 1 auto;min-width:0;min-height:44px;border:0;background:var(--panel-2);color:var(--panel-ink);font-size:11.5px;font-weight:600;padding:10px 2px;border-radius:7px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .zonemap button.z-lcd{background:var(--lcd-bg);color:var(--lcd-on);font-family:var(--f-lcd);font-size:13px;letter-spacing:.04em}
 .zonemap button.z-dial{flex-grow:1.5}
 .zonemap button.z-drawer{flex-grow:1.2}
@@ -237,7 +237,7 @@ h2{font-family:var(--f-display);font-weight:600;font-size:17px;line-height:1.2;m
     <p class="lede">Натисни на кнопку чи програму, і нижче з’явиться пояснення.</p>
   </header>
 
-  <div class="tabbar">
+  <div class="tabbar" role="navigation" aria-label="Частини інструкції">
     <div class="tabs" role="tablist" aria-label="Розділи">
       <span class="tthumb" aria-hidden="true"></span>
       <button role="tab" id="tab-panel" data-tab="panel" aria-controls="view-panel" aria-selected="true">Панель</button>
@@ -369,7 +369,7 @@ h2{font-family:var(--f-display);font-weight:600;font-size:17px;line-height:1.2;m
   </section>
   </main>
 
-  <p class="foot">За інструкцією <a href="https://www.beko.com/content/dam/germany-de-aem/germany-de-aemProductCatalog/product-documents/7128642200-WMB-71243-PTE/de-DE-7128642200-MDM2-USER-MANUAL-FILE-de-DE.pdf" target="_blank" rel="noopener">Beko WMB 71243/71443/71643 PTE</a>.</p>
+  <p class="foot" role="contentinfo">За інструкцією <a href="https://www.beko.com/content/dam/germany-de-aem/germany-de-aemProductCatalog/product-documents/7128642200-WMB-71243-PTE/de-DE-7128642200-MDM2-USER-MANUAL-FILE-de-DE.pdf" target="_blank" rel="noopener">Beko WMB 71243/71443/71643 PTE</a>.</p>
 </div>
 
 <script src="../assets/ui.js?v=06f89557"></script>

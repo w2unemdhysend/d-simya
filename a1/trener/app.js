@@ -42,7 +42,7 @@ try { if (tg && tg.BackButton) tg.BackButton.onClick(back); } catch (e) { /* old
 function renderHub() {
   const d = today(), done = state.days[d] || 0, st = srs.streak(state, d, GOAL), all = srs.due(state, null, d);
   const dueOf = (id) => all.filter((x) => x.trainer === id).length;
-  $('#view-hub').innerHTML = `<div class="chips" role="radiogroup" aria-label="Рівень">${Object.entries(LEVELS).map(([k, [n, r]]) => `<button class="chip" type="button" role="radio" data-level="${k}" aria-pressed="${level === k}" aria-checked="${level === k}">${n} · розд. ${r[0]}–${r[1]}</button>`).join('')}</div>
+  $('#view-hub').innerHTML = `<div class="chips" role="radiogroup" aria-label="Рівень">${Object.entries(LEVELS).map(([k, [n, r]]) => `<button class="chip" type="button" role="radio" data-level="${k}" aria-checked="${level === k}">${n} · розд. ${r[0]}–${r[1]}</button>`).join('')}</div>
     <section class="card today"><span><b>Сьогодні: ${done} ${plural(done, 'відповідь', 'відповіді', 'відповідей')}</b><br><span class="note">${done >= GOAL ? '✓ Денну норму виконано' : `Норма — ${GOAL} на день`}</span></span>${st ? `<span class="note">🔥 ${st} ${plural(st, 'день', 'дні', 'днів')} поспіль</span>` : ''}</section>
     ${all.length ? `<button class="bigbtn" type="button" data-start="mix">Повторити помилки · ${all.length}</button>` : ''}
     <div class="trs">${TRAINERS.map((t) => { const n = dueOf(t.id); return `<button class="tr" type="button" data-start="${t.id}">${n ? `<span class="due" aria-label="На повторення: ${n}">${n}</span>` : ''}<span class="i" aria-hidden="true">${t.icon}</span><b>${esc(t.uk)}</b><small lang="de">${esc(t.note)}</small></button>`; }).join('')}
@@ -143,7 +143,7 @@ function renderTalk() {
   if (!chat) {
     v.innerHTML = `<div class="backrow"><button class="linkbtn" type="button" data-quit>← Тренажери</button></div>
       <section class="card"><h2 style="margin:0 0 6px">Розмова з ШІ</h2><p class="note">Вибери ситуацію й пиши німецькою, як у житті. ШІ відповідає простими реченнями й після кожного твого рядка показує, що виправити.</p>
-      <div class="chips" style="margin-top:10px" role="radiogroup" aria-label="Рівень мови">${['a1', 'a2', 'b1'].map((l) => `<button class="chip" type="button" role="radio" data-tlevel="${l}" aria-pressed="${TALK.level === l}" aria-checked="${TALK.level === l}">${l.toUpperCase()}</button>`).join('')}</div></section>
+      <div class="chips" style="margin-top:10px" role="radiogroup" aria-label="Рівень мови">${['a1', 'a2', 'b1'].map((l) => `<button class="chip" type="button" role="radio" data-tlevel="${l}" aria-checked="${TALK.level === l}">${l.toUpperCase()}</button>`).join('')}</div></section>
       <div class="scn">${SCN.map(([id, ic, uk]) => `<button class="tr" type="button" data-scn="${id}"><span class="i" aria-hidden="true">${ic}</span><b>${esc(uk)}</b></button>`).join('')}</div>
       ${can ? '' : '<p class="note">Розмова працює через бота: відкрий «Німецька» в Telegram, щоб писати ШІ.</p>'}`;
     return;

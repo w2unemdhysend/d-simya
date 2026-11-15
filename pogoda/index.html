@@ -127,6 +127,7 @@ h2.lab{font-family:var(--f-body);font-weight:600;font-size:12px;letter-spacing:.
 /* the bot: warnings in Telegram */
 .remind .row{display:flex;align-items:center;justify-content:space-between;gap:16px}
 .switch{flex:none;position:relative;width:60px;height:36px;border-radius:999px;border:0;background:var(--line);cursor:pointer;padding:0;transition:background-color .25s ease}
+.switch::before{content:"";position:absolute;inset:-4px -2px}
 .switch::after{content:"";position:absolute;top:4px;left:4px;width:28px;height:28px;border-radius:50%;background:#FFFFFF;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .25s cubic-bezier(.3,.9,.3,1)}
 .switch[aria-checked="true"]{background:var(--on)}
 .switch[aria-checked="true"]::after{transform:translateX(24px)}
@@ -138,7 +139,7 @@ h2.lab{font-family:var(--f-body);font-weight:600;font-size:12px;letter-spacing:.
 .remind .state.on{color:var(--on)}
 .remind .state.err{color:var(--danger)}
 .levels{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
-.levels .chip{min-height:40px;font-size:14.5px}
+.levels .chip{min-height:44px;font-size:14.5px}
 .foot{margin-top:16px;font-size:13px;color:var(--muted)}
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
 @media (min-width:480px){h1{font-size:38px}}
@@ -183,7 +184,7 @@ h2.lab{font-family:var(--f-body);font-weight:600;font-size:12px;letter-spacing:.
       <p class="state" id="sw-state" aria-live="polite"></p>
     </section>
   </main>
-  <p class="foot">Попередження: <a href="https://www.dwd.de/DE/wetter/warnungen_gemeinden/warnWetter_node.html" target="_blank" rel="noopener">Deutscher Wetterdienst</a> (через Bright Sky), оновлюються кожні 5 хвилин. Прогноз: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (CC BY 4.0) з моделей DWD та інших метеослужб. Оновлюються кожні 10 хвилин. Місце «Тут» округлюється приблизно до кілометра й ніде не зберігається.</p>
+  <p class="foot" role="contentinfo">Попередження: <a href="https://www.dwd.de/DE/wetter/warnungen_gemeinden/warnWetter_node.html" target="_blank" rel="noopener">Deutscher Wetterdienst</a> (через Bright Sky), оновлюються кожні 5 хвилин. Прогноз: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (CC BY 4.0) з моделей DWD та інших метеослужб. Оновлюються кожні 10 хвилин. Місце «Тут» округлюється приблизно до кілометра й ніде не зберігається.</p>
 </div>
 <script src="../assets/ui.js?v=06f89557"></script>
 <script type="module">

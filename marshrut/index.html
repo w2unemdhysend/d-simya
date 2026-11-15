@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@600;700&display=swap">
-<link rel="stylesheet" href="../assets/page.css?v=0b90d112">
+<link rel="stylesheet" href="../assets/page.css?v=5c607465">
 <style>
 /* Layout: one column. The two ends of the trip (tap one to choose a stop: saved stops as chips, or a search), when to
    leave, then the connections: each as a line "07:29 → 09:40 · 2 год 11 хв · 2 пересадки" with its lines as badges;
@@ -68,7 +68,7 @@
 .gobtns .btn.ghostbtn{background:transparent;color:var(--ink);border:1px solid var(--line)}
 .res-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:6px 2px -2px}
 .res-head h2{font-size:17px}
-.save{min-height:40px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:transparent;font-weight:600;font-size:14.5px;cursor:pointer;white-space:nowrap}
+.save{min-height:44px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:transparent;font-weight:600;font-size:14.5px;cursor:pointer;white-space:nowrap}
 .save[aria-pressed="true"]{background:var(--accent-soft);border-color:transparent}
 .trips{list-style:none;margin:0;padding:0;display:grid;gap:10px}
 .trip{background:var(--surface);border:1px solid var(--line);border-radius:16px}
@@ -129,7 +129,7 @@ a.lnmap:active{transform:scale(.95)}
       <div class="pick" id="pick" hidden>
         <p class="lab" id="pick-lab"></p>
         <div class="chips" id="mine" style="margin:0 0 10px"></div>
-        <form class="srow" id="fform" role="search"><input id="q" type="search" autocomplete="off" enterkeyhint="search" spellcheck="false" lang="de" placeholder="місто й зупинка або вулиця" aria-label="Зупинка або вулиця"><button class="btn" id="fgo" type="submit">Знайти</button></form>
+        <form class="srow" id="fform" role="search"><input id="q" type="search" autocomplete="off" enterkeyhint="search" spellcheck="false" lang="de" placeholder="зупинка або вулиця" aria-label="Зупинка або вулиця"><button class="btn" id="fgo" type="submit">Знайти</button></form>
         <p class="msg" id="fmsg" hidden></p>
         <ul class="found" id="found"></ul>
       </div>
@@ -157,7 +157,7 @@ a.lnmap:active{transform:scale(.95)}
     <ol class="trips" id="trips"></ol>
     <button class="later" id="later" type="button" hidden>Пізніші</button>
   </main>
-  <div class="foot">
+  <div class="foot" role="contentinfo">
     <p lang="de">Fahrplanauskünfte werden durch den <a href="https://www.vrr.de" target="_blank" rel="noopener">VRR</a> zur Verfügung gestellt. Alle Angaben ohne Gewähr.</p>
     <p>Маршрути й час наживо: VRR OpenService, без гарантії. Перед поїздкою з пересадкою перевір табло на станції.</p>
   </div>

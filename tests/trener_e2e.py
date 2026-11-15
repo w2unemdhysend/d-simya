@@ -112,7 +112,7 @@ async def main():
             check('…tapped in the right order: right', 'Правильно' in await pg.text_content('#fb'))
         await pg.click('[data-quit]'); await pg.wait_for_timeout(200)
         await pg.click('[data-level="a2"]'); await pg.reload(); await pg.wait_for_timeout(400)
-        check('the level is kept', await pg.get_attribute('[data-level="a2"]', 'aria-pressed') == 'true')
+        check('the level is kept', await pg.get_attribute('[data-level="a2"]', 'aria-checked') == 'true')
         await pg.click('[data-talk]'); await pg.wait_for_timeout(200)
         await pg.click('[data-scn="arzt"]'); await pg.wait_for_timeout(200)
         check('conversation outside Telegram: the first line is there, writing explains it needs the bot', 'Praxis Dr. Becker' in await pg.text_content('#chat') and await pg.is_disabled('#t-in') and 'через бота' in await pg.text_content('#view-talk'))

@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@600;700&display=swap">
-<link rel="stylesheet" href="../../assets/page.css?v=0b90d112">
+<link rel="stylesheet" href="../../assets/page.css?v=5c607465">
 <style>
 /* «Leben in Deutschland»: a hub (how much is learned, the ways to practise, the topics), a question (German as on the
    test, the Ukrainian under it; the choice marked right or wrong at once), the exam (33 questions, 60 minutes, the
@@ -37,7 +37,7 @@
 .topics .t small{display:block;color:var(--muted);font-size:13px}
 .topics .n{font-variant-numeric:tabular-nums;color:var(--muted);font-size:14px}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
-.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip[aria-pressed="true"],.chip[aria-checked="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .head{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .linkbtn{border:0;background:none;color:var(--ink);text-decoration:underline;font:inherit;cursor:pointer;padding:8px 0;min-height:44px}
 .qcard{display:grid;gap:8px}
@@ -90,10 +90,10 @@
     <section class="view" id="view-run" hidden></section>
     <section class="view" id="view-list" hidden></section>
   </main>
-  <p class="foot src" id="src"></p>
+  <p class="foot src" id="src" role="contentinfo"></p>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="../../assets/ui.js?v=06f89557"></script>
-<script type="module" src="app.js?v=259087fe"></script>
+<script type="module" src="app.js?v=977c7ca1"></script>
 </body>
 </html>

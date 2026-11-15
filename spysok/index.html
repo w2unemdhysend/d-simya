@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>(function(){try{var s=null;try{s=localStorage.getItem('dsimya-theme')}catch(e){}var w=window.Telegram&&Telegram.WebApp;var tg=w&&w.platform&&w.platform!=='unknown';var t=s||(tg?(w.colorScheme==='dark'?'dark':'light'):(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));document.documentElement.setAttribute('data-theme',t);if(s2())document.documentElement.setAttribute('data-big','1')}catch(e){}function s2(){try{return localStorage.getItem('dsimya-big')==='1'}catch(e){return false}}})();addEventListener('unhandledrejection',function(e){var r=e.reason;if(r&&/Transition was (aborted|skipped)/.test(r.message||''))e.preventDefault()});</script>
-<title>Покупки</title>
+<title>Список покупок</title>
 <link rel="manifest" href="../manifest.webmanifest">
 <link rel="icon" href="../assets/icons/favicon-48.png" sizes="48x48">
 <link rel="apple-touch-icon" href="../assets/icons/apple-180.png">
@@ -63,7 +63,7 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-top:10px}
 .again > span{display:block;font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 .again .shops{margin-top:8px}
 .again .chip small{font-weight:400;color:var(--muted);margin-left:6px}
-.chip{flex:none;min-height:40px;padding:0 13px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-weight:600;font-size:14.5px;cursor:pointer;white-space:nowrap;transition:background-color .2s ease, color .2s ease}
+.chip{flex:none;min-height:44px;padding:0 13px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-weight:600;font-size:14.5px;cursor:pointer;white-space:nowrap;transition:background-color .2s ease, color .2s ease}
 .chip[aria-checked="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 
 .sync{display:flex;align-items:center;gap:8px;margin:2px 2px 0;font-size:14px;color:var(--muted);min-height:20px}
@@ -121,7 +121,7 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-top:10px}
   <header class="top">
     <div class="toprow"><button class="menubtn" id="menubtn" type="button" aria-expanded="false" aria-controls="drawer" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Розділи</span></button><button class="themebtn" id="themebtn" type="button" aria-label="Увімкнути темну тему"><svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M5.3 18.7L7 17M17 7l1.7-1.7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.6A8.2 8.2 0 0 1 9.4 4a8.2 8.2 0 1 0 10.6 10.6z" fill="currentColor"/></svg></button></div>
     <div class="eyebrow">Для всієї родини</div>
-    <h1>Покупки</h1>
+    <h1>Список покупок</h1>
     <p class="lede">Спільний список: що купити, де, і хто вже купив.</p>
   </header>
   <main id="app" hidden>
@@ -155,7 +155,7 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-top:10px}
     <h2>Список працює в Telegram</h2>
     <p class="note">Щоб список був спільним для родини, відкрий D-SIM’YA через бота в Telegram.</p>
   </section>
-  <p class="foot">Список зберігається на сервері застосунку, і бачать його лише ті, кого ти запросив. Без інтернету зміни чекають і надсилаються, щойно зв’язок повернеться.</p>
+  <p class="foot" role="contentinfo">Список зберігається на сервері застосунку, і бачать його лише ті, кого ти запросив. Без інтернету зміни чекають і надсилаються, щойно зв’язок повернеться.</p>
 </div>
 <script src="../assets/ui.js?v=06f89557"></script>
 <script type="module">

@@ -61,6 +61,7 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;padding-top:8px}
 
 .remind .row{display:flex;align-items:center;justify-content:space-between;gap:16px}
 .switch{flex:none;position:relative;width:60px;height:36px;border-radius:999px;border:0;background:var(--line);cursor:pointer;padding:0;transition:background-color .25s ease}
+.switch::before{content:"";position:absolute;inset:-4px -2px}
 .switch::after{content:"";position:absolute;top:4px;left:4px;width:28px;height:28px;border-radius:50%;background:#FFFFFF;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .25s cubic-bezier(.3,.9,.3,1)}
 .switch[aria-checked="true"]{background:var(--on)}
 .switch[aria-checked="true"]::after{transform:translateX(24px)}
@@ -108,7 +109,7 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;padding-top:8px}
 /* "where does it go": a search field, a few things to try, then each match with its place */
 .wq{width:100%;min-height:50px;margin-top:10px;border-radius:14px;border:1px solid var(--line);background:var(--surface);padding:0 14px;font:inherit;color:inherit}
 .wtry{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-.wtry button{min-height:40px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:transparent;font:600 14.5px/1 var(--f-body);color:inherit;cursor:pointer}
+.wtry button{min-height:44px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:transparent;font:600 14.5px/1 var(--f-body);color:inherit;cursor:pointer}
 .wres{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:8px}
 .wres li{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
 .wres .what{font-weight:600;font-size:16.5px;line-height:1.3}
@@ -150,11 +151,11 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;padding-top:8px}
   <main>
     <section class="card where" id="where" aria-labelledby="h-where">
       <div class="sum" id="where-sum" hidden>
-        <div><div class="eyebrow">Ваш район</div><h2 id="h-where">…</h2><p class="note" id="where-note"></p></div>
+        <div><div class="eyebrow">Твій район</div><h2 id="h-where">…</h2><p class="note" id="where-note"></p></div>
         <button class="ghost" id="where-edit" type="button" aria-expanded="false" aria-controls="where-form">Змінити</button>
       </div>
       <form class="wform" id="where-form" novalidate>
-        <div id="where-intro"><h2>Де ви живете?</h2>
+        <div id="where-intro"><h2>Де ти живеш?</h2>
           <p class="note">У Ксантені два райони вивозу, і дати в них різні. Введи свою вулицю, і застосунок підкаже район. Вулиця зберігається тільки в тебе: на цьому пристрої й у твоєму Telegram.</p></div>
         <label class="fld"><span>Вулиця в Ксантені</span>
           <div class="srow"><input id="street" type="text" autocomplete="off" enterkeyhint="search" spellcheck="false" lang="de" placeholder="наприклад, Kalkarer Straße"><button class="btn" id="find" type="submit">Знайти</button></div></label>
@@ -233,7 +234,7 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;padding-top:8px}
     </section>
   </main>
 
-  <p class="foot" id="foot"></p>
+  <p class="foot" id="foot" role="contentinfo"></p>
 </div>
 
 <script src="../assets/ui.js?v=06f89557"></script>

@@ -47,10 +47,11 @@ body.mapapp::before{display:none}
 .sheet{position:absolute;left:0;right:0;bottom:0;z-index:6;height:var(--sheet-h);max-width:600px;margin:0 auto;display:flex;flex-direction:column;background:var(--surface);
   border:1px solid var(--line);border-bottom:0;border-radius:20px 20px 0 0;box-shadow:0 -6px 24px rgba(0,0,0,.14);padding-bottom:var(--sab);will-change:transform}
 .sheet::after{content:"";position:absolute;left:-1px;right:-1px;top:100%;height:70vh;background:var(--surface);border:1px solid var(--line);border-top:0;pointer-events:none}
-.grip{flex:none;display:grid;place-items:center;height:22px;border:0;background:transparent;cursor:grab;touch-action:none;padding:0}
+.grip{flex:none;position:relative;display:grid;place-items:center;height:22px;border:0;background:transparent;cursor:grab;touch-action:none;padding:0}
+.grip::before{content:"";position:absolute;inset:-11px 0}
 .grip span{width:40px;height:5px;border-radius:999px;background:var(--line)}
 .shead{flex:none;display:flex;align-items:flex-start;gap:6px;padding:0 16px 10px;touch-action:none;cursor:grab}
-.sback{flex:none;width:40px;height:40px;margin:-4px 0 0 -10px;border-radius:12px;border:0;background:transparent;display:grid;place-items:center;cursor:pointer;color:var(--ink)}
+.sback{flex:none;width:44px;height:44px;margin:-4px 0 0 -10px;border-radius:12px;border:0;background:transparent;display:grid;place-items:center;cursor:pointer;color:var(--ink)}
 .sback svg{width:22px;height:22px}
 .sback:active{background:var(--bg)}
 .stitle{flex:1;min-width:0}
@@ -221,7 +222,7 @@ h3.sub{margin:16px 0 0;font:600 12px/1.4 var(--f-body);letter-spacing:.12em;text
 /* my places: chips in the sheet, little signs on the map */
 .pchips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:2px 16px 4px;scroll-padding:16px}
 .pchips::-webkit-scrollbar{display:none}
-.pchip{flex:none;display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 12px 0 10px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--ink);
+.pchip{flex:none;display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 12px 0 10px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--ink);
   font:600 14.5px var(--f-body);cursor:pointer;touch-action:manipulation;transition:transform .15s ease}
 .pchip:active{transform:scale(.95)}
 .pchip svg{width:18px;height:18px;color:var(--walk)}
@@ -251,3 +252,5 @@ h3.sub{margin:16px 0 0;font:600 12px/1.4 var(--f-body);letter-spacing:.12em;text
 .city .ci.ok{color:var(--on)}
 .city .ci.busy svg{animation:pulse 1s ease-in-out infinite alternate}
 .city small{color:var(--muted)}
+/* keyboard focus on the search field shows a ring like every other control */
+#q:focus-visible{outline:2px solid var(--ink);outline-offset:2px}

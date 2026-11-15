@@ -113,6 +113,7 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-top:10px}
 /* Monday reminder (same switch as on the waste page) */
 .remind .row{display:flex;align-items:center;justify-content:space-between;gap:16px}
 .switch{flex:none;position:relative;width:60px;height:36px;border-radius:999px;border:0;background:var(--line);cursor:pointer;padding:0;transition:background-color .25s ease}
+.switch::before{content:"";position:absolute;inset:-4px -2px}
 .switch::after{content:"";position:absolute;top:4px;left:4px;width:28px;height:28px;border-radius:50%;background:#FFFFFF;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .25s cubic-bezier(.3,.9,.3,1)}
 .switch[aria-checked="true"]{background:var(--on)}
 .switch[aria-checked="true"]::after{transform:translateX(24px)}
@@ -170,7 +171,7 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-top:10px}
       <p>Деякі сайти один раз просять вибрати магазин («Markt wählen» або «Filiale wählen»). У EDEKA й REWE кожен магазин має власний проспект, тому там кнопки окремі для кожної адреси.</p>
     </section>
   </main>
-  <p class="foot">Адреси REWE, EDEKA, dm і Rossmann взято з пошуку магазинів на сайтах мереж, решту з OpenStreetMap, програми знижок за оглядом MonsterDealz і сайтами мереж, станом на жовтень–листопад 2026. Якщо щось змінилося, напиши, і я виправлю.</p>
+  <p class="foot" role="contentinfo">Адреси REWE, EDEKA, dm і Rossmann взято з пошуку магазинів на сайтах мереж, решту з OpenStreetMap, програми знижок за оглядом MonsterDealz і сайтами мереж, станом на жовтень–листопад 2026. Якщо щось змінилося, напиши, і я виправлю.</p>
 </div>
 <script src="../assets/ui.js?v=06f89557"></script>
 <script type="module">

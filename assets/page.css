@@ -28,7 +28,7 @@ a{color:inherit}
 h1{font-family:var(--f-display);font-weight:700;font-size:32px;line-height:1.05;margin:6px 0 8px;letter-spacing:-.01em}
 .lede{margin:0;color:var(--muted);font-size:16px;max-width:44ch}
 h2{font-family:var(--f-display);font-weight:600;font-size:18px;line-height:1.2;margin:0}
-h3.group{margin:8px 2px -4px;font:600 12px/1.4 var(--f-body);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+h3.group,h2.group{margin:8px 2px -4px;font:600 12px/1.4 var(--f-body);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-top:10px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;min-width:0}
 .note{margin:4px 0 0;color:var(--muted);font-size:15px;line-height:1.4}
@@ -37,6 +37,7 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-top:10px}
 .row{display:flex;align-items:center;justify-content:space-between;gap:16px}
 .switch{flex:none;position:relative;width:60px;height:36px;border-radius:999px;border:0;background:var(--line);cursor:pointer;padding:0;transition:background-color .25s ease}
 .switch::after{content:"";position:absolute;top:4px;left:4px;width:28px;height:28px;border-radius:50%;background:#FFFFFF;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .25s cubic-bezier(.3,.9,.3,1)}
+.switch::before{content:"";position:absolute;inset:-4px -2px}
 .switch[aria-checked="true"]{background:var(--on)}
 .switch[aria-checked="true"]::after{transform:translateX(24px)}
 .switch:disabled{opacity:.45;cursor:default}

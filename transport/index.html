@@ -92,7 +92,7 @@ details[open] > summary .chev{transform:rotate(180deg)}
 .chip.add{border-style:dashed}
 .chip .pinned{width:14px;height:14px;margin-left:-2px}
 .pinrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:10px}
-.pinbtn{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--ink);
+.pinbtn{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--ink);
   font-weight:600;font-size:14.5px;cursor:pointer;transition:background-color .2s ease, color .2s ease, border-color .2s ease}
 .pinbtn svg{width:16px;height:16px}
 .pinbtn[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent)}
@@ -112,7 +112,7 @@ details[open] > summary .chev{transform:rotate(180deg)}
 @keyframes spin{to{transform:rotate(360deg)}}
 
 .seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:4px;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:3px;margin-top:12px}
-.seg button{border:0;background:transparent;border-radius:9px;min-height:40px;font-weight:600;font-size:15px;cursor:pointer;transition:background-color .2s ease, color .2s ease}
+.seg button{border:0;background:transparent;border-radius:9px;min-height:44px;font-weight:600;font-size:15px;cursor:pointer;transition:background-color .2s ease, color .2s ease}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
 
 /* one time column for all rows, as wide as the widest time ("зараз" in Unbounded at 18 px needs ~70 px): it never runs
@@ -247,7 +247,7 @@ a.deplink:active{background:var(--bg);transform:scale(.99)}
       <button class="linkbtn" id="remove" type="button" hidden>Прибрати цю зупинку з моїх</button>
     </section>
   </main>
-  <div class="foot">
+  <div class="foot" role="contentinfo">
     <p lang="de">Fahrplanauskünfte werden durch den <a href="https://www.vrr.de" target="_blank" rel="noopener">VRR</a> zur Verfügung gestellt. Alle Angaben ohne Gewähr.</p>
     <p>Розклад і час наживо: VRR OpenService, без гарантії. Погода: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (CC BY 4.0).</p>
   </div>

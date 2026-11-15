@@ -121,7 +121,7 @@ function renderHub() {
     `<a class="tile" href="../igry/?tab=garten" id="to-garden"><span class="ic">${ICON('<path d="M12 21v-8"/><path d="M12 13c0-4 3-6.5 7-6.5 0 4-3 6.5-7 6.5z"/><path d="M12 16c0-3-2.4-5-5.5-5 0 3 2.4 5 5.5 5z"/><path d="M7.5 21h9"/>')}</span><span><b>Сад слів</b><small>${g.thirsty ? `💧 ${g.thirsty} ${plural(g.thirsty, 'слово чекає', 'слова чекають', 'слів чекають')} повторення` : g.planted ? `${g.planted} ${plural(g.planted, 'слово росте', 'слова ростуть', 'слів ростуть')}` : 'Повторювати слова щодня'}</small></span></a>` +
     `</div>` +
     [...new Set(CHAPTERS.map((c) => c.part))].map((part) => { const list = CHAPTERS.filter((c) => c.part === part);
-      return `<h3 class="group">${part} · розділи ${list[0].n}–${list[list.length - 1].n}</h3><div class="card list">${list.map(row).join('')}</div>`; }).join('') +
+      return `<h2 class="group">${part} · розділи ${list[0].n}–${list[list.length - 1].n}</h2><div class="card list">${list.map(row).join('')}</div>`; }).join('') +
     `<p class="note small">Розділи A1 і їхня граматика йдуть у тому ж порядку, що й у підручнику Die neue Linie 1 (Klett), тож цю частину можна проходити разом із книжкою; назви розділів 9–16 наші. Розділи A2 охоплюють граматику й теми рівня A2 (як для іспиту Goethe-Zertifikat A2), розділи B1 — рівня B1 (Goethe-Zertifikat B1 і DTZ) на ситуаціях із життя: робота, лікарня, оренда, школа, банк, установи. Пояснення, приклади, діалоги й вправи всюди власні.</p>`;
 }
 $('#view-hub').addEventListener('click', (e) => {
@@ -162,7 +162,7 @@ function renderChapter() {
       `<div class="card wtools"><p class="note">${words.length} ${plural(words.length, 'запис', 'записи', 'записів')}: слова й фрази розділу. Торкнись рядка, щоб послухати.</p>` +
       `<div class="wbtns">${nouns.length ? `<button class="btn" type="button" id="plant">🌱 Посадити ${nouns.length} ${plural(nouns.length, 'іменник', 'іменники', 'іменників')} у «Сад слів»</button>` : ''}` +
       `<button class="btn" type="button" id="hideuk" aria-pressed="false">Сховати переклад</button></div></div>` +
-      GROUPS.map(([k, name]) => { const list = words.filter((e) => e.kind === k); return list.length ? `<h3 class="group">${name}</h3><ul class="card words">${list.map((e) => wordRow(e)).join('')}</ul>` : ''; }).join('') +
+      GROUPS.map(([k, name]) => { const list = words.filter((e) => e.kind === k); return list.length ? `<h2 class="group">${name}</h2><ul class="card words">${list.map((e) => wordRow(e)).join('')}</ul>` : ''; }).join('') +
       `<button class="btn primary" type="button" data-tabgo="phr">Далі: фрази й діалог</button></div>` +
     `<div class="view panel" id="p-phr" role="tabpanel" aria-labelledby="tab-phr"${tab === 'phr' ? '' : ' hidden'}>` +
       c.phrases.map((g) => `<div class="card phr"><h2>${esc(g.t)}</h2><ul class="ex">${g.list.map(([de, uk]) => `<li><span lang="de">${md(de)}</span><small>${md(uk)}</small></li>`).join('')}</ul></div>`).join('') +
@@ -326,7 +326,9 @@ function listDict() {
   $('#dmore').hidden = list.length <= D.shown;
   $('#dmore').textContent = `Показати ще (${Math.max(0, list.length - D.shown)})`;
 }
-$('#view-dict').addEventListener('input', (e) => { if (e.target.id === 'dq') { D.q = e.target.value; D.shown = 120; listDict(); } });
+// the list of 2000+ words is rebuilt once typing pauses, so each letter appears at once even on a slow phone
+let dictTimer = 0;
+$('#view-dict').addEventListener('input', (e) => { if (e.target.id === 'dq') { D.q = e.target.value; D.shown = 120; clearTimeout(dictTimer); dictTimer = setTimeout(listDict, 140); } });
 $('#view-dict').addEventListener('change', (e) => { if (e.target.id === 'dch') { D.ch = Number(e.target.value); D.shown = 120; listDict(); } });
 $('#view-dict').addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.id === 'dq') e.target.blur(); });
 $('#view-dict').addEventListener('click', (e) => {
@@ -340,7 +342,7 @@ $('#view-dict').addEventListener('click', (e) => {
 function renderGram() {
   $('#view-gram').innerHTML = `<p class="note">Усі теми курсу за видами. Торкнись теми, щоб відкрити її в розділі.</p>` + Object.entries(CATS).map(([cat, name]) => {
     const list = CHAPTERS.flatMap((c) => c.grammar.filter((g) => g.cat === cat).map((g) => ({ c, g })));
-    return list.length ? `<h3 class="group">${name}</h3><div class="card list">${list.map(({ c, g }) => `<a class="chrow" href="?ch=${c.n}&amp;t=${g.id}" data-ch="${c.n}" data-topic="${g.id}"><span class="num">${c.n}</span><span class="t"><b>${esc(g.t)}</b><small>${esc(c.title)}</small></span>${GO}</a>`).join('')}</div>` : '';
+    return list.length ? `<h2 class="group">${name}</h2><div class="card list">${list.map(({ c, g }) => `<a class="chrow" href="?ch=${c.n}&amp;t=${g.id}" data-ch="${c.n}" data-topic="${g.id}"><span class="num">${c.n}</span><span class="t"><b>${esc(g.t)}</b><small>${esc(c.title)}</small></span>${GO}</a>`).join('')}</div>` : '';
   }).join('');
 }
 $('#view-gram').addEventListener('click', (e) => {

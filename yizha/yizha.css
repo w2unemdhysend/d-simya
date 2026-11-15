@@ -140,7 +140,7 @@ html.sheet-open,html.sheet-open body{overflow:hidden}
 h3.group{margin:6px 2px -4px}
 .cats{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px 2px}
 .cats::-webkit-scrollbar{display:none}
-.cats .chip{flex:none;min-height:40px;font-size:14.5px}
+.cats .chip{flex:none;min-height:44px;font-size:14.5px}
 .loading{color:var(--muted);font-size:14.5px;padding:6px 2px;display:flex;align-items:center;gap:8px}
 .loading::before{content:"";width:16px;height:16px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--ink);animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}

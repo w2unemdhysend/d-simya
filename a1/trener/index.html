@@ -13,14 +13,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@600;700&display=swap">
-<link rel="stylesheet" href="../../assets/page.css?v=0b90d112">
+<link rel="stylesheet" href="../../assets/page.css?v=5c607465">
 <style>
 /* The trainers: a hub (level, today's count and streak, a card per trainer with what is due again, «Розмова з ШІ»),
    a session of ten questions (the task big, the choices as large buttons, at once right or wrong with the rule), and
    the conversation (a chat: the AI answers as the other side, each line of mine gets ✓ or the corrected sentence). */
 .view{display:grid;gap:12px}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
-.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip[aria-pressed="true"],.chip[aria-checked="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .today{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
 .today b{font-size:18px}
 .trs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
@@ -86,10 +86,10 @@
     <section class="view" id="view-run" hidden></section>
     <section class="view" id="view-talk" hidden></section>
   </main>
-  <p class="foot">Вправи складено зі словника й прикладів курсу «Німецька A1–B1». Прогрес зберігається на цьому телефоні.</p>
+  <p class="foot" role="contentinfo">Вправи складено зі словника й прикладів курсу «Німецька A1–B1». Прогрес зберігається на цьому телефоні.</p>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="../../assets/ui.js?v=06f89557"></script>
-<script type="module" src="app.js?v=8bd63d25"></script>
+<script type="module" src="app.js?v=4e65b45f"></script>
 </body>
 </html>

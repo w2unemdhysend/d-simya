@@ -171,7 +171,7 @@ td{min-width:4.5em}
 /* the dictionary */
 .find{width:100%;min-height:48px;border-radius:14px;border:1px solid var(--line);background:var(--bg);padding:0 14px;font-size:17px;color:var(--ink)}
 .dsearch .chips{margin-top:10px}
-.dsearch .chip{min-height:40px;padding:0 12px;font-size:14.5px}
+.dsearch .chip{min-height:44px;padding:0 12px;font-size:14.5px}
 .sel{display:block;width:100%;margin-top:10px;min-height:46px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;font-size:15.5px;padding:0 10px}
 #dcount{margin:0 2px}
 

@@ -180,18 +180,25 @@ main{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-top:14px}
       <a class="tile" href="scan/" style="--i:9"><span class="ic" data-icon="scan"></span><span><b>Сканер</b><small>Фото документа в PDF і переклад</small></span></a>
       <a class="tile" href="ekstreno/" style="--i:10"><span class="ic" data-icon="sos"></span><span><b>Екстрено</b><small>112, черговий лікар, аптека</small></span></a>
       <a class="tile quiet" href="rozmovnyk/" style="--i:11"><span class="ic" data-icon="talk"></span><span><b>Розмовник</b><small>Фрази для лікаря й установ</small></span></a>
+      <a class="tile quiet" href="misto/" style="--i:12"><span class="ic" data-icon="city"></span><span><b>Установи й події</b><small>Адреси, години, запис</small></span></a>
     </div>
     <div class="group">Навчання</div>
-    <a class="tile quiet" href="a1/" style="--i:12"><span class="ic" data-icon="book"></span><span><b>Німецька A1–B1</b><small id="a1-sub">Граматика, словник з озвученням, вправи</small></span></a>
+    <a class="tile quiet" href="a1/" style="--i:13"><span class="ic" data-icon="book"></span><span><b>Німецька A1–B1</b><small id="a1-sub">Граматика, словник з озвученням, вправи</small></span></a>
+    <div class="grid2">
+      <a class="tile quiet" href="a1/trener/" style="--i:14"><span class="ic" data-icon="pulse"></span><span><b>Тренажери</b><small>Вправи й розмова з ШІ</small></span></a>
+      <a class="tile quiet" href="a1/lid/" style="--i:15"><span class="ic" data-icon="check"></span><span><b>Leben in Deutschland</b><small>Тест: 310 питань</small></span></a>
+      <a class="tile quiet" href="a1/dtz/" style="--i:16"><span class="ic" data-icon="book"></span><span><b>DTZ · B1</b><small>Іспит курсу інтеграції</small></span></a>
+      <a class="tile quiet" href="igry/" style="--i:17"><span class="ic" data-icon="game"></span><span><b>Мініігри</b><small>Німецька граючись</small></span></a>
+    </div>
     <div class="group">Інструкції</div>
     <div class="grid2">
-      <a class="tile quiet" href="pralka/" style="--i:13"><span class="ic" data-icon="wash"></span><span><b>Пралка</b><small>Beko</small></span></a>
-      <a class="tile quiet" href="sushka/" style="--i:14"><span class="ic" data-icon="dry"></span><span><b>Сушарка</b><small>Gorenje</small></span></a>
+      <a class="tile quiet" href="pralka/" style="--i:18"><span class="ic" data-icon="wash"></span><span><b>Пралка</b><small>Beko</small></span></a>
+      <a class="tile quiet" href="sushka/" style="--i:19"><span class="ic" data-icon="dry"></span><span><b>Сушарка</b><small>Gorenje</small></span></a>
     </div>
     <div class="group">Telegram</div>
-    <a class="tile quiet" href="bot/" style="--i:15"><span class="ic" data-icon="bell"></span><span><b>Бот</b><small>Ранкове зведення, команди в чаті, сповіщення</small></span></a>
+    <a class="tile quiet" href="bot/" style="--i:20"><span class="ic" data-icon="bell"></span><span><b>Бот</b><small>Ранкове зведення, команди в чаті, сповіщення</small></span></a>
   </main>
-  <p class="foot">D-SIM’YA — помічник для життя в Німеччині. Свайп від лівого краю відкриває розділи.</p>
+  <p class="foot" role="contentinfo">D-SIM’YA — помічник для життя в Німеччині. Свайп від лівого краю відкриває розділи.</p>
 </div>
 <script src="assets/ui.js?v=06f89557"></script>
 <script type="module">
@@ -383,7 +390,7 @@ if (tg && tg.initData) {
       : s.days.includes(wd)
         ? `<div class="big">Сьогодні: ${esc(name)}</div><p class="sub">≈ ${mins} хв · ${week}</p>`
         : `<div class="big">Сьогодні відпочинок</div><p class="sub">Наступне: ${esc(name)} · ${week}. Прогулянка теж рахується.</p>`;
-  } else $('#sport-body').innerHTML = '<div class="big">Вправи вдома з анімацією</div><p class="sub">Дві програми без інвентарю й нагадування від бота.</p>';
+  } else $('#sport-body').innerHTML = '<div class="big">Вправи вдома з анімацією</div><p class="sub">Три програми без інвентарю, зарядка й нагадування від бота.</p>';
 }
 
 /* ---------- German A1–B1: where the course was left off (the course keeps it on the phone) ---------- */
